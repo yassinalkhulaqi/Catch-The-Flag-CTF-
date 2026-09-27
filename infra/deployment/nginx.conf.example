@@ -1,0 +1,45 @@
+# Catch The Flag — sample nginx site (provider-agnostic starting point)
+# See docs/deployment.md §5 for requirements. Adjust paths/domain.
+# Serves the Next.js app (BFF proxy handles /api/v1/* → Laravel internally).
+
+server {
+    listen 80;
+    server_name ctf.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ctf.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/ctf.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ctf.example.com/privkey.pem;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # must exceed MAX_CHALLENGE_FILE_MB (default 64) + overhead
+    client_max_body_size 80m;
+
+    # Next.js (BFF + UI)
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Optional: expose Laravel directly ONLY if not using the BFF proxy mode.
+    # Recommended: keep Laravel private and let Next.js call it internally.
+    # location /api/ {
+    #     proxy_pass http://127.0.0.1:8000;
+    #     proxy_set_header Host $host;
+    #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    #     proxy_set_header X-Forwarded-Proto $scheme;
+    # }
+}

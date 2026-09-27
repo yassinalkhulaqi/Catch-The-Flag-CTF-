@@ -1,0 +1,60 @@
+# Catch The Flag — local development services
+#
+#   docker compose up -d --build       → postgres + api (tooling container)
+#   docker compose exec api php …      → artisan / composer inside the API image
+#
+# The web app runs natively (npm run dev). See docs/development.md.
+
+name: ctf
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ctf-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-catch_the_flag}
+      POSTGRES_USER: ${POSTGRES_USER:-ctf}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ctf_secret_local_only}
+    ports:
+      # 5433 avoids clashing with any host-local PostgreSQL on 5432
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - ctf_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ctf} -d ${POSTGRES_DB:-catch_the_flag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: ctf-api
+    working_dir: /app/apps/api
+    volumes:
+      - .:/app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      APP_URL: http://localhost:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # long-running tooling container (composer/artisan/serve on demand)
+    command: ["sh", "-c", "echo 'CTF API container ready' && while :; do sleep 3600; done"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: ctf-redis
+    profiles: ["redis"]           # opt-in: docker compose --profile redis up -d
+    ports:
+      - "6379:6379"
+
+volumes:
+  ctf_pgdata:

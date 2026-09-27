@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Catch The Flag — design tokens (dark-first, restrained accent)
+   ============================================================ */
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --background: #0b0f14;
+  --surface: #111820;
+  --surface-raised: #161f29;
+  --border: #22303c;
+  --border-strong: #2f4152;
+
+  /* text */
+  --foreground: #e7eef4;
+  --muted: #93a4b3;
+  --faint: #63747f;
+
+  /* brand: signal amber (flag marker) */
+  --accent: #f2b544;
+  --accent-hover: #ffc95c;
+  --accent-foreground: #1a1305;
+
+  /* semantic */
+  --success: #3fbf7f;
+  --success-foreground: #05160d;
+  --danger: #e5484d;
+  --danger-foreground: #ffffff;
+  --info: #56a8e5;
+
+  /* focus */
+  --ring: #f2b544;
+
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info: var(--info);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* keyboard focus, consistent everywhere */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* thin scrollbars, technical feel */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
