@@ -1,0 +1,13 @@
+.env
+apps/*/.env
+apps/*/.env.local
+node_modules/
+apps/web/.next/
+apps/api/vendor/
+apps/api/storage/*.key
+apps/api/storage/framework/*
+apps/api/storage/logs/*
+apps/api/bootstrap/cache/*.php
+!apps/api/storage/framework/.gitignore
+.DS_Store
+*.log
