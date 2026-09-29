@@ -44,6 +44,8 @@ export interface CurrentUser {
   avatar_url: string | null;
   created_at: string;
   achievements_count?: number;
+  /** Present on admin user list/detail responses only. */
+  banned_at?: string | null;
 }
 
 export interface AuthResponse {
