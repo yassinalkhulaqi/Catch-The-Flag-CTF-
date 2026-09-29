@@ -9,7 +9,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const auth: AuthResponse = await serverAuth("/auth/register", await body);
     await issueSession(auth.token ?? "", auth.expires_at);
-    const { token: _token, ...safe } = auth;
+    const { token, ...safe } = auth;
+    void token;
     return NextResponse.json({ data: safe }, { status: 201 });
   } catch (error) {
     return errorResponse(error);

@@ -131,15 +131,22 @@ export interface Lesson {
   next_lesson_id: number | null;
 }
 
+export interface ModuleLesson {
+  id: number;
+  title: string;
+  slug: string;
+  position: number;
+  completed: boolean;
+  estimated_minutes: number;
+}
+
 export interface ModuleDetail {
   id: number;
   path_id: number;
   title: string;
   description: string | null;
   position: number;
-  lessons: Array<
-    LessonChallengeRef & { position: number; completed: boolean; estimated_minutes: number }
-  >;
+  lessons: ModuleLesson[];
 }
 
 /* ---------- quiz ---------- */
@@ -255,8 +262,8 @@ export interface Achievement {
   title: string;
   description: string;
   icon: string | null;
-  awarded: boolean;
-  awarded_at: string | null;
+  awarded?: boolean;
+  awarded_at?: string | null;
   progress?: { current: number; target: number };
 }
 
@@ -285,4 +292,37 @@ export interface NotificationItem {
   data: { title: string; body?: string; url?: string };
   read_at: string | null;
   created_at: string;
+}
+
+/* ---------- admin ---------- */
+
+export interface AdminStats {
+  users: number;
+  challenges_published: number;
+  paths_published: number;
+  solves_total: number;
+}
+
+export interface ChallengeFlagMeta {
+  id: number;
+  label: string | null;
+  case_sensitive: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  actor_id: number | null;
+  actor?: { id: number; name: string } | null;
+  action: string;
+  auditable_type: string | null;
+  auditable_id: number | null;
+  changes: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface UserSettings {
+  email: string;
+  theme: "system" | "light" | "dark";
 }
