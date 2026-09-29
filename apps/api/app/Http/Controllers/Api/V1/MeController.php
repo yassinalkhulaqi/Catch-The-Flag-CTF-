@@ -132,21 +132,29 @@ final class MeController extends Controller
 
     public function settings(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         return response()->json(['data' => [
-            'email' => $request->user()->email,
-            'theme' => 'system',
+            'email' => $user->email,
+            'theme' => $user->themePreference(),
         ]]);
     }
 
     public function updateSettings(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'theme' => ['sometimes', 'string', 'in:system,light,dark'],
+            'theme' => ['required', 'string', 'in:system,light,dark'],
         ]);
 
+        $user = $request->user();
+        $prefs = $user->preferences ?? [];
+        $prefs['theme'] = $data['theme'];
+        // preferences is intentionally not mass-assignable — write via forceFill only.
+        $user->forceFill(['preferences' => $prefs])->save();
+
         return response()->json(['data' => [
-            'email' => $request->user()->email,
-            'theme' => $data['theme'] ?? 'system',
+            'email' => $user->email,
+            'theme' => $user->themePreference(),
         ]]);
     }
 }
