@@ -122,6 +122,15 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
                 <Link href="/dashboard" onClick={() => setOpen(false)} className={linkClass("/dashboard")}>
                   Dashboard
                 </Link>
+                {user.role !== "user" ? (
+                  <Link
+                    href="/admin"
+                    onClick={() => setOpen(false)}
+                    className={linkClass("/admin")}
+                  >
+                    Admin
+                  </Link>
+                ) : null}
                 <Button variant="ghost" size="sm" className="justify-start" onClick={logout}>
                   Log out
                 </Button>
