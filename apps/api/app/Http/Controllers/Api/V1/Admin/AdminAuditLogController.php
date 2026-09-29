@@ -14,7 +14,7 @@ final class AdminAuditLogController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isModerator(), 403);
+        $this->authorize('viewAuditLogs');
 
         $query = AuditLog::query()->with('actor')->orderByDesc('created_at');
         if ($request->filled('actor')) {

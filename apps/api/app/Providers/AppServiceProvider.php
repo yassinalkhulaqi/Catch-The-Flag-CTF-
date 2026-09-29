@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\FlagValidationType;
+use App\Enums\Role;
 use App\Models\Achievement;
 use App\Models\Category;
 use App\Models\Challenge;
@@ -63,6 +64,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Achievement::class, AchievementPolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Tag::class, TagPolicy::class);
+
+        Gate::define('viewAdminDashboard', fn (User $user): bool => $user->isAtLeast(Role::Moderator));
+        Gate::define('viewAuditLogs', fn (User $user): bool => $user->isAtLeast(Role::Moderator));
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute((int) config('ctf.rate_limits.api_per_minute', 300))
