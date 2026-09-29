@@ -65,9 +65,17 @@ async function proxy(
     return errorResponse(500, "server_error", "Upstream service unavailable.");
   }
 
-  const responseHeaders = new Headers({
-    "Content-Type": res.headers.get("Content-Type") ?? "application/json",
-  });
+  const responseHeaders = new Headers();
+  const contentType = res.headers.get("Content-Type");
+  if (contentType) responseHeaders.set("Content-Type", contentType);
+  else responseHeaders.set("Content-Type", "application/json");
+
+  const disposition = res.headers.get("Content-Disposition");
+  if (disposition) responseHeaders.set("Content-Disposition", disposition);
+
+  const contentLength = res.headers.get("Content-Length");
+  if (contentLength) responseHeaders.set("Content-Length", contentLength);
+
   const retryAfter = res.headers.get("Retry-After");
   if (retryAfter) responseHeaders.set("Retry-After", retryAfter);
 
