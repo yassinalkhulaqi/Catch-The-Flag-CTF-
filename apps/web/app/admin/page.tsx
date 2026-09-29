@@ -34,8 +34,11 @@ export default async function AdminHomePage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Users" value={formatXp(stats.users)} />
         <Stat label="Published challenges" value={String(stats.challenges_published)} />
+        <Stat label="Draft challenges" value={String(stats.challenges_draft ?? 0)} />
         <Stat label="Published paths" value={String(stats.paths_published)} />
+        <Stat label="Draft paths" value={String(stats.paths_draft ?? 0)} />
         <Stat label="Total solves" value={formatXp(stats.solves_total)} />
+        <Stat label="Banned users" value={String(stats.users_banned ?? 0)} />
       </div>
     </div>
   );

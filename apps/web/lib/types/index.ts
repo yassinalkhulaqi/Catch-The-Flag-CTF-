@@ -303,6 +303,9 @@ export interface AdminStats {
   challenges_published: number;
   paths_published: number;
   solves_total: number;
+  challenges_draft?: number;
+  paths_draft?: number;
+  users_banned?: number;
 }
 
 export interface ChallengeFlagMeta {
