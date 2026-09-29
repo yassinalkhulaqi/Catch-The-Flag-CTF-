@@ -72,7 +72,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('attempt_id')->constrained('quiz_attempts')->cascadeOnDelete();
             $table->foreignId('question_id')->constrained('quiz_questions')->cascadeOnDelete();
-            $table->integer('selected_option_ids')->isArray();
+            $table->jsonb('selected_option_ids');
             $table->boolean('is_correct')->default(false);
             $table->timestamps();
 

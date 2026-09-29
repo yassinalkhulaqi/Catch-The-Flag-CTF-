@@ -74,7 +74,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->char('flag_hash', 64);
             $table->boolean('is_correct')->default(false);
-            $table->inet('ip_address')->nullable();
+            $table->ipAddress('ip_address')->nullable();
             $table->string('user_agent', 255)->nullable();
             $table->timestamp('created_at')->useCurrent();
 

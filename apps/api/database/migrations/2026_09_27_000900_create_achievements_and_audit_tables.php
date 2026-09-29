@@ -25,7 +25,7 @@ return new class extends Migration
 
         DB::statement("
             ALTER TABLE achievements ADD CONSTRAINT achievements_criteria_type_check CHECK (
-                criteria IS NULL OR criteria ? 'type'
+                criteria IS NULL OR jsonb_exists(criteria, 'type')
             )
         ");
 
@@ -48,7 +48,7 @@ return new class extends Migration
             $table->string('auditable_type', 80);
             $table->unsignedBigInteger('auditable_id')->nullable();
             $table->jsonb('changes')->nullable();
-            $table->inet('ip_address')->nullable();
+            $table->ipAddress('ip_address')->nullable();
             $table->string('user_agent', 255)->nullable();
             $table->timestamp('created_at')->useCurrent();
 
