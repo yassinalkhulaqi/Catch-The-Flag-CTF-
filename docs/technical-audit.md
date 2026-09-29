@@ -61,9 +61,9 @@ commits; the **Status** column tracks remediation.
 | M3 | Client-controlled `avatar_path` (path injection risk) | **FIXED** (regex allowlist) |
 | M4 | Paths list N+1 on `progressPercent` | **FIXED** (batch) |
 | M5 | Error JSON from `EnsureRole` / some actions omit `request_id` | **FIXED** (EnsureRole) |
-| M6 | Notifications / settings stubs incomplete | OPEN (deferred) |
-| M7 | Admin quiz resource omits `is_correct` for staff editors | OPEN (deferred) |
-| M8 | AdminStats lacks policy authorize (middleware only) | OPEN (deferred) |
+| M6 | Notifications / settings stubs incomplete | **FIXED** (DB notifications + theme prefs) |
+| M7 | Admin quiz resource omits `is_correct` for staff editors | **FIXED** |
+| M8 | AdminStats lacks policy authorize (middleware only) | **FIXED** (`viewAdminDashboard` Gate) |
 | M9 | No last-admin demotion protection | **FIXED** |
 | M10 | Challenge list pagination UI missing | **FIXED** |
 | M11 | Related challenges unused on detail page | **FIXED** |
@@ -72,21 +72,21 @@ commits; the **Status** column tracks remediation.
 | M14 | Logged-in users can still open `/login`/`/register` | **FIXED** |
 | M15 | Mobile nav omits Admin link | **FIXED** |
 | M16 | SEO: missing OG/canonical; most pages title-only | **IMPROVED** (OG/twitter + descriptions) |
-| M17 | Upload validation exceptions may surface as 500 not 422 | OPEN (deferred) |
+| M17 | Upload validation exceptions may surface as 500 not 422 | **FIXED** (`ValidationException`) |
 
 ---
 
 ## 5. Low issues
 
-| ID | Finding |
-|---|---|
-| L1 | `--faint` contrast may fail WCAG for small text |
-| L2 | Incorrect flag feedback uses `role="status"` (prefer `alert`) |
-| L3 | Challenge editor is a large client component (~480 LOC) |
-| L4 | Site header is fully client for mobile menu alone |
-| L5 | Default Next.js SVGs still in `public/` |
-| L6 | Path prerequisites displayed but not hard-enforced (documented V1 choice) |
-| L7 | Notification types exist but no UI |
+| ID | Finding | Status |
+|---|---|---|
+| L1 | `--faint` contrast may fail WCAG for small text | **IMPROVED** (token raised) |
+| L2 | Incorrect flag feedback uses `role="status"` (prefer `alert`) | **FIXED** (already `role="alert"`) |
+| L3 | Challenge editor is a large client component (~480 LOC) | OPEN (acceptable debt) |
+| L4 | Site header is fully client for mobile menu alone | OPEN (acceptable debt) |
+| L5 | Default Next.js SVGs still in `public/` | **FIXED** (removed) |
+| L6 | Path prerequisites displayed but not hard-enforced (documented V1 choice) | OPEN (documented) |
+| L7 | Notification types exist but no UI | **FIXED** (`/notifications`) |
 
 ---
 
@@ -149,11 +149,10 @@ Must expand:
 
 ## 11. Technical debt
 
-- Notification endpoints are stubs.
-- Settings theme is display-only.
-- Admin achievements list is read-only.
-- Permission matrix not documented as a single matrix table (add in security.md).
-- Docs vs code drift on register rate limit.
+- Settings theme is persisted but UI remains dark-first (light theme reserved).
+- Admin achievements list is read-only in the web UI (API CRUD exists).
+- Challenge editor size / header client boundary (L3/L4).
+- Path prerequisites soft-only (L6).
 
 ---
 

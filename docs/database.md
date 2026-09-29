@@ -67,6 +67,7 @@ erDiagram
 | solved_count | int NOT NULL DEFAULT 0 | denormalized, maintained in solve transaction |
 | bio | varchar(500) NULL | profile |
 | avatar_path | varchar(255) NULL | storage key, not a URL |
+| preferences | jsonb NULL | non-sensitive prefs (e.g. `{ "theme": "system"|"light"|"dark" }`); never mass-assignable |
 | banned_at | timestamptz NULL | soft kill-switch for abuse |
 | last_login_at | timestamptz NULL | |
 | remember_token | — | not used (token auth) |

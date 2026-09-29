@@ -51,8 +51,8 @@
   next-action; pagination; related challenges; branded 404/error; SEO basics
 - Path list progress batching (N+1 removal)
 
-Deferred from audit (intentionally open): notification fan-out, admin quiz
-`is_correct` resource, upload 422 mapping polish.
+Remaining soft debt: light-theme UI polish, admin achievements web CRUD,
+challenge-editor split, hard path-prerequisite enforcement.
 
 ---
 
