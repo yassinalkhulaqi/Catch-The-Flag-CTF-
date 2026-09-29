@@ -47,7 +47,7 @@ const server = setupServer(
   }),
 );
 
-beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   server.resetHandlers();
   push.mockClear();
