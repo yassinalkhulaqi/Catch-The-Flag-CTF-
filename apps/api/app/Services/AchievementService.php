@@ -12,6 +12,7 @@ use App\Models\ChallengeSolve;
 use App\Models\User;
 use App\Models\UserAchievement;
 use App\Models\UserPathProgress;
+use App\Notifications\AchievementUnlockedNotification;
 use Illuminate\Support\Facades\DB;
 
 final class AchievementService
@@ -102,6 +103,8 @@ final class AchievementService
             if ($points > 0) {
                 $this->xp->award($user, $points, XpReason::Achievement, $achievement);
             }
+
+            $user->notify(new AchievementUnlockedNotification($achievement));
 
             return $row;
         });

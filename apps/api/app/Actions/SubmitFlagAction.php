@@ -10,6 +10,7 @@ use App\Models\ChallengeSolve;
 use App\Models\ChallengeSubmission;
 use App\Models\HintUnlock;
 use App\Models\User;
+use App\Notifications\ChallengeSolvedNotification;
 use App\Services\AchievementService;
 use App\Services\FlagCryptoService;
 use App\Services\FlagValidators\FlagValidatorRegistry;
@@ -160,6 +161,7 @@ final class SubmitFlagAction
             $this->achievements->evaluate($lockedUser->fresh());
 
             $fresh = $lockedUser->fresh();
+            $fresh->notify(new ChallengeSolvedNotification($lockedChallenge, $pointsAwarded));
 
             return [
                 'result' => 'correct',
