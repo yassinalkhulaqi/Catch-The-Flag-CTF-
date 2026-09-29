@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChallengeCard } from "@/components/challenge-card";
 import { ChallengeFiles } from "@/components/challenge-files";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { ErrorState, PageHeader } from "@/components/empty-state";
@@ -136,6 +137,22 @@ export default async function ChallengeDetailPage({
           </div>
         </aside>
       </div>
+
+      {(challenge.related?.length ?? 0) > 0 ? (
+        <section className="mt-14" aria-labelledby="related-heading">
+          <h2
+            id="related-heading"
+            className="font-mono text-xs uppercase tracking-[0.16em] text-accent"
+          >
+            Related challenges
+          </h2>
+          <div className="mt-3 border-t border-border">
+            {(challenge.related ?? []).map((c) => (
+              <ChallengeCard key={c.id} challenge={c} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

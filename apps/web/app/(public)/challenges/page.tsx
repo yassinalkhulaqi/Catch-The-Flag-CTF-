@@ -2,12 +2,17 @@ import { Suspense } from "react";
 import { ChallengeCard } from "@/components/challenge-card";
 import { ChallengeFilters } from "@/components/challenge-filters";
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
+import { PaginationNav } from "@/components/pagination-nav";
 import { Skeleton } from "@/components/ui/badge";
 import { serverApi } from "@/lib/api/server";
 import { toQuery } from "@/lib/format";
 import type { Category, ChallengeSummary, Paginated, Tag } from "@/lib/types";
 
-export const metadata = { title: "Challenges" };
+export const metadata = {
+  title: "Challenges",
+  description:
+    "Browse published static CTF challenges across SOC, DFIR, malware analysis, reverse engineering, cryptography, OSINT, and steganography.",
+};
 
 export default async function ChallengesPage({
   searchParams,
@@ -43,6 +48,17 @@ export default async function ChallengesPage({
     loadError = true;
   }
 
+  function hrefForPage(nextPage: number) {
+    return `/challenges${toQuery({
+      q,
+      category,
+      difficulty,
+      tags,
+      solved,
+      page: nextPage > 1 ? nextPage : undefined,
+    })}`;
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <PageHeader
@@ -73,6 +89,7 @@ export default async function ChallengesPage({
                 <ChallengeCard key={c.id} challenge={c} />
               ))}
             </div>
+            <PaginationNav meta={challenges.meta} hrefForPage={hrefForPage} />
           </div>
         )}
       </div>

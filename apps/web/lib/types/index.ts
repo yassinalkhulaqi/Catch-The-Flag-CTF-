@@ -228,7 +228,7 @@ export interface ChallengeDetail extends ChallengeSummary {
   author: { id: number; name: string } | null;
   published_at: string | null;
   points_remaining: number; // after hints unlocked by me
-  related: ChallengeSummary[];
+  related?: ChallengeSummary[];
 }
 
 export type SubmissionResultKind = "correct" | "incorrect";
