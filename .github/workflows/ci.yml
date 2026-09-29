@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'cursor/**', 'feature/**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (PHPUnit + Pint)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: catch_the_flag_test
+          POSTGRES_USER: ctf
+          POSTGRES_PASSWORD: ctf_secret_local_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ctf -d catch_the_flag_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pgsql, mbstring, xml, curl, zip, bcmath, intl, gd
+          coverage: none
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: apps/api/vendor
+          key: composer-${{ hashFiles('apps/api/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          # CI Postgres is on localhost:5432 (service container)
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=catch_the_flag_test/' .env
+      - name: Pint (dirty check)
+        run: vendor/bin/pint --test
+      - name: Migrate + test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: catch_the_flag_test
+          DB_USERNAME: ctf
+          DB_PASSWORD: ctf_secret_local_only
+        run: |
+          php artisan migrate --force
+          php artisan test --compact
+
+  web:
+    name: Web (lint · typecheck · test · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+        env:
+          API_URL: http://127.0.0.1:8000
+          NEXT_PUBLIC_APP_URL: http://localhost:3000

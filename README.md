@@ -33,7 +33,8 @@ Full details: **[docs/architecture.md](docs/architecture.md)**.
 apps/web/            Next.js frontend (+ BFF route handlers)
 apps/api/            Laravel backend
 docs/                architecture · product · database · api · security ·
-                     development · deployment · roadmap · decisions/ (ADRs)
+                     development · deployment · content-authoring · roadmap ·
+                     decisions/ (ADRs)
 infra/docker/        container build files
 infra/deployment/    sample reverse-proxy configs
 scripts/dev.sh       up / test / lint helpers
