@@ -21,6 +21,9 @@ final class AdminQuizController extends Controller
     {
         $this->authorize('create', Quiz::class);
         $items = Quiz::query()->with('questions.options')->orderByDesc('id')->paginate(20);
+        foreach ($items->items() as $quiz) {
+            $quiz->include_answers = true;
+        }
 
         return response()->json([
             'data' => QuizResource::collection($items->items()),
@@ -56,6 +59,8 @@ final class AdminQuizController extends Controller
         $this->authorize('update', $quiz);
         $quiz->fill($request->validated())->save();
         $audit->log($request->user(), 'quiz.update', $quiz, $request->validated());
+        $quiz->load('questions.options');
+        $quiz->include_answers = true;
 
         return response()->json(['data' => new QuizResource($quiz)]);
     }

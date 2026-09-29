@@ -25,10 +25,18 @@ class QuizResource extends JsonResource
                     'type' => $q->type?->value ?? $q->type,
                     'points' => (int) $q->points,
                     'position' => (int) $q->position,
-                    'options' => $q->options->map(fn ($o) => [
-                        'id' => $o->id,
-                        'option_text' => $o->option_text,
-                    ])->values(),
+                    'options' => $q->options->map(function ($o) use ($includeAnswers) {
+                        $option = [
+                            'id' => $o->id,
+                            'option_text' => $o->option_text,
+                        ];
+                        // Only after grading / for staff editors — never on learner quiz show.
+                        if ($includeAnswers) {
+                            $option['is_correct'] = (bool) $o->is_correct;
+                        }
+
+                        return $option;
+                    })->values(),
                 ];
                 if ($includeAnswers) {
                     $data['explanation'] = $q->explanation;
