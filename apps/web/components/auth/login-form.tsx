@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { api, ApiError } from "@/lib/api/client";
 import { errorMessage, fieldError } from "@/lib/errors";
+import { safeInternalPath } from "@/lib/safe-url";
 import type { AuthResponse } from "@/lib/types";
 
 export function LoginForm() {
   const id = useId();
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get("next") || "/dashboard";
+  const next = safeInternalPath(search.get("next"), "/dashboard");
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +28,7 @@ export function LoginForm() {
     startTransition(async () => {
       try {
         await api.post<{ data: AuthResponse }>("/auth/login", { email, password });
-        router.push(next.startsWith("/") ? next : "/dashboard");
+        router.push(next);
         router.refresh();
       } catch (err) {
         setFormError(errorMessage(err, "Login failed."));

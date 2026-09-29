@@ -1,8 +1,9 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { safeHref } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
 
-/** Renders Markdown without raw HTML (no rehype-raw). */
+/** Renders Markdown without raw HTML (no rehype-raw). Links are scheme-allowlisted. */
 export function Markdown({
   content,
   className,
@@ -20,15 +21,23 @@ export function Markdown({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              className="text-accent underline-offset-2 hover:underline"
-              rel="noopener noreferrer"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            const safe = safeHref(href);
+            if (!safe) {
+              return <span className="text-muted">{children}</span>;
+            }
+            const external = /^https?:/i.test(safe);
+            return (
+              <a
+                href={safe}
+                className="text-accent underline-offset-2 hover:underline"
+                rel={external ? "noopener noreferrer" : undefined}
+                target={external ? "_blank" : undefined}
+              >
+                {children}
+              </a>
+            );
+          },
           code: ({ children, className: codeClass }) => {
             const inline = !codeClass;
             if (inline) {
