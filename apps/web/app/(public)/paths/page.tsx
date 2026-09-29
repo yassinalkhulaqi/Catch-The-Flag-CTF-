@@ -3,7 +3,11 @@ import { PathCard } from "@/components/path-card";
 import { serverApi } from "@/lib/api/server";
 import type { Paginated, PathSummary } from "@/lib/types";
 
-export const metadata = { title: "Learning paths" };
+export const metadata = {
+  title: "Learning paths",
+  description:
+    "Guided cybersecurity curricula that move from theory to practice challenges across DFIR, malware, reverse engineering, crypto, and more.",
+};
 
 export default async function PathsPage() {
   let paths: PathSummary[] = [];

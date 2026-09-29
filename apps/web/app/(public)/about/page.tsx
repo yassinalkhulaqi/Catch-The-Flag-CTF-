@@ -3,7 +3,11 @@ import { PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "About" };
+export const metadata = {
+  title: "About",
+  description:
+    "Catch The Flag is a professional training ground for SOC analysts, DFIR practitioners, and CTF players — structured learning paths plus static, file-based challenges.",
+};
 
 export default function AboutPage() {
   return (

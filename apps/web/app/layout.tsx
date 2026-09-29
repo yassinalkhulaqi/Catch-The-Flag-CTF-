@@ -13,14 +13,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteDescription =
+  "Cybersecurity learning paths and static CTF challenges — DFIR, malware analysis, reverse engineering, crypto, OSINT and more.";
+
 export const metadata: Metadata = {
   title: {
     default: "Catch The Flag",
     template: "%s · Catch The Flag",
   },
-  description:
-    "Cybersecurity learning paths and static CTF challenges — DFIR, malware analysis, reverse engineering, crypto, OSINT and more.",
+  description: siteDescription,
   applicationName: "Catch The Flag",
+  openGraph: {
+    type: "website",
+    siteName: "Catch The Flag",
+    title: "Catch The Flag",
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Catch The Flag",
+    description: siteDescription,
+  },
 };
 
 export default function RootLayout({
