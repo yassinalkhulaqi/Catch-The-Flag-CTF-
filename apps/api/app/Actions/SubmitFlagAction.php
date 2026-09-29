@@ -18,6 +18,7 @@ use App\Services\XpService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class SubmitFlagAction
 {
@@ -49,6 +50,18 @@ final class SubmitFlagAction
             ];
         }
 
+        $maxAttempts = $challenge->max_attempts;
+        if ($maxAttempts !== null) {
+            $attemptCount = ChallengeSubmission::query()
+                ->where('user_id', $user->id)
+                ->where('challenge_id', $challenge->id)
+                ->count();
+
+            if ($attemptCount >= (int) $maxAttempts) {
+                throw new HttpException(429, 'Maximum submission attempts reached for this challenge.');
+            }
+        }
+
         $validator = $this->validators->get($challenge->flag_validation_type);
         $isCorrect = $validator->validate($challenge, $user, $flag);
         $submissionHash = $this->crypto->hmacHash($this->crypto->normalize($flag, true));
@@ -60,7 +73,19 @@ final class SubmitFlagAction
             'is_correct' => $isCorrect,
         ]);
 
-        return DB::transaction(function () use ($user, $challenge, $isCorrect, $submissionHash): array {
+        return DB::transaction(function () use ($user, $challenge, $isCorrect, $submissionHash, $maxAttempts): array {
+            if ($maxAttempts !== null) {
+                $attemptCount = ChallengeSubmission::query()
+                    ->where('user_id', $user->id)
+                    ->where('challenge_id', $challenge->id)
+                    ->lockForUpdate()
+                    ->count();
+
+                if ($attemptCount >= (int) $maxAttempts) {
+                    throw new HttpException(429, 'Maximum submission attempts reached for this challenge.');
+                }
+            }
+
             ChallengeSubmission::query()->create([
                 'challenge_id' => $challenge->id,
                 'user_id' => $user->id,

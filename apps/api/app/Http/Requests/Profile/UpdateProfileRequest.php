@@ -18,7 +18,14 @@ class UpdateProfileRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'min:2', 'max:80'],
             'bio' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'avatar_path' => ['sometimes', 'nullable', 'string', 'max:255'],
+            // Only allow relative public-disk avatar keys (no absolute/remote paths).
+            'avatar_path' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+                'regex:/^avatars\/[A-Za-z0-9._-]+$/',
+            ],
         ];
     }
 }

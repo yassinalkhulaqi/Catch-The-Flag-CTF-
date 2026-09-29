@@ -58,11 +58,26 @@ final class AdminUserController extends Controller
     public function updateRole(UpdateUserRoleRequest $request, User $user, AuditLogger $audit): JsonResponse
     {
         $this->authorize('updateRole', $user);
-        $before = $user->role?->value;
-        $user->forceFill(['role' => $request->validated('role')])->save();
+        $before = $user->role instanceof Role ? $user->role->value : (string) $user->role;
+        $next = (string) $request->validated('role');
+
+        if ($before === Role::Admin->value && $next !== Role::Admin->value) {
+            $adminCount = User::query()->where('role', Role::Admin->value)->count();
+            if ($adminCount <= 1) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'conflict',
+                        'message' => 'Cannot demote the last admin.',
+                        'request_id' => $request->attributes->get('request_id'),
+                    ],
+                ], 409);
+            }
+        }
+
+        $user->forceFill(['role' => $next])->save();
         $audit->log($request->user(), 'user.role_change', $user, [
             'before' => ['role' => $before],
-            'after' => ['role' => $user->role?->value],
+            'after' => ['role' => $user->role instanceof Role ? $user->role->value : (string) $user->role],
         ]);
 
         return response()->json(['data' => new UserResource($user)]);
@@ -71,6 +86,20 @@ final class AdminUserController extends Controller
     public function ban(Request $request, User $user, BanUserAction $action): JsonResponse
     {
         $this->authorize('ban', $user);
+
+        $role = $user->role instanceof Role ? $user->role->value : (string) $user->role;
+        if ($role === Role::Admin->value) {
+            $adminCount = User::query()->where('role', Role::Admin->value)->count();
+            if ($adminCount <= 1) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'conflict',
+                        'message' => 'Cannot ban the last admin.',
+                        'request_id' => $request->attributes->get('request_id'),
+                    ],
+                ], 409);
+            }
+        }
 
         return response()->json(['data' => new UserResource($action->ban($request->user(), $user))]);
     }

@@ -22,11 +22,15 @@ final class EnsureRole
     {
         $user = $request->user();
 
+        $requestId = $request->attributes->get('request_id')
+            ?? $request->headers->get('X-Request-Id');
+
         if ($user === null) {
             return response()->json([
                 'error' => [
                     'code' => 'unauthenticated',
                     'message' => 'Unauthenticated.',
+                    'request_id' => $requestId,
                 ],
             ], 401);
         }
@@ -36,6 +40,7 @@ final class EnsureRole
                 'error' => [
                     'code' => 'account_banned',
                     'message' => 'This account has been suspended.',
+                    'request_id' => $requestId,
                 ],
             ], 403);
         }
@@ -52,6 +57,7 @@ final class EnsureRole
                 'error' => [
                     'code' => 'forbidden',
                     'message' => 'Forbidden.',
+                    'request_id' => $requestId,
                 ],
             ], 403);
         }
@@ -65,6 +71,7 @@ final class EnsureRole
                 'error' => [
                     'code' => 'forbidden',
                     'message' => 'Forbidden.',
+                    'request_id' => $requestId,
                 ],
             ], 403);
         }
