@@ -44,6 +44,8 @@ export interface CurrentUser {
   avatar_url: string | null;
   created_at: string;
   achievements_count?: number;
+  /** Present on admin user list/detail responses only. */
+  banned_at?: string | null;
 }
 
 export interface AuthResponse {
@@ -226,7 +228,7 @@ export interface ChallengeDetail extends ChallengeSummary {
   author: { id: number; name: string } | null;
   published_at: string | null;
   points_remaining: number; // after hints unlocked by me
-  related: ChallengeSummary[];
+  related?: ChallengeSummary[];
 }
 
 export type SubmissionResultKind = "correct" | "incorrect";
@@ -301,6 +303,9 @@ export interface AdminStats {
   challenges_published: number;
   paths_published: number;
   solves_total: number;
+  challenges_draft?: number;
+  paths_draft?: number;
+  users_banned?: number;
 }
 
 export interface ChallengeFlagMeta {

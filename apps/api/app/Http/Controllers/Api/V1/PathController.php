@@ -34,8 +34,11 @@ final class PathController extends Controller
         $paginator = $query->orderBy('id')->paginate(min(100, (int) $request->integer('per_page', 20)));
 
         $user = $request->user('sanctum');
-        $paginator->getCollection()->transform(function (Path $path) use ($user, $progress) {
-            $path->progress_percent = $user ? $progress->progressPercent($user, $path) : 0;
+        $percents = $user
+            ? $progress->progressPercentsFor($user, $paginator->getCollection())
+            : [];
+        $paginator->getCollection()->transform(function (Path $path) use ($percents) {
+            $path->progress_percent = $percents[$path->id] ?? 0;
             $path->challenges_count = 0;
 
             return $path;

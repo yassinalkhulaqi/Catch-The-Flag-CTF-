@@ -9,6 +9,7 @@ const TABS = [
   { href: "/progress", label: "My Progress" },
   { href: "/solves", label: "My Solves" },
   { href: "/achievements", label: "Achievements" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" },
 ];

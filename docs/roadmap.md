@@ -36,6 +36,26 @@
 
 ---
 
+## V1.5 — Production hardening *(in progress on upgrade branch)*
+
+**Theme:** harden and polish the existing V1 without adding lab infrastructure.
+
+- Technical audit (`docs/technical-audit.md`) with severity-ranked findings
+- Auth BFF CSRF Origin checks; open-redirect prevention; Markdown URL allowlist
+- Rate limits: login 5/min/IP, register 3/hour/IP, submit 10/min/user+challenge
+  + 30/min/user, global API 300/min
+- Enforce `max_attempts`; XP ledger unique index; quiz attempt row locks
+- Last-admin demotion/ban protection; avatar_path allowlist
+- Expanded security tests (IDOR, throttles, mass-assign, last-admin)
+- Admin users (role/ban) + path authoring UI; home featured content; dashboard
+  next-action; pagination; related challenges; branded 404/error; SEO basics
+- Path list progress batching (N+1 removal)
+
+Remaining soft debt: light-theme UI polish, admin achievements web CRUD,
+challenge-editor split, hard path-prerequisite enforcement.
+
+---
+
 ## V2 — Interactive labs & events
 
 **Theme:** introduce infrastructure-backed content **without rewriting V1 core**.

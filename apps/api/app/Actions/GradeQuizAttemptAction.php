@@ -32,17 +32,24 @@ final class GradeQuizAttemptAction
             throw new HttpException(403, 'Forbidden.');
         }
 
-        if ($attempt->isCompleted()) {
-            return [
-                'attempt' => $attempt,
-                'score' => (int) $attempt->score,
-                'passed' => (bool) $attempt->passed,
-                'correct_count' => $attempt->answers()->where('is_correct', true)->count(),
-                'total' => $attempt->quiz->questions()->published()->count(),
-            ];
-        }
-
         return DB::transaction(function () use ($user, $attempt): array {
+            $locked = QuizAttempt::query()->whereKey($attempt->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->user_id !== $user->id) {
+                throw new HttpException(403, 'Forbidden.');
+            }
+
+            if ($locked->isCompleted()) {
+                return [
+                    'attempt' => $locked,
+                    'score' => (int) $locked->score,
+                    'passed' => (bool) $locked->passed,
+                    'correct_count' => $locked->answers()->where('is_correct', true)->count(),
+                    'total' => $locked->quiz->questions()->published()->count(),
+                ];
+            }
+
+            $attempt = $locked;
             $quiz = $attempt->quiz()->with(['questions' => fn ($q) => $q->published()->with('options')])->firstOrFail();
             $answers = $attempt->answers()->get()->keyBy('question_id');
 

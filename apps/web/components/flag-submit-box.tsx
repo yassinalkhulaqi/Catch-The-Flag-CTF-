@@ -93,7 +93,7 @@ export function FlagSubmitBox({
       )}
 
       {result?.result === "incorrect" ? (
-        <p className="mt-3 text-sm text-danger" role="status" data-testid="flag-incorrect">
+        <p className="mt-3 text-sm text-danger" role="alert" data-testid="flag-incorrect">
           Incorrect flag. Try again.
         </p>
       ) : null}

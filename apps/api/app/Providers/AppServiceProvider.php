@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\FlagValidationType;
+use App\Enums\Role;
 use App\Models\Achievement;
 use App\Models\Category;
 use App\Models\Challenge;
@@ -64,9 +65,36 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Tag::class, TagPolicy::class);
 
+        Gate::define('viewAdminDashboard', fn (User $user): bool => $user->isAtLeast(Role::Moderator));
+        Gate::define('viewAuditLogs', fn (User $user): bool => $user->isAtLeast(Role::Moderator));
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute((int) config('ctf.rate_limits.api_per_minute', 300))
                 ->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute((int) config('ctf.rate_limits.auth_per_minute', 5))
+                ->by($request->ip());
+        });
+
+        // docs/api.md + security.md: 3 registrations / hour / IP
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perHour((int) config('ctf.rate_limits.register_per_hour', 3))
+                ->by($request->ip());
+        });
+
+        RateLimiter::for('submit-user', function (Request $request) {
+            return Limit::perMinute((int) config('ctf.rate_limits.submit_per_user_per_minute', 30))
+                ->by((string) $request->user()?->id);
+        });
+
+        RateLimiter::for('submit-challenge', function (Request $request) {
+            $challenge = $request->route('challenge');
+            $challengeId = is_object($challenge) ? (string) $challenge->getKey() : (string) $challenge;
+
+            return Limit::perMinute((int) config('ctf.rate_limits.submit_per_challenge_per_minute', 10))
+                ->by(($request->user()?->id ?? 'guest').'|'.$challengeId);
         });
     }
 }

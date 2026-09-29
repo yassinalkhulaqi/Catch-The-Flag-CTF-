@@ -9,7 +9,7 @@ use App\Models\ChallengeFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ChallengeFileService
@@ -29,7 +29,9 @@ final class ChallengeFileService
         $disk = 'challenge-files';
         $stream = fopen($upload->getRealPath(), 'rb');
         if ($stream === false) {
-            throw new InvalidArgumentException('Unable to read uploaded file.');
+            throw ValidationException::withMessages([
+                'file' => ['Unable to read uploaded file.'],
+            ]);
         }
 
         Storage::disk($disk)->put($storageKey, $stream);
@@ -69,7 +71,9 @@ final class ChallengeFileService
         $disk = 'challenge-files';
         $stream = fopen($upload->getRealPath(), 'rb');
         if ($stream === false) {
-            throw new InvalidArgumentException('Unable to read uploaded file.');
+            throw ValidationException::withMessages([
+                'file' => ['Unable to read uploaded file.'],
+            ]);
         }
         Storage::disk($disk)->put($storageKey, $stream);
         if (is_resource($stream)) {
@@ -141,7 +145,9 @@ final class ChallengeFileService
     {
         $allowed = config('ctf.uploads.allowed_mime_types', []);
         if (! in_array($mime, $allowed, true)) {
-            throw new InvalidArgumentException('File type is not allowed.');
+            throw ValidationException::withMessages([
+                'file' => ['File type is not allowed.'],
+            ]);
         }
     }
 
@@ -150,7 +156,9 @@ final class ChallengeFileService
         $maxMb = (int) config('ctf.uploads.max_file_mb', 64);
         $maxBytes = $maxMb * 1024 * 1024;
         if (($upload->getSize() ?? 0) > $maxBytes) {
-            throw new InvalidArgumentException('File exceeds maximum allowed size.');
+            throw ValidationException::withMessages([
+                'file' => ["File exceeds maximum allowed size ({$maxMb} MB)."],
+            ]);
         }
     }
 

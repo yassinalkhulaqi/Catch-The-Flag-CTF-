@@ -42,15 +42,15 @@ use Illuminate\Support\Facades\Route;
 | Flag plaintext never leaves the Actions/Services layer.
 */
 
-Route::prefix('v1')->group(function (): void {
-    Route::get('/health', HealthController::class)->name('health');
+Route::prefix('v1')->middleware('throttle:api')->group(function (): void {
+    Route::get('/health', HealthController::class)->name('health')->withoutMiddleware('throttle:api');
 
     // --- Auth (rate-limited) ---
     Route::prefix('auth')->group(function (): void {
         Route::post('/register', [AuthController::class, 'register'])
-            ->middleware('throttle:'.config('ctf.rate_limits.auth_per_minute').',1');
+            ->middleware('throttle:register');
         Route::post('/login', [AuthController::class, 'login'])
-            ->middleware('throttle:'.config('ctf.rate_limits.auth_per_minute').',1');
+            ->middleware('throttle:login');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
             ->middleware('throttle:3,60');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])
@@ -91,7 +91,7 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:'.config('ctf.rate_limits.download_per_minute').',1');
         Route::post('/challenges/{challenge}/hints/{hint}/unlock', [ChallengeHintController::class, 'unlock']);
         Route::post('/challenges/{challenge}/submissions', [ChallengeSubmissionController::class, 'store'])
-            ->middleware('throttle:'.config('ctf.rate_limits.submit_per_user_per_minute').',1');
+            ->middleware(['throttle:submit-user', 'throttle:submit-challenge']);
 
         Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
         Route::post('/quizzes/{quiz}/attempts', [QuizController::class, 'startAttempt']);

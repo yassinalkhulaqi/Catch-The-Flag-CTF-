@@ -43,7 +43,15 @@ class User extends Authenticatable
             'solved_count' => 'integer',
             'banned_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'preferences' => 'array',
         ];
+    }
+
+    public function themePreference(): string
+    {
+        $theme = $this->preferences['theme'] ?? 'system';
+
+        return in_array($theme, ['system', 'light', 'dark'], true) ? $theme : 'system';
     }
 
     public function hasRole(Role|string $role): bool

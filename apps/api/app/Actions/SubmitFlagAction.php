@@ -10,6 +10,7 @@ use App\Models\ChallengeSolve;
 use App\Models\ChallengeSubmission;
 use App\Models\HintUnlock;
 use App\Models\User;
+use App\Notifications\ChallengeSolvedNotification;
 use App\Services\AchievementService;
 use App\Services\FlagCryptoService;
 use App\Services\FlagValidators\FlagValidatorRegistry;
@@ -18,6 +19,7 @@ use App\Services\XpService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class SubmitFlagAction
 {
@@ -49,6 +51,18 @@ final class SubmitFlagAction
             ];
         }
 
+        $maxAttempts = $challenge->max_attempts;
+        if ($maxAttempts !== null) {
+            $attemptCount = ChallengeSubmission::query()
+                ->where('user_id', $user->id)
+                ->where('challenge_id', $challenge->id)
+                ->count();
+
+            if ($attemptCount >= (int) $maxAttempts) {
+                throw new HttpException(429, 'Maximum submission attempts reached for this challenge.');
+            }
+        }
+
         $validator = $this->validators->get($challenge->flag_validation_type);
         $isCorrect = $validator->validate($challenge, $user, $flag);
         $submissionHash = $this->crypto->hmacHash($this->crypto->normalize($flag, true));
@@ -60,10 +74,25 @@ final class SubmitFlagAction
             'is_correct' => $isCorrect,
         ]);
 
-        return DB::transaction(function () use ($user, $challenge, $isCorrect, $submissionHash): array {
+        return DB::transaction(function () use ($user, $challenge, $isCorrect, $submissionHash, $maxAttempts): array {
+            // Lock user+challenge rows first (Postgres forbids FOR UPDATE with COUNT aggregates).
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $lockedChallenge = Challenge::query()->whereKey($challenge->id)->lockForUpdate()->firstOrFail();
+
+            if ($maxAttempts !== null) {
+                $attemptCount = ChallengeSubmission::query()
+                    ->where('user_id', $lockedUser->id)
+                    ->where('challenge_id', $lockedChallenge->id)
+                    ->count();
+
+                if ($attemptCount >= (int) $maxAttempts) {
+                    throw new HttpException(429, 'Maximum submission attempts reached for this challenge.');
+                }
+            }
+
             ChallengeSubmission::query()->create([
-                'challenge_id' => $challenge->id,
-                'user_id' => $user->id,
+                'challenge_id' => $lockedChallenge->id,
+                'user_id' => $lockedUser->id,
                 'flag_hash' => $submissionHash,
                 'is_correct' => $isCorrect,
                 'ip_address' => Request::ip(),
@@ -74,9 +103,6 @@ final class SubmitFlagAction
             if (! $isCorrect) {
                 return ['result' => 'incorrect'];
             }
-
-            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            $lockedChallenge = Challenge::query()->whereKey($challenge->id)->lockForUpdate()->firstOrFail();
 
             $already = ChallengeSolve::query()
                 ->where('user_id', $lockedUser->id)
@@ -135,6 +161,7 @@ final class SubmitFlagAction
             $this->achievements->evaluate($lockedUser->fresh());
 
             $fresh = $lockedUser->fresh();
+            $fresh->notify(new ChallengeSolvedNotification($lockedChallenge, $pointsAwarded));
 
             return [
                 'result' => 'correct',

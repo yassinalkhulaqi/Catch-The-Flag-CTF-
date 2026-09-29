@@ -10,6 +10,7 @@ return [
 
     'rate_limits' => [
         'auth_per_minute' => (int) env('RATE_LIMIT_AUTH_PER_MIN', 5),
+        'register_per_hour' => (int) env('RATE_LIMIT_REGISTER_PER_HOUR', 3),
         'submit_per_challenge_per_minute' => (int) env('RATE_LIMIT_SUBMIT_PER_CHALLENGE_PER_MIN', 10),
         'submit_per_user_per_minute' => (int) env('RATE_LIMIT_SUBMIT_PER_USER_PER_MIN', 30),
         'download_per_minute' => (int) env('RATE_LIMIT_DOWNLOAD_PER_MIN', 60),

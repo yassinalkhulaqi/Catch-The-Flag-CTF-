@@ -142,7 +142,7 @@ ordering).
 | GET | `/me/xp-ledger` | Paginated `xp_transactions` |
 | GET | `/me/achievements` | Awarded + progress-toward-locked achievements |
 | GET | `/me/notifications` | Paginated; `POST /me/notifications/{id}/read`, `POST /me/notifications/read-all` |
-| GET | `/me/settings` / PUT | Email, theme prefs (minimal) |
+| GET | `/me/settings` / PUT | Email + persisted theme (`system`/`light`/`dark`) |
 
 ### Quizzes
 | Method | Path | Description |
@@ -182,8 +182,11 @@ GET             /admin/users            GET/PUT /admin/users/{id}
 PUT             /admin/users/{id}/role  POST /admin/users/{id}/ban|unban
 POST            /admin/users/{id}/xp    {amount, reason}  (audited)
 GET             /admin/audit-logs       (filter: actor, action, entity, date)
-GET             /admin/stats            (dashboard counters)
+GET             /admin/stats            (dashboard counters; Gate `viewAdminDashboard`)
 ```
+
+Admin quiz `GET/POST/PUT` responses include option `is_correct` for staff editors.
+Learner `GET /quizzes/{id}` never includes `is_correct`.
 
 **Flag rule in admin API:** `POST/PUT` accept `{ value }`; responses only ever
 return `{ id, label, case_sensitive, is_active, created_at }` — never the value.
@@ -196,7 +199,7 @@ re-read — security.md §5).
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/health` | `{ status, version, db: "up", time }` — no config/stack exposure |
+| GET | `/health` | `{ status, version, db, storage, time }` — 503 when degraded; no config/stack exposure |
 
 ---
 
