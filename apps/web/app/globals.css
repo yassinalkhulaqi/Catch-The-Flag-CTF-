@@ -13,10 +13,10 @@
   --border: #22303c;
   --border-strong: #2f4152;
 
-  /* text */
+  /* text — faint raised for WCAG AA on dark surfaces (~4.5:1 on --background) */
   --foreground: #e7eef4;
-  --muted: #93a4b3;
-  --faint: #63747f;
+  --muted: #9aabba;
+  --faint: #7a8d9a;
 
   /* brand: signal amber (flag marker) */
   --accent: #f2b544;
