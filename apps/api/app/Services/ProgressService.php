@@ -79,8 +79,17 @@ final class ProgressService
 
     public function progressPercent(User $user, Path $path): int
     {
-        $modules = $path->modules()->published()->with(['lessons' => fn ($q) => $q->published()])->get();
-        $lessonIds = $modules->flatMap(fn (PathModule $m) => $m->lessons->pluck('id'))->all();
+        $modules = $path->relationLoaded('modules')
+            ? $path->modules
+            : $path->modules()->published()->with(['lessons' => fn ($q) => $q->published()])->get();
+
+        $lessonIds = $modules->flatMap(function (PathModule $m) {
+            $lessons = $m->relationLoaded('lessons')
+                ? $m->lessons
+                : $m->lessons()->published()->get();
+
+            return $lessons->pluck('id');
+        })->all();
 
         if ($lessonIds === []) {
             return 0;
@@ -92,6 +101,61 @@ final class ProgressService
             ->count();
 
         return (int) floor(($done / count($lessonIds)) * 100);
+    }
+
+    /**
+     * Batch progress percents for a page of paths (avoids N+1 on list endpoints).
+     *
+     * @param  iterable<Path>  $paths
+     * @return array<int, int> path_id => percent
+     */
+    public function progressPercentsFor(User $user, iterable $paths): array
+    {
+        $paths = collect($paths)->values();
+        if ($paths->isEmpty()) {
+            return [];
+        }
+
+        $pathIds = $paths->pluck('id')->all();
+        $lessonRows = Lesson::query()
+            ->published()
+            ->whereHas('module', fn ($q) => $q->whereIn('path_id', $pathIds)->where('is_published', true))
+            ->with('module:id,path_id')
+            ->get(['id', 'module_id']);
+
+        $lessonsByPath = [];
+        foreach ($lessonRows as $lesson) {
+            $pid = (int) $lesson->module->path_id;
+            $lessonsByPath[$pid][] = (int) $lesson->id;
+        }
+
+        $allLessonIds = $lessonRows->pluck('id')->all();
+        $completed = $allLessonIds === []
+            ? collect()
+            : LessonCompletion::query()
+                ->where('user_id', $user->id)
+                ->whereIn('lesson_id', $allLessonIds)
+                ->pluck('lesson_id')
+                ->flip();
+
+        $out = [];
+        foreach ($pathIds as $pathId) {
+            $ids = $lessonsByPath[$pathId] ?? [];
+            if ($ids === []) {
+                $out[$pathId] = 0;
+
+                continue;
+            }
+            $done = 0;
+            foreach ($ids as $lid) {
+                if ($completed->has($lid)) {
+                    $done++;
+                }
+            }
+            $out[$pathId] = (int) floor(($done / count($ids)) * 100);
+        }
+
+        return $out;
     }
 
     public function isModuleComplete(User $user, PathModule $module): bool

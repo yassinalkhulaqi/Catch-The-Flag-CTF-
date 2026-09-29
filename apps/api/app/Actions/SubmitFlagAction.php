@@ -74,11 +74,14 @@ final class SubmitFlagAction
         ]);
 
         return DB::transaction(function () use ($user, $challenge, $isCorrect, $submissionHash, $maxAttempts): array {
+            // Lock user+challenge rows first (Postgres forbids FOR UPDATE with COUNT aggregates).
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $lockedChallenge = Challenge::query()->whereKey($challenge->id)->lockForUpdate()->firstOrFail();
+
             if ($maxAttempts !== null) {
                 $attemptCount = ChallengeSubmission::query()
-                    ->where('user_id', $user->id)
-                    ->where('challenge_id', $challenge->id)
-                    ->lockForUpdate()
+                    ->where('user_id', $lockedUser->id)
+                    ->where('challenge_id', $lockedChallenge->id)
                     ->count();
 
                 if ($attemptCount >= (int) $maxAttempts) {
@@ -87,8 +90,8 @@ final class SubmitFlagAction
             }
 
             ChallengeSubmission::query()->create([
-                'challenge_id' => $challenge->id,
-                'user_id' => $user->id,
+                'challenge_id' => $lockedChallenge->id,
+                'user_id' => $lockedUser->id,
                 'flag_hash' => $submissionHash,
                 'is_correct' => $isCorrect,
                 'ip_address' => Request::ip(),
@@ -99,9 +102,6 @@ final class SubmitFlagAction
             if (! $isCorrect) {
                 return ['result' => 'incorrect'];
             }
-
-            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            $lockedChallenge = Challenge::query()->whereKey($challenge->id)->lockForUpdate()->firstOrFail();
 
             $already = ChallengeSolve::query()
                 ->where('user_id', $lockedUser->id)
