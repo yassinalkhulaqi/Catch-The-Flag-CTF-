@@ -152,7 +152,8 @@ Postgres, S3-compatible storage, hardening checklist, backup drill):
 
 Details: [docs/roadmap.md](docs/roadmap.md) ·
 ADRs: [docs/decisions/](docs/decisions/) ·
-Product spec: [docs/product.md](docs/product.md).
+Product spec: [docs/product.md](docs/product.md) ·
+Authoring: [docs/content-authoring.md](docs/content-authoring.md).
 
 ---
 
