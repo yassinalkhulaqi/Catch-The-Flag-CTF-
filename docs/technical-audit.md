@@ -31,7 +31,7 @@ commits; the **Status** column tracks remediation.
 
 | ID | Finding | Evidence | Status |
 |---|---|---|---|
-| C1 | Open redirect after login via `next=//evil` | `apps/web/components/auth/login-form.tsx` | OPEN → fix |
+| C1 | Open redirect after login via `next=//evil` | `apps/web/components/auth/login-form.tsx` | **FIXED** (`safeInternalPath`) |
 
 ---
 
@@ -39,16 +39,16 @@ commits; the **Status** column tracks remediation.
 
 | ID | Finding | Evidence | Status |
 |---|---|---|---|
-| H1 | Auth BFF routes skip Origin/Host CSRF check | `app/api/v1/auth/{login,register,logout}/route.ts` | OPEN |
-| H2 | Markdown `<a href>` allows `javascript:` schemes | `components/markdown.tsx` | OPEN |
-| H3 | No branded `not-found` / `error` / `global-error` pages | missing under `apps/web/app` | OPEN |
-| H4 | Per-challenge submit rate limit configured but unwired | `config/ctf.php` vs `routes/api.php` | OPEN |
-| H5 | Global `api` RateLimiter registered but unused | `AppServiceProvider` / routes | OPEN |
-| H6 | Register throttle ≠ docs (5/min vs 3/hour) | `routes/api.php` | OPEN |
-| H7 | `max_attempts` never enforced on submit | `SubmitFlagAction` | OPEN |
-| H8 | Admin path authoring UI missing (API exists) | `admin/paths/page.tsx` | OPEN |
-| H9 | Admin user ban/role UI missing (API exists) | `admin/users/page.tsx` | OPEN |
-| H10 | Security test matrix incomplete | `tests/Feature/*` | OPEN |
+| H1 | Auth BFF routes skip Origin/Host CSRF check | `app/api/v1/auth/{login,register,logout}/route.ts` | **FIXED** |
+| H2 | Markdown `<a href>` allows `javascript:` schemes | `components/markdown.tsx` | **FIXED** |
+| H3 | No branded `not-found` / `error` / `global-error` pages | missing under `apps/web/app` | **FIXED** |
+| H4 | Per-challenge submit rate limit configured but unwired | `config/ctf.php` vs `routes/api.php` | **FIXED** |
+| H5 | Global `api` RateLimiter registered but unused | `AppServiceProvider` / routes | **FIXED** |
+| H6 | Register throttle ≠ docs (5/min vs 3/hour) | `routes/api.php` | **FIXED** |
+| H7 | `max_attempts` never enforced on submit | `SubmitFlagAction` | **FIXED** |
+| H8 | Admin path authoring UI missing (API exists) | `admin/paths/page.tsx` | **FIXED** |
+| H9 | Admin user ban/role UI missing (API exists) | `admin/users/page.tsx` | **FIXED** |
+| H10 | Security test matrix incomplete | `tests/Feature/*` | **IMPROVED** (+8 cases) |
 
 ---
 
@@ -56,23 +56,23 @@ commits; the **Status** column tracks remediation.
 
 | ID | Finding | Status |
 |---|---|---|
-| M1 | `xp_transactions` lacks unique (user, reason, ref) defense-in-depth index | OPEN |
-| M2 | `GradeQuizAttemptAction` lacks `lockForUpdate` on attempt | OPEN |
-| M3 | Client-controlled `avatar_path` (path injection risk) | OPEN |
-| M4 | Paths list N+1 on `progressPercent` | OPEN |
-| M5 | Error JSON from `EnsureRole` / some actions omit `request_id` | OPEN |
-| M6 | Notifications / settings stubs incomplete | OPEN |
-| M7 | Admin quiz resource omits `is_correct` for staff editors | OPEN |
-| M8 | AdminStats lacks policy authorize (middleware only) | OPEN |
-| M9 | No last-admin demotion protection | OPEN |
-| M10 | Challenge list pagination UI missing | OPEN |
-| M11 | Related challenges unused on detail page | OPEN |
-| M12 | Home page lacks featured path/challenge from API | OPEN |
-| M13 | Dashboard “next step” is weak (first path only) | OPEN |
-| M14 | Logged-in users can still open `/login`/`/register` | OPEN |
-| M15 | Mobile nav omits Admin link | OPEN |
-| M16 | SEO: missing OG/canonical; most pages title-only | OPEN |
-| M17 | Upload validation exceptions may surface as 500 not 422 | OPEN |
+| M1 | `xp_transactions` lacks unique (user, reason, ref) defense-in-depth index | **FIXED** |
+| M2 | `GradeQuizAttemptAction` lacks `lockForUpdate` on attempt | **FIXED** |
+| M3 | Client-controlled `avatar_path` (path injection risk) | **FIXED** (regex allowlist) |
+| M4 | Paths list N+1 on `progressPercent` | **FIXED** (batch) |
+| M5 | Error JSON from `EnsureRole` / some actions omit `request_id` | **FIXED** (EnsureRole) |
+| M6 | Notifications / settings stubs incomplete | OPEN (deferred) |
+| M7 | Admin quiz resource omits `is_correct` for staff editors | OPEN (deferred) |
+| M8 | AdminStats lacks policy authorize (middleware only) | OPEN (deferred) |
+| M9 | No last-admin demotion protection | **FIXED** |
+| M10 | Challenge list pagination UI missing | **FIXED** |
+| M11 | Related challenges unused on detail page | **FIXED** |
+| M12 | Home page lacks featured path/challenge from API | **FIXED** |
+| M13 | Dashboard “next step” is weak (first path only) | **FIXED** |
+| M14 | Logged-in users can still open `/login`/`/register` | **FIXED** |
+| M15 | Mobile nav omits Admin link | **FIXED** |
+| M16 | SEO: missing OG/canonical; most pages title-only | **IMPROVED** (OG/twitter + descriptions) |
+| M17 | Upload validation exceptions may surface as 500 not 422 | OPEN (deferred) |
 
 ---
 
