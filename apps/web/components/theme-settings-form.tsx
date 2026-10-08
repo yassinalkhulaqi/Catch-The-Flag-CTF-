@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/input";
@@ -11,6 +12,7 @@ const THEMES: Array<UserSettings["theme"]> = ["system", "light", "dark"];
 
 export function ThemeSettingsForm({ initialTheme }: { initialTheme: UserSettings["theme"] }) {
   const id = useId();
+  const router = useRouter();
   const [theme, setTheme] = useState(initialTheme);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -24,7 +26,9 @@ export function ThemeSettingsForm({ initialTheme }: { initialTheme: UserSettings
       try {
         const res = await api.put<{ data: UserSettings }>("/me/settings", { theme });
         setTheme(res.data.theme);
+        document.documentElement.dataset.theme = res.data.theme;
         setMessage("Preferences saved.");
+        router.refresh();
       } catch (err) {
         setError(
           err instanceof ApiError
@@ -54,7 +58,7 @@ export function ThemeSettingsForm({ initialTheme }: { initialTheme: UserSettings
         </select>
       </Field>
       <p className="text-xs text-muted">
-        Preference is stored on your account. The UI remains dark-first in V1; light theme is reserved for a future polish pass.
+        Saved on your account. System follows this device. Guests stay on the dark theme.
       </p>
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Save preferences"}

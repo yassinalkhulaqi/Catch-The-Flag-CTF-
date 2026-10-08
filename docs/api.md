@@ -84,7 +84,7 @@ URLs; APIs accept `id` (frontend resolves slug→id via detail endpoints).
 | POST | `/auth/login` | — | `{email, password}` → `{user, token}` |
 | POST | `/auth/logout` | ✔ | Revoke current token |
 | POST | `/auth/logout-all` | ✔ | Revoke all of user's tokens |
-| GET | `/auth/me` | ✔ | Current user + role + unread count |
+| GET | `/auth/me` | ✔ | Current user + role + unread count + own `theme` |
 | PUT | `/profile` | ✔ | Update own name/bio/avatar |
 | PUT | `/profile/password` | ✔ | Change password (revokes other tokens) |
 | POST | `/auth/forgot-password` | — | Always 202 (no enumeration) |
@@ -101,8 +101,8 @@ an httpOnly cookie; the raw token never reaches browser JS.
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/paths` | — | Published paths; filters: `q, category, difficulty, progress` |
-| GET | `/paths/{idOrSlug}` | — | Detail incl. modules→lessons summary, prerequisites, my progress |
-| POST | `/paths/{id}/start` | ✔ | Idempotent start → progress row |
+| GET | `/paths/{idOrSlug}` | — | Detail incl. modules, published prerequisites (`completed`), `can_start`, `started`, my progress |
+| POST | `/paths/{id}/start` | ✔ | Idempotent start. 422 when a published prerequisite is incomplete |
 | GET | `/paths/{id}/progress` | ✔ | Deterministic completion breakdown |
 
 ### Lessons / modules

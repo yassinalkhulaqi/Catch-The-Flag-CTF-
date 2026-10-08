@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Space_Grotesk } from "next/font/google";
+import { getCurrentUser } from "@/lib/api/server";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -36,14 +37,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
+  const theme = user?.theme ?? (user ? "system" : "dark");
+
   return (
     <html
       lang="en"
+      data-theme={theme}
       className={`${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">{children}</body>

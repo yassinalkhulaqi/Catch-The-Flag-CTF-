@@ -137,7 +137,7 @@ GIN `search_vector` (generated: title+summary+description).
 ### `path_prerequisites`
 `(path_id, prerequisite_path_id)` composite PK, both FKs → paths
 (`ON DELETE CASCADE`), `CHECK (path_id <> prerequisite_path_id)`.
-Optional — V1 does not hard-block on prerequisites, it *displays* them
+Published prerequisites are required before a learner can start the path or open its modules and lessons. A path the learner already started stays open. Draft or archived prerequisites do not block and are omitted from the learner payload. Cycles are rejected on update.
 (documented product rule).
 
 ### `path_modules`

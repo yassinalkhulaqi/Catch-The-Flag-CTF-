@@ -36,6 +36,51 @@
   --radius: 0.5rem;
 }
 
+/* Light palette. Amber is deepened so text and buttons both clear WCAG AA. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f7f5f0;
+  --surface: #fffcf7;
+  --surface-raised: #efeae2;
+  --border: #d7d0c4;
+  --border-strong: #c3b8a8;
+  --foreground: #17202a;
+  --muted: #3d4c5c;
+  --faint: #4a5a68;
+  --accent: #7a4f00;
+  --accent-hover: #633f00;
+  --accent-foreground: #fffaf3;
+  --success: #0d6b3d;
+  --success-foreground: #f3fff8;
+  --danger: #b42318;
+  --danger-foreground: #ffffff;
+  --info: #0c5c8a;
+  --ring: #7a4f00;
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    color-scheme: light;
+    --background: #f7f5f0;
+    --surface: #fffcf7;
+    --surface-raised: #efeae2;
+    --border: #d7d0c4;
+    --border-strong: #c3b8a8;
+    --foreground: #17202a;
+    --muted: #3d4c5c;
+    --faint: #4a5a68;
+    --accent: #7a4f00;
+    --accent-hover: #633f00;
+    --accent-foreground: #fffaf3;
+    --success: #0d6b3d;
+    --success-foreground: #f3fff8;
+    --danger: #b42318;
+    --danger-foreground: #ffffff;
+    --info: #0c5c8a;
+    --ring: #7a4f00;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);

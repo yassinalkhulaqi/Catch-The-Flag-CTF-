@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { ApiError } from "@/lib/api/client";
 import type { AuthResponse, CurrentUser } from "@/lib/types";
@@ -67,8 +68,8 @@ export async function serverApi<T>(
   return payload as T;
 }
 
-/** Current authenticated user or null (never throws for 401). */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+/** Current authenticated user or null (never throws for 401). Deduped per request. */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const token = await sessionToken();
   if (!token) return null;
   try {
@@ -77,7 +78,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   } catch {
     return null;
   }
-}
+});
 
 /** Convenience for auth POSTs (login/register) — returns raw auth payload. */
 export async function serverAuth(

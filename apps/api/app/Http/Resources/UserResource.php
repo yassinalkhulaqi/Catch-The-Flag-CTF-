@@ -27,6 +27,10 @@ class UserResource extends JsonResource
                 fn () => (int) ($this->achievements_count ?? $this->userAchievements->count())
             ),
             'banned_at' => $this->when($request->user()?->isAdmin(), optional($this->banned_at)?->toIso8601String()),
+            'theme' => $this->when(
+                $request->user()?->is($this->resource),
+                fn () => $request->user()->themePreference(),
+            ),
         ];
     }
 }

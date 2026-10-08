@@ -19,6 +19,7 @@ class PathDetailResource extends JsonResource
                 'id' => $p->id,
                 'title' => $p->title,
                 'slug' => $p->slug,
+                'completed' => (bool) ($p->viewer_completed ?? false),
             ])->values()),
             'modules' => $this->whenLoaded('modules', fn () => $this->modules->map(fn ($m) => [
                 'id' => $m->id,
@@ -30,6 +31,8 @@ class PathDetailResource extends JsonResource
                 'completed_lesson_count' => (int) ($m->completed_lesson_count ?? 0),
             ])->values()),
             'completed' => (bool) ($this->completed ?? false),
+            'can_start' => (bool) ($this->can_start ?? false),
+            'started' => (bool) ($this->started ?? false),
         ]);
     }
 }

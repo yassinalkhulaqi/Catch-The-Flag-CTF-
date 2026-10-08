@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\ContentStatus;
 use App\Enums\PathProgressStatus;
 use App\Enums\XpReason;
 use App\Models\ChallengeSolve;
@@ -14,7 +15,10 @@ use App\Models\PathModule;
 use App\Models\QuizAttempt;
 use App\Models\User;
 use App\Models\UserPathProgress;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 final class ProgressService
 {
@@ -22,10 +26,110 @@ final class ProgressService
 
     public function startPath(User $user, Path $path): UserPathProgress
     {
-        return UserPathProgress::query()->firstOrCreate(
-            ['user_id' => $user->id, 'path_id' => $path->id],
-            ['status' => PathProgressStatus::InProgress->value, 'started_at' => now()],
-        );
+        return DB::transaction(function () use ($user, $path): UserPathProgress {
+            $existing = $this->lockProgress($user, $path);
+            if ($existing !== null) {
+                return $existing;
+            }
+
+            $missing = $this->unmetPrerequisites($user, $path);
+            if ($missing->isNotEmpty() && ! $user->isModerator()) {
+                throw ValidationException::withMessages([
+                    'path' => $this->prerequisiteMessage($missing),
+                ]);
+            }
+
+            try {
+                $row = new UserPathProgress;
+                $row->forceFill([
+                    'user_id' => $user->id,
+                    'path_id' => $path->id,
+                    'status' => PathProgressStatus::InProgress->value,
+                    'started_at' => now(),
+                ])->save();
+
+                return $row;
+            } catch (UniqueConstraintViolationException) {
+                return UserPathProgress::query()
+                    ->where('user_id', $user->id)
+                    ->where('path_id', $path->id)
+                    ->firstOrFail();
+            }
+        });
+    }
+
+    /**
+     * Learners cannot open a path's modules or lessons until its published
+     * prerequisites are complete, unless they already started it.
+     */
+    public function ensureUnlocked(User $user, Path $path): void
+    {
+        if ($user->isModerator() || $this->hasStarted($user, $path)) {
+            return;
+        }
+
+        $missing = $this->unmetPrerequisites($user, $path);
+        if ($missing->isNotEmpty()) {
+            abort(403, $this->prerequisiteMessage($missing));
+        }
+    }
+
+    /**
+     * Published prerequisites the user has not completed.
+     *
+     * @return Collection<int, Path>
+     */
+    public function unmetPrerequisites(User $user, Path $path): Collection
+    {
+        $required = $this->publishedPrerequisites($path);
+        if ($required->isEmpty()) {
+            return $required;
+        }
+
+        $done = UserPathProgress::query()
+            ->where('user_id', $user->id)
+            ->where('status', PathProgressStatus::Completed)
+            ->whereIn('path_id', $required->pluck('id'))
+            ->pluck('path_id');
+
+        return $required->reject(fn (Path $pre) => $done->contains($pre->id))->values();
+    }
+
+    public function hasStarted(User $user, Path $path): bool
+    {
+        return UserPathProgress::query()
+            ->where('user_id', $user->id)
+            ->where('path_id', $path->id)
+            ->exists();
+    }
+
+    /**
+     * @return Collection<int, Path>
+     */
+    public function publishedPrerequisites(Path $path): Collection
+    {
+        $path->loadMissing('prerequisites');
+
+        return $path->prerequisites
+            ->filter(fn (Path $pre) => $pre->status === ContentStatus::Published)
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, Path>  $missing
+     */
+    public function prerequisiteMessage(Collection $missing): string
+    {
+        return 'Complete the required paths before starting this one: '.$missing->pluck('title')->join(', ').'.';
+    }
+
+    private function lockProgress(User $user, Path $path): ?UserPathProgress
+    {
+        return UserPathProgress::query()
+            ->where('user_id', $user->id)
+            ->where('path_id', $path->id)
+            ->lockForUpdate()
+            ->first();
     }
 
     public function completeLesson(User $user, Lesson $lesson): LessonCompletion

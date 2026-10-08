@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\PathProgressStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PathDetailResource;
 use App\Http\Resources\PathSummaryResource;
 use App\Models\Path;
+use App\Models\UserPathProgress;
 use App\Services\ProgressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,8 +63,25 @@ final class PathController extends Controller
 
         $path->load(['category', 'prerequisites', 'modules' => fn ($q) => $q->published()->withCount('lessons')]);
         $user = $request->user('sanctum');
+        $required = $progress->publishedPrerequisites($path);
+        $path->setRelation('prerequisites', $required);
+
+        $completedIds = $user
+            ? UserPathProgress::query()
+                ->where('user_id', $user->id)
+                ->where('status', PathProgressStatus::Completed)
+                ->whereIn('path_id', $required->pluck('id'))
+                ->pluck('path_id')
+            : collect();
+
+        foreach ($required as $prerequisite) {
+            $prerequisite->viewer_completed = $completedIds->contains($prerequisite->id);
+        }
+
         $path->progress_percent = $user ? $progress->progressPercent($user, $path) : 0;
         $path->completed = $user ? $progress->isPathComplete($user, $path) : false;
+        $path->can_start = $required->every(fn (Path $pre) => (bool) $pre->viewer_completed);
+        $path->started = $user ? $progress->hasStarted($user, $path) : false;
         $path->modules_count = $path->modules->count();
         $path->lessons_count = $path->modules->sum('lessons_count');
         $path->challenges_count = 0;

@@ -82,10 +82,10 @@ commits; the **Status** column tracks remediation.
 |---|---|---|
 | L1 | `--faint` contrast may fail WCAG for small text | **IMPROVED** (token raised) |
 | L2 | Incorrect flag feedback uses `role="status"` (prefer `alert`) | **FIXED** (already `role="alert"`) |
-| L3 | Challenge editor is a large client component (~480 LOC) | OPEN (acceptable debt) |
+| L3 | Challenge editor is a large client component (~480 LOC) | **FIXED** (step flow: details, scenario, files, hints, flag, publish) |
 | L4 | Site header is fully client for mobile menu alone | OPEN (acceptable debt) |
 | L5 | Default Next.js SVGs still in `public/` | **FIXED** (removed) |
-| L6 | Path prerequisites displayed but not hard-enforced (documented V1 choice) | OPEN (documented) |
+| L6 | Path prerequisites displayed but not hard-enforced (documented V1 choice) | **FIXED** (published prerequisites block start and content) |
 | L7 | Notification types exist but no UI | **FIXED** (`/notifications`) |
 
 ---
@@ -149,10 +149,10 @@ Must expand:
 
 ## 11. Technical debt
 
-- Settings theme is persisted but UI remains dark-first (light theme reserved).
+- Settings theme is applied (`light`, `dark`, and `system`). Guests stay dark.
 - Admin achievements web CRUD: **FIXED** (authoring form, criteria validation, admin resource).
-- Challenge editor size / header client boundary (L3/L4).
-- Path prerequisites soft-only (L6).
+- Challenge editor is a step flow (L3). The site header remains a client component for the mobile menu (L4).
+- Path prerequisites are enforced for published paths (L6).
 
 ---
 

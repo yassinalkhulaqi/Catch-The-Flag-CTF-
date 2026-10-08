@@ -46,6 +46,8 @@ export interface CurrentUser {
   achievements_count?: number;
   /** Present on admin user list/detail responses only. */
   banned_at?: string | null;
+  /** Present when the payload is the signed-in user (`/auth/me`). */
+  theme?: UserSettings["theme"];
 }
 
 export interface AuthResponse {
@@ -103,9 +105,13 @@ export interface PathModule {
 
 export interface PathDetail extends PathSummary {
   description: string | null;
-  prerequisites: Array<Pick<PathSummary, "id" | "title" | "slug">>;
+  prerequisites: Array<Pick<PathSummary, "id" | "title" | "slug"> & { completed: boolean }>;
   modules: PathModule[];
   completed: boolean;
+  /** False when a published prerequisite is still incomplete. */
+  can_start: boolean;
+  /** True once a progress row exists, including a start from before a prerequisite was added. */
+  started: boolean;
 }
 
 export interface LessonChallengeRef {

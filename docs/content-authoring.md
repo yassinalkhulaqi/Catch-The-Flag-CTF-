@@ -30,7 +30,7 @@ Draft → Review → Published → Archived
 | `published` | Yes | Requires valid metadata + active flag (challenges) |
 | `archived` | No | Soft-retired; keeps history |
 
-Admin UI: `/admin/challenges`, `/admin/paths`. Server validates before publish
+Admin UI: `/admin/challenges` (details → scenario → files → hints → flag → preview and publish), `/admin/paths`. Server validates before publish
 (`PublishChallengeAction` / `PublishPathAction`).
 
 ---
@@ -42,7 +42,7 @@ Admin UI: `/admin/challenges`, `/admin/paths`. Server validates before publish
 - **Summary** (≤400 chars) — card text
 - **Description** — Markdown-friendly longer copy
 - **Category**, **difficulty** (`beginner|intermediate|advanced|expert`)
-- **Estimated minutes**, optional prerequisites (other paths)
+- **Estimated minutes**, optional prerequisites (other published paths). A learner cannot start a path, or open its modules and lessons, until those prerequisites are completed. Paths already in progress stay available. Do not create a cycle.
 
 ### Module
 Ordered section inside a path. Title + short description + position.

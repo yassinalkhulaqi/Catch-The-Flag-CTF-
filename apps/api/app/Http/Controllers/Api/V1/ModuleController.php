@@ -8,15 +8,19 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ModuleResource;
 use App\Models\LessonCompletion;
 use App\Models\PathModule;
+use App\Services\ProgressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class ModuleController extends Controller
 {
-    public function show(Request $request, PathModule $module): JsonResponse
+    public function show(Request $request, PathModule $module, ProgressService $progress): JsonResponse
     {
         $this->authorize('view', $module);
-        $module->load(['lessons' => fn ($q) => $q->published()]);
+        $module->load(['path', 'lessons' => fn ($q) => $q->published()]);
+        if ($module->path) {
+            $progress->ensureUnlocked($request->user(), $module->path);
+        }
 
         $completedIds = LessonCompletion::query()
             ->where('user_id', $request->user()->id)

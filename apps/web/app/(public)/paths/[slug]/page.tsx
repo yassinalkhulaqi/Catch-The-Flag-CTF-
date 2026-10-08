@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { ErrorState, PageHeader } from "@/components/empty-state";
 import { StartPathButton } from "@/components/learning-actions";
+import { PathPrerequisites } from "@/components/path-prerequisites";
 import { Markdown } from "@/components/markdown";
 import { buttonVariants } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
@@ -57,10 +58,14 @@ export default async function PathDetailPage({
           <div className="flex flex-col items-end gap-2">
             <DifficultyBadge difficulty={path.difficulty} />
             {user ? (
-              path.progress_percent > 0 ? (
+              path.started || path.progress_percent > 0 ? (
                 <p className="font-mono text-xs text-accent">{path.progress_percent}% complete</p>
-              ) : (
+              ) : path.can_start ? (
                 <StartPathButton pathId={path.id} />
+              ) : (
+                <p className="max-w-xs text-right text-sm text-muted">
+                  Complete the required paths before starting this one.
+                </p>
               )
             ) : (
               <Link href="/login" className={cn(buttonVariants("primary", "sm"))}>
@@ -76,6 +81,8 @@ export default async function PathDetailPage({
           <Markdown content={path.description} />
         </div>
       ) : null}
+
+      <PathPrerequisites items={path.prerequisites} />
 
       <section aria-labelledby="modules-heading">
         <h2
@@ -100,7 +107,7 @@ export default async function PathDetailPage({
                     {mod.completed_lesson_count}/{mod.lesson_count} lessons
                   </p>
                 </div>
-                {user ? (
+                {user && (path.can_start || path.started || path.progress_percent > 0) ? (
                   <Link
                     href={`/modules/${mod.id}`}
                     className={cn(buttonVariants("outline", "sm"))}

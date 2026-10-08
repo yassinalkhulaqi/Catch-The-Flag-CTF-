@@ -11,16 +11,20 @@ use App\Models\ChallengeSolve;
 use App\Models\Lesson;
 use App\Models\LessonCompletion;
 use App\Models\QuizAttempt;
+use App\Services\ProgressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class LessonController extends Controller
 {
-    public function show(Request $request, Lesson $lesson): JsonResponse
+    public function show(Request $request, Lesson $lesson, ProgressService $progress): JsonResponse
     {
         $this->authorize('view', $lesson);
         $user = $request->user();
-        $lesson->load(['challenges.category', 'challenges.tags', 'quiz']);
+        $lesson->load(['module.path', 'challenges.category', 'challenges.tags', 'quiz']);
+        if ($lesson->module?->path) {
+            $progress->ensureUnlocked($user, $lesson->module->path);
+        }
 
         $lesson->completed = LessonCompletion::query()
             ->where('user_id', $user->id)

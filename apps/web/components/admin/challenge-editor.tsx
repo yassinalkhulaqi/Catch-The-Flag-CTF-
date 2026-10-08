@@ -1,12 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import { Field, Input, Textarea } from "@/components/ui/input";
+import { useId, useState, useTransition } from "react";
+import { DetailsStep } from "@/components/admin/challenge-editor/details-step";
+import { FilesStep } from "@/components/admin/challenge-editor/files-step";
+import { FlagStep } from "@/components/admin/challenge-editor/flag-step";
+import { HintsStep } from "@/components/admin/challenge-editor/hints-step";
+import { PublishStep } from "@/components/admin/challenge-editor/publish-step";
+import { ScenarioStep } from "@/components/admin/challenge-editor/scenario-step";
+import { StepNav, stepAvailable, type EditorStep } from "@/components/admin/challenge-editor/step-nav";
 import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/errors";
-import { DIFFICULTIES, difficultyLabel } from "@/lib/format";
 import type {
   Category,
   ChallengeDetail,
@@ -43,6 +47,7 @@ export function ChallengeEditor({
   const id = useId();
   const router = useRouter();
   const isEdit = !!challenge;
+  const [step, setStep] = useState<EditorStep>("details");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -51,16 +56,10 @@ export function ChallengeEditor({
   const [slug, setSlug] = useState(challenge?.slug ?? "");
   const [description, setDescription] = useState(challenge?.description ?? "");
   const [scenario, setScenario] = useState(challenge?.scenario ?? "");
-  const [categoryId, setCategoryId] = useState(
-    String(challenge?.category.id ?? categories[0]?.id ?? ""),
-  );
-  const [difficulty, setDifficulty] = useState<Difficulty>(
-    challenge?.difficulty ?? "beginner",
-  );
+  const [categoryId, setCategoryId] = useState(String(challenge?.category.id ?? categories[0]?.id ?? ""));
+  const [difficulty, setDifficulty] = useState<Difficulty>(challenge?.difficulty ?? "beginner");
   const [points, setPoints] = useState(String(challenge?.points ?? 100));
-  const [tagIds, setTagIds] = useState<number[]>(
-    challenge?.tags.map((t) => t.id) ?? [],
-  );
+  const [tagIds, setTagIds] = useState<number[]>(challenge?.tags.map((tag) => tag.id) ?? []);
   const [files, setFiles] = useState<ChallengeFile[]>(challenge?.files ?? []);
   const [hints, setHints] = useState<ChallengeHint[]>(initialHints);
   const [flags, setFlags] = useState<ChallengeFlagMeta[]>(initialFlags);
@@ -69,9 +68,9 @@ export function ChallengeEditor({
   const [flagValue, setFlagValue] = useState("");
   const [flagLabel, setFlagLabel] = useState("primary");
 
-  const status = challenge?.status;
-
-  const selectedTagSet = useMemo(() => new Set(tagIds), [tagIds]);
+  function selectStep(next: EditorStep) {
+    if (stepAvailable(next, isEdit)) setStep(next);
+  }
 
   function saveBasics() {
     setError(null);
@@ -93,10 +92,7 @@ export function ChallengeEditor({
           setMessage("Challenge saved.");
           router.refresh();
         } else {
-          const res = await api.post<{ data: ChallengeSummary }>(
-            "/admin/challenges",
-            body,
-          );
+          const res = await api.post<{ data: ChallengeSummary }>("/admin/challenges", body);
           router.push(`/admin/challenges/${res.data.id}/edit`);
           router.refresh();
         }
@@ -127,10 +123,7 @@ export function ChallengeEditor({
       try {
         const fd = new FormData();
         fd.append("file", file);
-        const res = await api.post<{ data: ChallengeFile }>(
-          `/admin/challenges/${challenge.id}/files`,
-          fd,
-        );
+        const res = await api.post<{ data: ChallengeFile }>(`/admin/challenges/${challenge.id}/files`, fd);
         setFiles((prev) => [...prev, res.data]);
         setMessage(`Uploaded ${res.data.original_name}.`);
       } catch (err) {
@@ -144,7 +137,7 @@ export function ChallengeEditor({
     startTransition(async () => {
       try {
         await api.delete(`/admin/challenges/${challenge.id}/files/${fileId}`);
-        setFiles((prev) => prev.filter((f) => f.id !== fileId));
+        setFiles((prev) => prev.filter((file) => file.id !== fileId));
       } catch (err) {
         setError(errorMessage(err));
       }
@@ -155,10 +148,10 @@ export function ChallengeEditor({
     if (!challenge || !hintContent.trim()) return;
     startTransition(async () => {
       try {
-        const res = await api.post<{ data: ChallengeHint }>(
-          `/admin/challenges/${challenge.id}/hints`,
-          { content: hintContent, cost_points: Number(hintCost) || 0 },
-        );
+        const res = await api.post<{ data: ChallengeHint }>(`/admin/challenges/${challenge.id}/hints`, {
+          content: hintContent,
+          cost_points: Number(hintCost) || 0,
+        });
         setHints((prev) => [...prev, { ...res.data, unlocked: true }]);
         setHintContent("");
       } catch (err) {
@@ -172,7 +165,7 @@ export function ChallengeEditor({
     startTransition(async () => {
       try {
         await api.delete(`/admin/challenges/${challenge.id}/hints/${hintId}`);
-        setHints((prev) => prev.filter((h) => h.id !== hintId));
+        setHints((prev) => prev.filter((hint) => hint.id !== hintId));
       } catch (err) {
         setError(errorMessage(err));
       }
@@ -183,13 +176,15 @@ export function ChallengeEditor({
     if (!challenge || !flagValue.trim()) return;
     startTransition(async () => {
       try {
-        const res = await api.post<{ data: ChallengeFlagMeta }>(
-          `/admin/challenges/${challenge.id}/flags`,
-          { value: flagValue, label: flagLabel || null, case_sensitive: true, is_active: true },
-        );
+        const res = await api.post<{ data: ChallengeFlagMeta }>(`/admin/challenges/${challenge.id}/flags`, {
+          value: flagValue,
+          label: flagLabel || null,
+          case_sensitive: true,
+          is_active: true,
+        });
         setFlags((prev) => [...prev, res.data]);
         setFlagValue("");
-        setMessage("Flag saved (value is write-only and will not be shown again).");
+        setMessage("Flag saved. The value is write-only and will not be shown again.");
       } catch (err) {
         setError(errorMessage(err));
       }
@@ -197,7 +192,8 @@ export function ChallengeEditor({
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
+      <StepNav current={step} isEdit={isEdit} onSelect={selectStep} />
       {error ? (
         <p role="alert" className="text-sm text-danger">
           {error}
@@ -209,271 +205,91 @@ export function ChallengeEditor({
         </p>
       ) : null}
 
-      <section className="space-y-4" aria-labelledby={`${id}-basics`}>
-        <h2 id={`${id}-basics`} className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
-          Challenge details
-        </h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Title" htmlFor={`${id}-title`}>
-            <Input
-              id={`${id}-title`}
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (!isEdit) setSlug(slugify(e.target.value));
-              }}
-              required
-            />
-          </Field>
-          <Field label="Slug" htmlFor={`${id}-slug`}>
-            <Input
-              id={`${id}-slug`}
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Category" htmlFor={`${id}-category`}>
-            <select
-              id={`${id}-category`}
-              className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Difficulty" htmlFor={`${id}-difficulty`}>
-            <select
-              id={`${id}-difficulty`}
-              className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            >
-              {DIFFICULTIES.map((d) => (
-                <option key={d} value={d}>
-                  {difficultyLabel(d)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Points" htmlFor={`${id}-points`}>
-            <Input
-              id={`${id}-points`}
-              type="number"
-              min={1}
-              value={points}
-              onChange={(e) => setPoints(e.target.value)}
-            />
-          </Field>
-        </div>
-        <Field label="Scenario" htmlFor={`${id}-scenario`}>
-          <Textarea
-            id={`${id}-scenario`}
-            value={scenario}
-            onChange={(e) => setScenario(e.target.value)}
-          />
-        </Field>
-        <Field label="Description (Markdown)" htmlFor={`${id}-description`}>
-          <Textarea
-            id={`${id}-description`}
-            className="min-h-40"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-        </Field>
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium">Tags</legend>
-          <div className="flex flex-wrap gap-3">
-            {tags.map((t) => (
-              <label key={t.id} className="flex items-center gap-2 text-sm text-muted">
-                <input
-                  type="checkbox"
-                  checked={selectedTagSet.has(t.id)}
-                  onChange={(e) => {
-                    setTagIds((prev) =>
-                      e.target.checked
-                        ? [...prev, t.id]
-                        : prev.filter((x) => x !== t.id),
-                    );
-                  }}
-                />
-                {t.name}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={saveBasics} disabled={pending}>
-            {pending ? "Saving…" : isEdit ? "Save changes" : "Create challenge"}
-          </Button>
-          {isEdit && challenge ? (
-            <>
-              {status !== "published" ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={pending}
-                  onClick={() => publishAction("publish")}
-                >
-                  Publish
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => publishAction("unpublish")}
-                >
-                  Unpublish
-                </Button>
-              )}
-              {status === "draft" ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={pending}
-                  onClick={() => publishAction("review")}
-                >
-                  Submit for review
-                </Button>
-              ) : null}
-            </>
-          ) : null}
-        </div>
-      </section>
+      {step === "details" ? (
+        <DetailsStep
+          id={id}
+          title={title}
+          slug={slug}
+          categoryId={categoryId}
+          difficulty={difficulty}
+          points={points}
+          tagIds={tagIds}
+          categories={categories}
+          tags={tags}
+          isEdit={isEdit}
+          pending={pending}
+          onTitle={(value, shouldSlug) => {
+            setTitle(value);
+            if (shouldSlug) setSlug(slugify(value));
+          }}
+          onSlug={setSlug}
+          onCategory={setCategoryId}
+          onDifficulty={setDifficulty}
+          onPoints={setPoints}
+          onToggleTag={(tagId, checked) => {
+            setTagIds((prev) => (checked ? [...prev, tagId] : prev.filter((item) => item !== tagId)));
+          }}
+          onSave={saveBasics}
+          onNext={() => selectStep("scenario")}
+        />
+      ) : null}
 
-      {isEdit && challenge ? (
-        <>
-          <section className="space-y-3" aria-labelledby={`${id}-files`}>
-            <h2 id={`${id}-files`} className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
-              Files
-            </h2>
-            <input
-              type="file"
-              aria-label="Upload challenge file"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) uploadFile(file);
-                e.target.value = "";
-              }}
-            />
-            <ul className="divide-y divide-border border border-border">
-              {files.map((f) => (
-                <li key={f.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                  <span className="font-mono">{f.original_name}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteFile(f.id)}
-                    disabled={pending}
-                  >
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </section>
+      {step === "scenario" ? (
+        <ScenarioStep
+          id={id}
+          scenario={scenario}
+          description={description}
+          isEdit={isEdit}
+          pending={pending}
+          onScenario={setScenario}
+          onDescription={setDescription}
+          onSave={saveBasics}
+        />
+      ) : null}
 
-          <section className="space-y-3" aria-labelledby={`${id}-hints`}>
-            <h2 id={`${id}-hints`} className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
-              Hints
-            </h2>
-            <div className="grid gap-3 md:grid-cols-[1fr_120px_auto]">
-              <Input
-                placeholder="Hint content"
-                value={hintContent}
-                onChange={(e) => setHintContent(e.target.value)}
-                aria-label="Hint content"
-              />
-              <Input
-                type="number"
-                min={0}
-                value={hintCost}
-                onChange={(e) => setHintCost(e.target.value)}
-                aria-label="Hint cost"
-              />
-              <Button type="button" onClick={addHint} disabled={pending}>
-                Add hint
-              </Button>
-            </div>
-            <ul className="space-y-2">
-              {hints.map((h) => (
-                <li key={h.id} className="flex items-start justify-between gap-3 border border-border p-3 text-sm">
-                  <div>
-                    <p className="font-mono text-xs text-faint">
-                      #{h.position} · −{h.cost_points} pts
-                    </p>
-                    <p className="mt-1">{h.content}</p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteHint(h.id)}
-                    disabled={pending}
-                  >
-                    Delete
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </section>
+      {step === "files" && isEdit ? (
+        <FilesStep id={id} files={files} pending={pending} onUpload={uploadFile} onDelete={deleteFile} />
+      ) : null}
 
-          <section className="space-y-3" aria-labelledby={`${id}-flag`}>
-            <h2 id={`${id}-flag`} className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
-              Flag (write-only)
-            </h2>
-            <p className="text-sm text-muted">
-              Flag values are never returned by the API after save. Replace by setting a new value.
-            </p>
-            <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]">
-              <Input
-                type="password"
-                autoComplete="off"
-                placeholder="flag{…}"
-                value={flagValue}
-                onChange={(e) => setFlagValue(e.target.value)}
-                aria-label="Flag value"
-              />
-              <Input
-                placeholder="Label"
-                value={flagLabel}
-                onChange={(e) => setFlagLabel(e.target.value)}
-                aria-label="Flag label"
-              />
-              <Button type="button" onClick={setFlag} disabled={pending}>
-                Set flag
-              </Button>
-            </div>
-            <ul className="divide-y divide-border border border-border text-sm">
-              {flags.map((f) => (
-                <li key={f.id} className="flex justify-between px-3 py-2">
-                  <span>
-                    {f.label || "unnamed"} · {f.is_active ? "active" : "inactive"}
-                  </span>
-                  <span className="font-mono text-xs text-faint">
-                    {f.case_sensitive ? "case-sensitive" : "case-insensitive"}
-                  </span>
-                </li>
-              ))}
-              {flags.length === 0 ? (
-                <li className="px-3 py-2 text-muted">No flag configured yet.</li>
-              ) : null}
-            </ul>
-          </section>
-        </>
-      ) : (
-        <p className="text-sm text-muted">
-          Save the challenge first to upload files, add hints, and set the flag.
-        </p>
-      )}
+      {step === "hints" && isEdit ? (
+        <HintsStep
+          id={id}
+          hints={hints}
+          content={hintContent}
+          cost={hintCost}
+          pending={pending}
+          onContent={setHintContent}
+          onCost={setHintCost}
+          onAdd={addHint}
+          onDelete={deleteHint}
+        />
+      ) : null}
+
+      {step === "flag" && isEdit ? (
+        <FlagStep
+          id={id}
+          flags={flags}
+          value={flagValue}
+          label={flagLabel}
+          pending={pending}
+          onValue={setFlagValue}
+          onLabel={setFlagLabel}
+          onSave={setFlag}
+        />
+      ) : null}
+
+      {step === "publish" && isEdit ? (
+        <PublishStep
+          id={id}
+          title={title}
+          scenario={scenario}
+          description={description}
+          status={challenge?.status}
+          hasActiveFlag={flags.some((flag) => flag.is_active)}
+          pending={pending}
+          onAction={publishAction}
+        />
+      ) : null}
     </div>
   );
 }

@@ -35,6 +35,10 @@ class SettingsAndNotificationsTest extends TestCase
         $this->actingAsApi($user)->getJson('/api/v1/me/settings')
             ->assertOk()
             ->assertJsonPath('data.theme', 'dark');
+
+        $this->actingAsApi($user)->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.theme', 'dark');
     }
 
     public function test_correct_solve_creates_database_notification(): void
