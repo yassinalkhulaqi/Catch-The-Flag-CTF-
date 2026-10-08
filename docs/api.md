@@ -188,6 +188,14 @@ GET             /admin/stats            (dashboard counters; Gate `viewAdminDash
 Admin quiz `GET/POST/PUT` responses include option `is_correct` for staff editors.
 Learner `GET /quizzes/{id}` never includes `is_correct`.
 
+Admin achievement `GET/POST/PUT` responses include `criteria`, `points`,
+`is_active`, `sort_order`, and `awarded_count`. Learner
+`GET /me/achievements` and `GET /achievements` never include those fields.
+`key` is immutable (`PUT` rejects it). `DELETE` is admin-only and cascades to
+existing awards. `criteria.type` must be one of `solves_total`, `xp_total`,
+`paths_completed`, `category_solves`, `first_blood`, with integer `threshold`
+≥ 1. `category_solves` also requires `criteria.category_id`.
+
 **Flag rule in admin API:** `POST/PUT` accept `{ value }`; responses only ever
 return `{ id, label, case_sensitive, is_active, created_at }` — never the value.
 There is intentionally **no** "reveal flag" endpoint in V1 (admin replaced, not

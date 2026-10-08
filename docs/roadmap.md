@@ -51,8 +51,8 @@
   next-action; pagination; related challenges; branded 404/error; SEO basics
 - Path list progress batching (N+1 removal)
 
-Remaining soft debt: light-theme UI polish, admin achievements web CRUD,
-challenge-editor split, hard path-prerequisite enforcement.
+Remaining soft debt: light-theme UI polish, challenge-editor split, hard
+path-prerequisite enforcement. Admin achievements are authored in the web UI.
 
 ---
 

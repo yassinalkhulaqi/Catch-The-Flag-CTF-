@@ -1,18 +1,23 @@
+import { AchievementCreateForm, AchievementList } from "@/components/admin/achievement-forms";
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { requireStaff } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
-import type { Achievement } from "@/lib/types";
+import type { AdminAchievement, Category } from "@/lib/types";
 
 export const metadata = { title: "Admin · Achievements" };
 
 export default async function AdminAchievementsPage() {
-  await requireStaff();
-  let items: Achievement[] = [];
+  const user = await requireStaff();
+  let items: AdminAchievement[] = [];
+  let categories: Category[] = [];
   let loadError = false;
   try {
-    const res = await serverApi<{ data: Achievement[] }>("GET", "/admin/achievements");
-    items = Array.isArray(res.data) ? res.data : [];
+    const [achievementRes, categoryRes] = await Promise.all([
+      serverApi<{ data: AdminAchievement[] }>("GET", "/admin/achievements"),
+      serverApi<{ data: Category[] }>("GET", "/categories"),
+    ]);
+    items = Array.isArray(achievementRes.data) ? achievementRes.data : [];
+    categories = Array.isArray(categoryRes.data) ? categoryRes.data : [];
   } catch {
     loadError = true;
   }
@@ -22,24 +27,27 @@ export default async function AdminAchievementsPage() {
       <PageHeader
         eyebrow="Progression"
         title="Achievements"
-        description="Badges awarded by server-side criteria."
+        description="Badges awarded by server-side criteria. Deactivate a badge to stop new awards without erasing history."
       />
       {loadError ? (
         <ErrorState />
-      ) : items.length === 0 ? (
-        <EmptyState title="No achievements" />
       ) : (
-        <ul className="divide-y divide-border border-t border-border">
-          {items.map((a) => (
-            <li key={a.id} className="py-4">
-              <div className="flex items-center gap-2">
-                <p className="font-semibold">{a.title}</p>
-                <Badge className="font-mono normal-case">{a.key}</Badge>
-              </div>
-              <p className="mt-1 text-sm text-muted">{a.description}</p>
-            </li>
-          ))}
-        </ul>
+        <>
+          <AchievementCreateForm categories={categories} />
+          {items.length === 0 ? (
+            <EmptyState
+              className="mt-8"
+              title="No achievements"
+              description="Create the first badge with the form above."
+            />
+          ) : (
+            <AchievementList
+              items={items}
+              categories={categories}
+              canDelete={user.role === "admin"}
+            />
+          )}
+        </>
       )}
     </div>
   );

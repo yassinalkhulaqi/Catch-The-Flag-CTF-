@@ -150,7 +150,7 @@ Must expand:
 ## 11. Technical debt
 
 - Settings theme is persisted but UI remains dark-first (light theme reserved).
-- Admin achievements list is read-only in the web UI (API CRUD exists).
+- Admin achievements web CRUD: **FIXED** (authoring form, criteria validation, admin resource).
 - Challenge editor size / header client boundary (L3/L4).
 - Path prerequisites soft-only (L6).
 

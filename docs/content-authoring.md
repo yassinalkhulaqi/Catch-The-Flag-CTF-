@@ -142,9 +142,24 @@ Prefer existing tags before creating new ones.
 
 ## 9. Achievements
 
-Criteria JSON (`type` required): `solves_total`, `xp_total`, `paths_completed`,
-`category_solves`, `first_blood`. Evaluated server-side after solve/progress
-events. Keep the catalog small and meaningful.
+Admin UI: `/admin/achievements` (moderators and admins). The API is
+`GET/POST /admin/achievements` and `PUT/DELETE /admin/achievements/{id}`.
+
+| Field | Guidance |
+|---|---|
+| Key | Stable id (`solver_10`). Lowercase letters, numbers, underscores. Immutable after create. |
+| Title / description | What the learner sees. Description is the public explanation of the rule. |
+| Criteria | `solves_total`, `xp_total`, `paths_completed`, `category_solves`, `first_blood`, plus integer `threshold` ≥ 1. `category_solves` also needs a category. |
+| Points | XP granted on award. `0` uses the platform default (`config/ctf.php` → `xp.achievement`). |
+| Active | Inactive badges stay in history but are hidden from learners and are not newly awarded. Prefer this over delete. |
+| Sort order | Lower numbers appear first. |
+
+Evaluated server-side after solve/progress events. Keep the catalog small and
+meaningful.
+
+**Delete is admin-only** and cascades to existing awards. Learner achievement
+responses never include `criteria`, `points`, `is_active`, `sort_order`, or
+`awarded_count`. Those fields are on the admin resource only.
 
 ---
 

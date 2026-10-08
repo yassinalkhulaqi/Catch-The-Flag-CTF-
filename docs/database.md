@@ -324,14 +324,22 @@ V1 = global all-time only. Weekly/monthly/event boards are V2 (roadmap) and
 will be derived from `xp_transactions.created_at` — no schema change needed.
 
 ### `achievements`
-`id, key varchar(80) UNIQUE NOT NULL, title, description, icon varchar(60),
-criteria_type varchar(40) CHECK IN ('solves_total','xp_total',
-'paths_completed','category_solves','first_blood'),
-criteria jsonb NOT NULL DEFAULT '{}'` (e.g. `{"threshold":10}`),
-`points int DEFAULT 0, is_active bool DEFAULT true, sort_order int`.
+`id, key varchar(80) UNIQUE NOT NULL, title, description, icon varchar(60) NULL,
+criteria jsonb NULL, points int DEFAULT 0, is_active bool DEFAULT true,
+sort_order int`.
 
-Criteria **config** is JSON because it is configuration, not relational data
-(ADR-0006); the *evaluation logic* is typed PHP in `AchievementEvaluator`.
+`criteria` is configuration, not relational data. It must contain `type` and an
+integer `threshold` (>= 1). `type` is checked in
+`achievements_criteria_type_check`:
+
+`solves_total` · `xp_total` · `paths_completed` · `category_solves` · `first_blood`
+
+`category_solves` also requires integer `category_id`. Category existence is
+enforced in the admin form request (a CHECK cannot follow category deletes).
+Example: `{"type":"solves_total","threshold":10}`.
+
+The evaluation logic is typed PHP in `AchievementService`. The key is immutable
+after create. Deleting an achievement cascades to `user_achievements`.
 
 ### `user_achievements`
 `id, user_id FK, achievement_id FK, awarded_at timestamptz`,

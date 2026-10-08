@@ -6,7 +6,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreAchievementRequest extends FormRequest
+class UpdateAchievementRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,21 +16,21 @@ class StoreAchievementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'key' => ['required', 'string', 'max:80', 'regex:/^[a-z0-9_]+$/', 'unique:achievements,key'],
-            'title' => ['required', 'string', 'max:160'],
-            'description' => ['required', 'string', 'max:400'],
-            'icon' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/'],
+            'key' => ['prohibited'],
+            'title' => ['sometimes', 'string', 'max:160'],
+            'description' => ['sometimes', 'string', 'max:400'],
+            'icon' => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/'],
             'points' => ['sometimes', 'integer', 'min:0', 'max:10000'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0', 'max:10000'],
-            ...AchievementCriteriaRules::rules(required: true),
+            ...AchievementCriteriaRules::rules(required: false),
         ];
     }
 
     public function messages(): array
     {
         return [
-            'key.regex' => 'The key may only contain lowercase letters, numbers, and underscores.',
+            'key.prohibited' => 'The achievement key cannot be changed.',
             'icon.regex' => 'The icon may only contain lowercase letters, numbers, hyphens, and underscores.',
             ...AchievementCriteriaRules::messages(),
         ];

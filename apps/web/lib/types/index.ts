@@ -269,6 +269,33 @@ export interface Achievement {
   progress?: { current: number; target: number };
 }
 
+export type AchievementCriteriaType =
+  | "solves_total"
+  | "xp_total"
+  | "paths_completed"
+  | "category_solves"
+  | "first_blood";
+
+export interface AchievementCriteria {
+  type: AchievementCriteriaType;
+  threshold: number;
+  category_id?: number;
+}
+
+/** Staff authoring shape. Learner Achievement omits criteria and catalog fields. */
+export interface AdminAchievement {
+  id: number;
+  key: string;
+  title: string;
+  description: string;
+  icon: string | null;
+  criteria: AchievementCriteria;
+  points: number;
+  is_active: boolean;
+  sort_order: number;
+  awarded_count: number;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   id: number;
