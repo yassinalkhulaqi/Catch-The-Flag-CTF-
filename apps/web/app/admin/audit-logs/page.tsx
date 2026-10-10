@@ -1,20 +1,30 @@
+import { AuditFilters } from "@/components/admin/audit-filters";
+import { AuditLogTable } from "@/components/admin/audit-log-table";
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { requireStaff } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
-import { timeAgo } from "@/lib/utils";
+import { toQuery } from "@/lib/format";
 import type { AuditLogEntry, Paginated } from "@/lib/types";
 
 export const metadata = { title: "Admin · Audit logs" };
 
-export default async function AdminAuditLogsPage() {
+export default async function AdminAuditLogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireStaff();
+  const sp = await searchParams;
+  const actor = typeof sp.actor === "string" ? sp.actor : undefined;
+  const action = typeof sp.action === "string" ? sp.action : undefined;
+  const entity = typeof sp.entity === "string" ? sp.entity : undefined;
 
   let logs: AuditLogEntry[] = [];
   let loadError = false;
   try {
     const res = await serverApi<Paginated<AuditLogEntry>>(
       "GET",
-      "/admin/audit-logs?per_page=50",
+      `/admin/audit-logs${toQuery({ actor, action, entity, per_page: 50 })}`,
     );
     logs = res.data;
   } catch {
@@ -26,33 +36,15 @@ export default async function AdminAuditLogsPage() {
       <PageHeader
         eyebrow="Operations"
         title="Audit logs"
-        description="Admin mutations with redacted diffs."
+        description="Admin mutations with redacted diffs. Flag and password fields are already masked by the server."
       />
+      <AuditFilters actor={actor} action={action} entity={entity} />
       {loadError ? (
-        <ErrorState />
+        <ErrorState description="Audit logs could not be loaded." />
       ) : logs.length === 0 ? (
-        <EmptyState title="No audit events yet" />
+        <EmptyState title="No audit events match" description="Clear the filters or perform an admin change." />
       ) : (
-        <ul className="divide-y divide-border border-t border-border">
-          {logs.map((log) => (
-            <li key={log.id} className="py-3 text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-mono text-accent">{log.action}</p>
-                <p className="font-mono text-xs text-faint">{timeAgo(log.created_at)}</p>
-              </div>
-              <p className="mt-1 text-muted">
-                {log.actor?.name ?? `actor #${log.actor_id ?? "—"}`}
-                {log.auditable_type ? (
-                  <>
-                    {" "}
-                    · {log.auditable_type}
-                    {log.auditable_id != null ? `#${log.auditable_id}` : ""}
-                  </>
-                ) : null}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <AuditLogTable rows={logs} />
       )}
     </div>
   );
