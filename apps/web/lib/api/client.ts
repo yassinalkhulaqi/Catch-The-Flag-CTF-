@@ -10,14 +10,20 @@ export class ApiError extends Error {
   readonly code: string;
   readonly fields?: Record<string, string[]>;
   readonly requestId?: string;
+  readonly retryAfterSeconds: number | null;
 
-  constructor(status: number, body: ApiErrorBody["error"] | null) {
+  constructor(
+    status: number,
+    body: ApiErrorBody["error"] | null,
+    retryAfterSeconds: number | null = null,
+  ) {
     super(body?.message ?? "Request failed");
     this.name = "ApiError";
     this.status = status;
     this.code = body?.code ?? "server_error";
     this.fields = body?.fields;
     this.requestId = body?.request_id;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -63,9 +69,19 @@ async function request<T>(
 
   if (!res.ok) {
     const err = payload as ApiErrorBody | null;
-    throw new ApiError(res.status, err?.error ?? null);
+    throw new ApiError(res.status, err?.error ?? null, retryAfterSeconds(res));
   }
   return payload as T;
+}
+
+function retryAfterSeconds(res: Response): number | null {
+  const header = res.headers.get("Retry-After");
+  if (!header) return null;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds;
+  const date = Date.parse(header);
+  if (Number.isNaN(date)) return null;
+  return Math.max(0, Math.ceil((date - Date.now()) / 1000));
 }
 
 export const api = {

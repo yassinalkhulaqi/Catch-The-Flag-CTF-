@@ -435,6 +435,56 @@ body {
   animation: ctf-shimmer 1.4s var(--ease-in-out) infinite;
 }
 
+.spotlight-card {
+  --spot-x: 50%;
+  --spot-y: 0%;
+}
+
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    220px circle at var(--spot-x) var(--spot-y),
+    color-mix(in srgb, var(--accent) 18%, transparent),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.spotlight-card:hover::before,
+.spotlight-card:focus-within::before {
+  opacity: 1;
+}
+
+.glitch-slice {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  opacity: 0.75;
+  animation: ctf-glitch 900ms steps(2, end) 1 both;
+}
+
+.glitch-slice-a {
+  color: var(--accent);
+  clip-path: inset(0 0 55% 0);
+}
+
+.glitch-slice-b {
+  color: var(--info);
+  clip-path: inset(55% 0 0 0);
+  animation-delay: 80ms;
+}
+
+@keyframes ctf-glitch {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+
 .caret::after {
   content: "";
   display: inline-block;
