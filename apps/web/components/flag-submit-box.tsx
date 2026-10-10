@@ -8,6 +8,7 @@ import { api, ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/errors";
 import { CountUp } from "@/lib/motion/count-up";
 import { prefersReducedMotion } from "@/lib/motion/reduced";
+import { playSolve } from "@/lib/motion/solve";
 import { cn } from "@/lib/utils";
 import type { SubmissionOutcome } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export function FlagSubmitBox({
   const id = useId();
   const router = useRouter();
   const panelRef = useRef<HTMLElement>(null);
+  const cancelCelebrate = useRef<(() => void) | null>(null);
   const [flag, setFlag] = useState("");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<SubmissionOutcome | null>(
@@ -31,9 +33,14 @@ export function FlagSubmitBox({
   const [error, setError] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [shake, setShake] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
   const [retryIn, setRetryIn] = useState<number | null>(null);
 
   const solved = alreadySolved || result?.result === "correct";
+
+  useEffect(() => {
+    return () => cancelCelebrate.current?.();
+  }, []);
 
   useEffect(() => {
     if (retryIn === null || retryIn <= 0) return;
@@ -61,11 +68,16 @@ export function FlagSubmitBox({
         setAttempts((count) => count + 1);
         if (res.data.result === "correct") {
           setFlag("");
-          if (!res.data.already_solved && !prefersReducedMotion() && panelRef.current) {
-            const rect = panelRef.current.getBoundingClientRect();
-            const { burstConfetti } = await import("@/lib/motion/confetti");
-            burstConfetti({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-          }
+          const rect = panelRef.current?.getBoundingClientRect();
+          const plan = await playSolve({
+            origin: rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null,
+            points: res.data.points_awarded ?? 0,
+            alreadySolved: res.data.already_solved,
+            reduced: prefersReducedMotion(),
+          });
+          cancelCelebrate.current?.();
+          cancelCelebrate.current = plan.cancel;
+          setCelebrate(plan.celebrate);
           router.refresh();
         } else {
           setShake(true);
@@ -90,7 +102,11 @@ export function FlagSubmitBox({
     <section
       ref={panelRef}
       aria-labelledby={`${id}-title`}
-      className={cn("rounded-xl border border-border bg-surface p-5", shake && "animate-shake")}
+      className={cn(
+        "rounded-xl border border-border bg-surface p-5",
+        shake && "animate-shake",
+        celebrate && "solve-celebrate",
+      )}
       data-testid="flag-submit-box"
     >
       <h2 id={`${id}-title`} className="type-eyebrow text-accent">

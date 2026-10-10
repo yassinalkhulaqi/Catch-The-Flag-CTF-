@@ -411,6 +411,56 @@ body {
   animation: ctf-shake var(--duration-slow) var(--ease-in-out);
 }
 
+html[dir="rtl"] .animate-shake {
+  animation-name: ctf-shake-rtl;
+}
+
+.solve-celebrate {
+  animation: ctf-pop var(--duration-base) var(--ease-spring) both;
+  box-shadow: var(--glow-success);
+}
+
+.vt-logo {
+  view-transition-name: ctf-logo;
+}
+
+.podium-item {
+  animation: ctf-fade-up var(--duration-slow) var(--ease-out) both;
+}
+
+.podium-item:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.podium-item:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.path-node-current {
+  animation: ctf-node 2s var(--ease-in-out) infinite;
+}
+
+@keyframes ctf-shake-rtl {
+  0%,
+  100% { transform: translateX(0); }
+  20% { transform: translateX(6px); }
+  40% { transform: translateX(-5px); }
+  60% { transform: translateX(3px); }
+  80% { transform: translateX(-2px); }
+}
+
+@keyframes ctf-node {
+  0%,
+  100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-out);
+}
+
 .animate-pop {
   animation: ctf-pop var(--duration-base) var(--ease-spring) both;
 }
