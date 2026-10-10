@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { ErrorState, PageHeader } from "@/components/empty-state";
 import { StartPathButton } from "@/components/learning-actions";
+import { PathMap } from "@/components/path-map";
 import { PathPrerequisites } from "@/components/path-prerequisites";
 import { Markdown } from "@/components/markdown";
 import { buttonVariants } from "@/components/ui/button";
@@ -63,7 +64,7 @@ export default async function PathDetailPage({
               ) : path.can_start ? (
                 <StartPathButton pathId={path.id} />
               ) : (
-                <p className="max-w-xs text-right text-sm text-muted">
+                <p className="max-w-xs text-end text-sm text-muted">
                   Complete the required paths before starting this one.
                 </p>
               )
@@ -91,34 +92,11 @@ export default async function PathDetailPage({
         >
           Modules
         </h2>
-        <ol className="space-y-3">
-          {path.modules.map((mod) => (
-            <li key={mod.id} className="border border-border bg-surface p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-mono text-[11px] uppercase text-faint">
-                    Module {mod.position}
-                  </p>
-                  <h3 className="mt-1 text-base font-semibold">{mod.title}</h3>
-                  {mod.description ? (
-                    <p className="mt-1 text-sm text-muted">{mod.description}</p>
-                  ) : null}
-                  <p className="mt-2 font-mono text-xs text-faint">
-                    {mod.completed_lesson_count}/{mod.lesson_count} lessons
-                  </p>
-                </div>
-                {user && (path.can_start || path.started || path.progress_percent > 0) ? (
-                  <Link
-                    href={`/modules/${mod.id}`}
-                    className={cn(buttonVariants("outline", "sm"))}
-                  >
-                    Open module
-                  </Link>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ol>
+        <PathMap
+          modules={path.modules}
+          locked={!path.can_start && !path.started && path.progress_percent === 0}
+          canOpen={!!user && (path.can_start || path.started || path.progress_percent > 0)}
+        />
       </section>
     </div>
   );

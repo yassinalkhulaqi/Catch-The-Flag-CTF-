@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 /** CTF flag-marker mark + wordmark. */
 export function Logo({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
+    <span className={cn("vt-logo inline-flex items-center gap-2", className)}>
       <svg
         width="22"
         height="22"

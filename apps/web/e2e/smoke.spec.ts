@@ -34,6 +34,12 @@ test("challenge filters stay in the URL", async ({ page }) => {
   await expect(page).toHaveURL(/q=memory/);
 });
 
+test("reduced motion keeps the hero readable", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Catch The Flag");
+});
+
 test("shortcuts dialog opens with Shift+?", async ({ page }) => {
   await page.goto("/");
   await page.keyboard.press("Shift+/");

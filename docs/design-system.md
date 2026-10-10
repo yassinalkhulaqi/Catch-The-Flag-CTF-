@@ -63,8 +63,17 @@ Rules:
    `lib/motion/reduced.ts` skip the rest.
 3. Ambient canvas (`AmbientGrid`) also checks data-saver and hardware
    concurrency, pauses off-screen, and pauses when the tab is hidden.
-4. Confetti is dynamic-imported from the flag box and only runs after the
-   server says `correct`.
+4. A correct flag runs `playSolve` in `lib/motion/solve.ts`. The points are
+   the server value. Confetti is dynamic-imported and skipped for reduced
+   motion, an already-solved challenge, or a missing origin. The success
+   sentence stays on screen after the burst.
+5. Shared elements use view-transition names: the logo (`ctf-logo`), page
+   titles (`ctf-title`), and a challenge card with its detail heading
+   (`c-{slug}`).
+6. The path map marks modules locked, current, or complete from server
+   lesson counts. Only the current node pulses.
+7. The leaderboard podium settles with an 80ms stagger. It does not invent
+   rank changes.
 
 ## 5. Components
 

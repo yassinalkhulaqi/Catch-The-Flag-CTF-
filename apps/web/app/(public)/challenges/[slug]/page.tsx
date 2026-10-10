@@ -55,6 +55,7 @@ export default async function ChallengeDetailPage({
       <PageHeader
         eyebrow={challenge.category.name}
         title={challenge.title}
+        transitionName={`c-${challenge.slug}`}
         description={challenge.scenario ?? undefined}
         actions={
           <div className="flex flex-col items-end gap-2">

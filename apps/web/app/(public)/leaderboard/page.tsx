@@ -55,7 +55,7 @@ export default async function LeaderboardPage() {
           {entries.slice(0, 3).map((row) => (
             <li
               key={row.id}
-              className="rounded-xl border border-border bg-surface p-4"
+              className="podium-item rounded-xl border border-border bg-surface p-4"
             >
               <p className="font-mono text-xs text-accent">#{row.rank}</p>
               <p className="mt-2 text-lg font-semibold">
@@ -67,7 +67,7 @@ export default async function LeaderboardPage() {
           ))}
         </ol>
         <div className="overflow-x-auto border border-border">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[560px] text-start text-sm">
             <thead className="border-b border-border bg-surface">
               <tr className="font-mono text-[11px] uppercase tracking-wide text-muted">
                 <th className="px-4 py-3">Rank</th>

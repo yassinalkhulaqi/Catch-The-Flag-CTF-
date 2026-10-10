@@ -51,11 +51,14 @@ export function PageHeader({
   title,
   description,
   actions,
+  transitionName = "ctf-title",
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  /** Shared element name for the View Transitions API. */
+  transitionName?: string;
 }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -65,7 +68,10 @@ export function PageHeader({
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        <h1
+          className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+          style={{ viewTransitionName: transitionName }}
+        >
           {title}
         </h1>
         {description ? (

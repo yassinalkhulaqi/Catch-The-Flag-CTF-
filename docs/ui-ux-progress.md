@@ -41,7 +41,8 @@ server state.
 - [x] 404, error, and maintenance pages. `MAINTENANCE_MODE=true` redirects pages, not `/api`
 - [x] Arabic copy for chrome plus the main learner pages. Lesson and challenge markdown stay in the author's language
 - [x] Playwright specs in `apps/web/e2e` (`npm run test:e2e`)
-- [x] Desktop Playwright smoke: home axe, login axe, Arabic `dir`, challenge filter URL, Shift+/ shortcuts. Passed on 2026-10-10.
+- [x] Desktop Playwright smoke: home axe, login axe, Arabic `dir`, challenge filter URL, Shift+/ shortcuts, reduced-motion hero. Passed on 2026-10-10.
+- [x] Solve timeline (`playSolve`), path map states, podium settle, shared view-transition names.
 - [ ] Authenticated flows (theme, flag, admin wizard) skip when the API is down. This environment has no Docker and no Laravel process on port 8000, so those four specs were skipped. Re-run `npm run test:e2e` with the API seeded to exercise them.
 
 Still not invented:

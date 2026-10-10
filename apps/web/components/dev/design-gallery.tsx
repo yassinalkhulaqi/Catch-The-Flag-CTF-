@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Accordion } from "@/components/ui/accordion";
 import { Avatar } from "@/components/ui/avatar";
@@ -26,6 +26,8 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { CATEGORY_FALLBACKS } from "@/lib/design/category";
 import { COLOR_TOKENS, MOTION, RADIUS_SCALE, Z_INDEX } from "@/lib/design/tokens";
 import { levelFromXp } from "@/lib/design/level";
+import { prefersReducedMotion } from "@/lib/motion/reduced";
+import { playSolve } from "@/lib/motion/solve";
 
 const DIFFICULTIES = ["beginner", "intermediate", "advanced", "expert"] as const;
 
@@ -37,6 +39,9 @@ export function DesignGallery() {
   const [enabled, setEnabled] = useState(true);
   const [discipline, setDiscipline] = useState("dfir");
   const level = levelFromXp(450);
+  const solveRef = useRef<HTMLDivElement>(null);
+  const [previewPoints, setPreviewPoints] = useState<number | null>(null);
+  const [burstPlayed, setBurstPlayed] = useState(false);
 
   return (
     <div className="mx-auto max-w-6xl space-y-16 px-4 py-10">
@@ -183,6 +188,36 @@ export function DesignGallery() {
             </div>
           </div>
         </Card>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="solve-heading" ref={solveRef}>
+        <h2 id="solve-heading" className="type-heading">Solve moment</h2>
+        <p className="max-w-2xl text-sm text-muted">
+          This preview uses 120 points locally. A real solve waits for the server, then runs the same timeline. Reduced motion skips the burst and shows the final number.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            onClick={() => {
+              const rect = solveRef.current?.getBoundingClientRect();
+              void playSolve({
+                origin: rect ? { x: rect.left + rect.width / 2, y: rect.top + 24 } : null,
+                points: 120,
+                reduced: prefersReducedMotion(),
+              }).then((plan) => {
+                setPreviewPoints(plan.points);
+                setBurstPlayed(plan.celebrate);
+              });
+            }}
+          >
+            Play solve preview
+          </Button>
+          {previewPoints !== null ? (
+            <p role="status" className="text-sm text-success">
+              Final points {previewPoints}. Burst {burstPlayed ? "played" : "skipped"}.
+            </p>
+          ) : null}
+        </div>
       </section>
 
       <section className="space-y-4" aria-labelledby="overlay-heading">

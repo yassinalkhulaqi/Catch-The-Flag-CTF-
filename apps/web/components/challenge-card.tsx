@@ -18,6 +18,7 @@ export function ChallengeCard({
         "group block border-b border-border py-4 transition-colors hover:bg-surface/60",
         className,
       )}
+      style={{ viewTransitionName: `c-${challenge.slug}` }}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1.5">
@@ -46,7 +47,7 @@ export function ChallengeCard({
             </p>
           ) : null}
         </div>
-        <div className="shrink-0 text-right">
+        <div className="shrink-0 text-end">
           <p className="font-mono text-sm text-accent">{formatXp(challenge.points)} pts</p>
           <p className="text-xs text-faint">{challenge.solve_count} solves</p>
         </div>
