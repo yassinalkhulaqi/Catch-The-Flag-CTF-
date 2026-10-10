@@ -46,7 +46,7 @@ export function StepNav({
                     : "border border-border px-3 py-1.5 text-sm text-muted enabled:hover:text-foreground disabled:opacity-40"
                 }
               >
-                <span className="mr-2 font-mono text-xs">{index + 1}</span> {step.label}
+                <span className="me-2 font-mono text-xs">{index + 1}</span> {step.label}
               </button>
             </li>
           );

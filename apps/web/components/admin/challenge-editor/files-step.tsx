@@ -1,16 +1,19 @@
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import type { ChallengeFile } from "@/lib/types";
 
 export function FilesStep({
   id,
   files,
   pending,
+  progress,
   onUpload,
   onDelete,
 }: {
   id: string;
   files: ChallengeFile[];
   pending: boolean;
+  progress: number | null;
   onUpload: (file: File) => void;
   onDelete: (fileId: number) => void;
 }) {
@@ -20,8 +23,11 @@ export function FilesStep({
         Files
       </h2>
       <p className="text-sm text-muted">
-        Files are stored as opaque evidence. The server assigns the storage key and detects the type.
+        Treat every upload as hostile. The platform stores the bytes, never runs them, and replaces the filename with a server key. Downloaders should verify the SHA-256 shown after upload.
       </p>
+      {progress !== null ? (
+        <Progress value={Math.round(progress * 100)} label="Upload progress" />
+      ) : null}
       <input
         type="file"
         aria-label="Upload challenge file"

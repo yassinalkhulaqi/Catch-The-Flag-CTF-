@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ModuleOrder } from "@/components/admin/module-order";
 import { PathEditor } from "@/components/admin/path-forms";
 import { ErrorState, PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -56,6 +57,9 @@ export default async function AdminPathEditPage({
         }
       />
       <PathEditor path={path} categories={categories} />
+      <div className="mt-10">
+        <ModuleOrder modules={path.modules} />
+      </div>
     </div>
   );
 }
