@@ -1,5 +1,6 @@
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { requireUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
 import type { Achievement } from "@/lib/types";
@@ -46,9 +47,16 @@ export default async function AchievementsPage() {
               </div>
               <p className="mt-1 text-sm text-muted">{a.description}</p>
               {!a.awarded && a.progress ? (
-                <p className="mt-3 font-mono text-xs text-faint">
-                  {a.progress.current} / {a.progress.target}
-                </p>
+                <div className="mt-3 space-y-1">
+                  <Progress
+                    value={a.progress.current}
+                    max={a.progress.target}
+                    label={`${a.title} progress`}
+                  />
+                  <p className="font-mono text-xs text-faint">
+                    {a.progress.current} / {a.progress.target}
+                  </p>
+                </div>
               ) : null}
             </li>
           ))}

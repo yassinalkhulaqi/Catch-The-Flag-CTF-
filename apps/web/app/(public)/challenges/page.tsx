@@ -25,7 +25,11 @@ export default async function ChallengesPage({
   const difficulty = typeof sp.difficulty === "string" ? sp.difficulty : undefined;
   const tags = typeof sp.tags === "string" ? sp.tags : undefined;
   const solved = typeof sp.solved === "string" ? sp.solved : undefined;
+  const sort = typeof sp.sort === "string" ? sp.sort : undefined;
+  const minPoints = typeof sp.min_points === "string" ? sp.min_points : undefined;
+  const maxPoints = typeof sp.max_points === "string" ? sp.max_points : undefined;
   const page = typeof sp.page === "string" ? sp.page : "1";
+  const view = sp.view === "grid" ? "grid" : "list";
 
   let challenges: Paginated<ChallengeSummary> | null = null;
   let categories: Category[] = [];
@@ -36,7 +40,7 @@ export default async function ChallengesPage({
     const [chRes, catRes, tagRes] = await Promise.all([
       serverApi<Paginated<ChallengeSummary>>(
         "GET",
-        `/challenges${toQuery({ q, category, difficulty, tags, solved, page, per_page: 20 })}`,
+        `/challenges${toQuery({ q, category, difficulty, tags, solved, sort, min_points: minPoints, max_points: maxPoints, page, per_page: 20 })}`,
       ),
       serverApi<{ data: Category[] }>("GET", "/categories"),
       serverApi<{ data: Tag[] }>("GET", "/tags"),
@@ -55,6 +59,10 @@ export default async function ChallengesPage({
       difficulty,
       tags,
       solved,
+      sort,
+      min_points: minPoints,
+      max_points: maxPoints,
+      view: view === "grid" ? "grid" : undefined,
       page: nextPage > 1 ? nextPage : undefined,
     })}`;
   }
@@ -84,9 +92,9 @@ export default async function ChallengesPage({
             <p className="mb-2 font-mono text-xs text-faint">
               {challenges.meta.total} challenge{challenges.meta.total === 1 ? "" : "s"}
             </p>
-            <div className="border-t border-border">
+            <div className={view === "grid" ? "grid gap-3 sm:grid-cols-2" : "border-t border-border"}>
               {challenges.data.map((c) => (
-                <ChallengeCard key={c.id} challenge={c} />
+                <ChallengeCard key={c.id} challenge={c} className={view === "grid" ? "rounded-xl border border-border px-4" : undefined} />
               ))}
             </div>
             <PaginationNav meta={challenges.meta} hrefForPage={hrefForPage} />

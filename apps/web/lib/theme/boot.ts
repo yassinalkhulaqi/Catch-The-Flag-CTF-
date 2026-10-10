@@ -31,3 +31,10 @@ export function applyDocumentTheme(theme: string): void {
   if (typeof document === "undefined") return;
   document.documentElement.dataset.theme = theme;
 }
+
+/** Flip language and direction before the server render returns. */
+export function applyDocumentLocale(locale: "en" | "ar"): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = locale;
+  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+}

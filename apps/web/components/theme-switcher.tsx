@@ -3,16 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { api } from "@/lib/api/client";
+import { useDictionary } from "@/lib/i18n";
 import type { ThemeName } from "@/lib/design/tokens";
 import { THEME_COOKIE, applyDocumentTheme, writeClientCookie } from "@/lib/theme/boot";
 import { cn } from "@/lib/utils";
 import type { UserSettings } from "@/lib/types";
 
-const OPTIONS: Array<{ value: ThemeName; label: string }> = [
-  { value: "dark", label: "Dark" },
-  { value: "light", label: "Light" },
-  { value: "system", label: "System" },
-];
+const OPTIONS: ThemeName[] = ["dark", "light", "system"];
 
 /**
  * Applies the theme before paint of the next navigation.
@@ -26,6 +23,7 @@ export function ThemeSwitcher({
   signedIn: boolean;
 }) {
   const router = useRouter();
+  const copy = useDictionary();
   const [theme, setTheme] = useState<ThemeName>(initial);
   const [pending, startTransition] = useTransition();
 
@@ -48,23 +46,23 @@ export function ThemeSwitcher({
   }
 
   return (
-    <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-md border border-border p-0.5">
+    <div role="radiogroup" aria-label={copy.theme.label} className="inline-flex rounded-md border border-border p-0.5">
       {OPTIONS.map((option) => {
-        const selected = theme === option.value;
+        const selected = theme === option;
         return (
           <button
-            key={option.value}
+            key={option}
             type="button"
             role="radio"
             aria-checked={selected}
             disabled={pending}
-            onClick={() => apply(option.value)}
+            onClick={() => apply(option)}
             className={cn(
               "rounded px-2.5 py-1 text-xs",
               selected ? "bg-accent text-accent-foreground" : "text-muted hover:text-foreground",
             )}
           >
-            {option.label}
+            {copy.theme[option]}
           </button>
         );
       })}

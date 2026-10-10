@@ -101,6 +101,10 @@ export function LoginForm() {
         <Link href="/register" className="text-accent hover:underline">
           Create one
         </Link>
+        <span className="mx-2 text-faint">·</span>
+        <Link href="/forgot-password" className="text-accent hover:underline">
+          Forgot password?
+        </Link>
       </p>
     </form>
   );
