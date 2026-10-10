@@ -3,6 +3,8 @@ import { DifficultyBadge } from "@/components/difficulty-badge";
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { requireUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { formatXp, timeAgo } from "@/lib/utils";
 import type { Paginated, SolveEntry } from "@/lib/types";
 
@@ -10,6 +12,7 @@ export const metadata = { title: "My solves" };
 
 export default async function SolvesPage() {
   await requireUser();
+  const copy = dictionaryFor(await getLocale());
 
   let solves: SolveEntry[] = [];
   let loadError = false;
@@ -24,8 +27,8 @@ export default async function SolvesPage() {
     <div>
       <PageHeader
         eyebrow="Account"
-        title="My solves"
-        description="Challenges you have captured."
+        title={copy.pages.solvesTitle}
+        description={copy.pages.solvesBody}
       />
       {loadError ? (
         <ErrorState />

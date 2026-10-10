@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { ErrorState, PageHeader } from "@/components/empty-state";
 import { CompleteLessonButton } from "@/components/learning-actions";
-import { Markdown } from "@/components/markdown";
+import { LessonToc, ReadingProgress } from "@/components/lesson-tools";
+import { headingId, Markdown } from "@/components/markdown";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api/client";
@@ -45,8 +46,18 @@ export default async function LessonPage({
 
   if (!lesson) notFound();
 
+  const toc = lesson.content
+    .split("\n")
+    .flatMap((line) => {
+      const match = /^(#{2,3})\s+(.+)$/.exec(line.trim());
+      if (!match) return [];
+      const text = match[2].replace(/[`*_]/g, "");
+      return [{ depth: match[1].length, text, id: headingId(text) }];
+    });
+
   return (
     <div>
+      <ReadingProgress />
       <PageHeader
         eyebrow="Lesson"
         title={lesson.title}
@@ -54,9 +65,12 @@ export default async function LessonPage({
         actions={<CompleteLessonButton lessonId={lesson.id} completed={lesson.completed} />}
       />
 
-      <article className="max-w-3xl">
-        <Markdown content={lesson.content} />
-      </article>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <article className="max-w-3xl">
+          <Markdown content={lesson.content} />
+        </article>
+        <LessonToc items={toc} />
+      </div>
 
       {lesson.challenges.length > 0 ? (
         <section className="mt-10" aria-labelledby="linked-challenges">
@@ -118,14 +132,14 @@ export default async function LessonPage({
       <nav className="mt-10 flex justify-between border-t border-border pt-4 text-sm" aria-label="Lesson navigation">
         {lesson.prev_lesson_id ? (
           <Link href={`/lessons/${lesson.prev_lesson_id}`} className="text-muted hover:text-foreground">
-            ← Previous
+            Previous
           </Link>
         ) : (
           <span />
         )}
         {lesson.next_lesson_id ? (
           <Link href={`/lessons/${lesson.next_lesson_id}`} className="text-muted hover:text-foreground">
-            Next →
+            Next
           </Link>
         ) : (
           <Link href={`/modules/${lesson.module_id}`} className="text-accent hover:underline">

@@ -1,10 +1,17 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ErrorState, PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { requireStaff } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
 import { cn, formatXp } from "@/lib/utils";
 import type { AdminStats } from "@/lib/types";
+
+const StatsChart = dynamic(
+  () => import("@/components/admin/stats-chart").then((mod) => mod.StatsChart),
+  { loading: () => <Skeleton className="h-64 w-full" label="Loading stats chart" /> },
+);
 
 export const metadata = { title: "Admin" };
 
@@ -39,6 +46,9 @@ export default async function AdminHomePage() {
         <Stat label="Draft paths" value={String(stats.paths_draft ?? 0)} />
         <Stat label="Total solves" value={formatXp(stats.solves_total)} />
         <Stat label="Banned users" value={String(stats.users_banned ?? 0)} />
+      </div>
+      <div className="mt-8">
+        <StatsChart stats={stats} />
       </div>
     </div>
   );

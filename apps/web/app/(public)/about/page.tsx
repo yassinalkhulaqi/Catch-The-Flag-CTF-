@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
@@ -9,13 +11,14 @@ export const metadata = {
     "Catch The Flag is a professional training ground for SOC analysts, DFIR practitioners, and CTF players — structured learning paths plus static, file-based challenges.",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const copy = dictionaryFor(await getLocale());
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <PageHeader
         eyebrow="Catch The Flag"
-        title="About"
-        description="A professional training ground for SOC analysts, DFIR practitioners, and CTF players."
+        title={copy.pages.aboutTitle}
+        description={copy.pages.aboutBody}
       />
 
       <div className="space-y-6 text-sm leading-relaxed text-muted">

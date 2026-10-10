@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { DifficultyBadge } from "@/components/difficulty-badge";
+import { ChallengeTable } from "@/components/admin/challenge-table";
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
-import { cn, formatXp } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { ChallengeSummary, Paginated } from "@/lib/types";
 
 export const metadata = { title: "Admin · Challenges" };
@@ -38,37 +37,19 @@ export default async function AdminChallengesPage() {
         }
       />
       {loadError ? (
-        <ErrorState />
+        <ErrorState description="The challenge list could not be loaded. Retry from the admin navigation." />
       ) : items.length === 0 ? (
-        <EmptyState title="No challenges" />
+        <EmptyState
+          title="No challenges yet"
+          description="Create a draft, add a write-only flag, then publish."
+          action={
+            <Link href="/admin/challenges/new" className={cn(buttonVariants("primary", "sm"))}>
+              New challenge
+            </Link>
+          }
+        />
       ) : (
-        <ul className="divide-y divide-border border-t border-border">
-          {items.map((c) => (
-            <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div className="space-y-1">
-                <Link
-                  href={`/admin/challenges/${c.id}/edit`}
-                  className="font-semibold hover:text-accent"
-                >
-                  {c.title}
-                </Link>
-                <div className="flex flex-wrap items-center gap-2">
-                  <DifficultyBadge difficulty={c.difficulty} />
-                  <Badge>{c.status}</Badge>
-                  <span className="font-mono text-xs text-faint">
-                    {c.category.name} · {formatXp(c.points)} pts
-                  </span>
-                </div>
-              </div>
-              <Link
-                href={`/admin/challenges/${c.id}/edit`}
-                className={cn(buttonVariants("outline", "sm"))}
-              >
-                Edit
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ChallengeTable rows={items} />
       )}
     </div>
   );

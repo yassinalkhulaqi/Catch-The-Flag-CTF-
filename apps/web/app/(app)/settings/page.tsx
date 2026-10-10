@@ -2,6 +2,8 @@ import { PageHeader } from "@/components/empty-state";
 import { PasswordForm } from "@/components/password-form";
 import { ThemeSettingsForm } from "@/components/theme-settings-form";
 import { requireUser } from "@/lib/auth";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { serverApi } from "@/lib/api/server";
 import type { UserSettings } from "@/lib/types";
 
@@ -9,6 +11,7 @@ export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   await requireUser();
+  const copy = dictionaryFor(await getLocale());
   let settings: UserSettings = { email: "", theme: "system" };
   try {
     const res = await serverApi<{ data: UserSettings }>("GET", "/me/settings");
@@ -21,8 +24,8 @@ export default async function SettingsPage() {
     <div className="space-y-10">
       <PageHeader
         eyebrow="Account"
-        title="Settings"
-        description="Manage credentials and preferences."
+        title={copy.pages.settingsTitle}
+        description={copy.pages.settingsBody}
       />
       <section aria-labelledby="account-heading">
         <h2

@@ -13,7 +13,7 @@ export default async function AdminLayout({
   return (
     <>
       <SiteHeader user={user} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <div className="mb-4">
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">Admin</p>
           <h1 className="font-display text-2xl font-semibold">Content & operations</h1>

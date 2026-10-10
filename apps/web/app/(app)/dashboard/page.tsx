@@ -1,8 +1,16 @@
 import Link from "next/link";
+import { ActivityHeatmap, heatmapFromTimestamps } from "@/components/charts/activity-heatmap";
+import { OnboardingTour } from "@/components/onboarding/tour";
+import { SkillRadar } from "@/components/charts/skill-radar";
 import { PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
+import { levelFromXp } from "@/lib/design/level";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
+import { CountUp } from "@/lib/motion/count-up";
+import { ProgressRing } from "@/lib/motion/progress-ring";
 import { cn, formatXp } from "@/lib/utils";
 import type {
   Achievement,
@@ -12,6 +20,8 @@ import type {
   PathDetail,
   PathSummary,
   ProgressOverview,
+  XpEntry,
+  Category,
 } from "@/lib/types";
 
 export const metadata = { title: "Dashboard" };
@@ -98,28 +108,41 @@ async function resolveNextAction(
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const copy = dictionaryFor(await getLocale());
 
   let progress: ProgressOverview | null = null;
   let paths: PathSummary[] = [];
   let challenges: ChallengeSummary[] = [];
   let achievements: Achievement[] = [];
+  let ledger: XpEntry[] = [];
+  let solvedChallenges: ChallengeSummary[] = [];
+  let categories: Category[] = [];
 
   try {
-    const [prog, pathRes, challengeRes, achRes] = await Promise.all([
+    const [prog, pathRes, challengeRes, achRes, ledgerRes, solvedRes, categoryRes] = await Promise.all([
       serverApi<{ data: ProgressOverview }>("GET", "/me/progress"),
       serverApi<Paginated<PathSummary>>("GET", "/paths?per_page=20"),
       serverApi<Paginated<ChallengeSummary>>("GET", "/challenges?per_page=10"),
       serverApi<{ data: Achievement[] }>("GET", "/me/achievements"),
+      serverApi<Paginated<XpEntry>>("GET", "/me/xp-ledger?per_page=100"),
+      serverApi<Paginated<ChallengeSummary>>("GET", "/challenges?solved=true&per_page=100"),
+      serverApi<{ data: Category[] }>("GET", "/categories"),
     ]);
     progress = prog.data;
     paths = pathRes.data;
     challenges = challengeRes.data;
     achievements = achRes.data.filter((a) => a.awarded).slice(0, 4);
+    ledger = ledgerRes.data;
+    solvedChallenges = solvedRes.data;
+    categories = categoryRes.data;
   } catch {
     /* partial dashboard still useful with user payload */
   }
 
   const nextAction = await resolveNextAction(paths, challenges);
+  const xp = progress?.xp ?? user.xp;
+  const level = levelFromXp(xp);
+  const radar = radarFromSolves(solvedChallenges);
   const ctaLabel =
     nextAction.kind === "lesson"
       ? "Continue lesson"
@@ -129,20 +152,60 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <OnboardingTour userId={user.id} categories={categories} challenges={challenges} />
       <PageHeader
         eyebrow="Dashboard"
         title={`Welcome, ${user.name}`}
-        description="Continue learning, track XP, and see what to tackle next."
+        description={copy.pages.dashboardBody}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="XP" value={formatXp(progress?.xp ?? user.xp)} />
-        <Stat label="Solves" value={String(progress?.challenges_solved ?? user.solved_count)} />
-        <Stat label="Paths started" value={String(progress?.paths_started ?? 0)} />
-        <Stat
-          label="Rank"
-          value={progress?.rank != null ? `#${progress.rank}` : "—"}
-        />
+      <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-4">
+          <ProgressRing
+            ratio={level.ratio}
+            label={`Level ${level.level}, ${level.into} of ${level.span} XP toward the next level`}
+            center={
+              <span>
+                <span className="block font-display text-2xl font-semibold">{level.level}</span>
+                <span className="block font-mono text-[10px] uppercase text-muted">level</span>
+              </span>
+            }
+          />
+          <div>
+            <p className="type-eyebrow text-accent">XP</p>
+            <p className="font-display text-3xl font-semibold">
+              <CountUp value={xp} />
+            </p>
+            <p className="text-sm text-muted">
+              {formatXp(level.span - level.into)} XP to level {level.level + 1}. Streak {progress?.streak_days ?? 0} days.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Stat label="Solves" value={String(progress?.challenges_solved ?? user.solved_count)} />
+          <Stat label="Paths started" value={String(progress?.paths_started ?? 0)} />
+          <Stat label="Rank" value={progress?.rank != null ? `#${progress.rank}` : "—"} />
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl border border-border bg-surface p-4" aria-labelledby="heat-heading">
+          <h2 id="heat-heading" className="sr-only">
+            Recent XP activity
+          </h2>
+          <ActivityHeatmap cells={heatmapFromTimestamps(ledger.map((entry) => entry.created_at))} />
+          <p className="mt-3 text-xs text-muted">Each cell is a day with an XP ledger row. Empty days stay quiet.</p>
+        </section>
+        <section className="rounded-xl border border-border bg-surface p-4" aria-labelledby="radar-heading">
+          <h2 id="radar-heading" className="type-eyebrow text-accent">
+            Solves by discipline
+          </h2>
+          {radar.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Solve a challenge and this chart fills in from the server.</p>
+          ) : (
+            <SkillRadar points={radar} />
+          )}
+        </section>
       </div>
 
       <section className="mt-10" aria-labelledby="next-heading">
@@ -196,6 +259,16 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
+}
+
+function radarFromSolves(challenges: ChallengeSummary[]) {
+  const counts = new Map<string, number>();
+  for (const challenge of challenges) {
+    const label = challenge.category.name;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  const max = Math.max(1, ...counts.values());
+  return [...counts.entries()].map(([label, value]) => ({ label, value, max }));
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

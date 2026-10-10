@@ -1,11 +1,14 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { api } from "@/lib/api/client";
+import { pathCreateSchema, type PathCreateInput } from "@/lib/admin/schemas";
 import { errorMessage } from "@/lib/errors";
 import { DIFFICULTIES, difficultyLabel } from "@/lib/format";
 import type { Category, Difficulty, PathDetail, PathSummary } from "@/lib/types";
@@ -22,66 +25,57 @@ function slugify(value: string): string {
 export function PathCreateForm({ categories }: { categories: Category[] }) {
   const id = useId();
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [summary, setSummary] = useState("");
-  const [difficulty, setDifficulty] = useState<Difficulty>("beginner");
-  const [categoryId, setCategoryId] = useState("");
-  const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const form = useForm<PathCreateInput>({
+    resolver: zodResolver(pathCreateSchema),
+    defaultValues: {
+      title: "",
+      slug: "",
+      summary: "",
+      difficulty: "beginner",
+      category_id: null,
+    },
+  });
+  const pending = form.formState.isSubmitting;
 
   return (
     <form
       className="mt-6 grid max-w-2xl gap-3 border border-border bg-surface p-4"
-      onSubmit={(e) => {
-        e.preventDefault();
+      onSubmit={form.handleSubmit(async (values) => {
         setError(null);
-        startTransition(async () => {
-          try {
-            const res = await api.post<{ data: PathSummary }>("/admin/paths", {
-              title,
-              slug: slug || slugify(title),
-              summary,
-              difficulty,
-              category_id: categoryId ? Number(categoryId) : null,
-            });
-            router.push(`/admin/paths/${res.data.id}/edit`);
-            router.refresh();
-          } catch (err) {
-            setError(errorMessage(err));
-          }
-        });
-      }}
+        try {
+          const res = await api.post<{ data: PathSummary }>("/admin/paths", values);
+          router.push(`/admin/paths/${res.data.id}/edit`);
+          router.refresh();
+        } catch (err) {
+          setError(errorMessage(err));
+        }
+      })}
     >
       <h2 className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
         New path
       </h2>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="Title" htmlFor={`${id}-title`}>
+        <Field label="Title" htmlFor={`${id}-title`} error={form.formState.errors.title?.message}>
           <Input
             id={`${id}-title`}
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setSlug(slugify(e.target.value));
-            }}
-            required
+            {...form.register("title", {
+              onChange: (event) => {
+                if (!form.formState.dirtyFields.slug) {
+                  form.setValue("slug", slugify(event.target.value), { shouldValidate: true });
+                }
+              },
+            })}
           />
         </Field>
-        <Field label="Slug" htmlFor={`${id}-slug`}>
-          <Input
-            id={`${id}-slug`}
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            required
-          />
+        <Field label="Slug" htmlFor={`${id}-slug`} error={form.formState.errors.slug?.message}>
+          <Input id={`${id}-slug`} {...form.register("slug")} />
         </Field>
         <Field label="Difficulty" htmlFor={`${id}-diff`}>
           <select
             id={`${id}-diff`}
             className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+            {...form.register("difficulty")}
           >
             {DIFFICULTIES.map((d) => (
               <option key={d} value={d}>
@@ -94,8 +88,12 @@ export function PathCreateForm({ categories }: { categories: Category[] }) {
           <select
             id={`${id}-cat`}
             className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+            defaultValue=""
+            onChange={(event) =>
+              form.setValue("category_id", event.target.value ? Number(event.target.value) : null, {
+                shouldValidate: true,
+              })
+            }
           >
             <option value="">None</option>
             {categories.map((c) => (
@@ -106,14 +104,8 @@ export function PathCreateForm({ categories }: { categories: Category[] }) {
           </select>
         </Field>
       </div>
-      <Field label="Summary" htmlFor={`${id}-summary`}>
-        <Textarea
-          id={`${id}-summary`}
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          required
-          maxLength={400}
-        />
+      <Field label="Summary" htmlFor={`${id}-summary`} error={form.formState.errors.summary?.message}>
+        <Textarea id={`${id}-summary`} maxLength={400} {...form.register("summary")} />
       </Field>
       {error ? (
         <p role="alert" className="text-sm text-danger">

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { api, ApiError } from "@/lib/api/client";
 import { errorMessage, fieldError } from "@/lib/errors";
+import { useDictionary } from "@/lib/i18n";
 import { safeInternalPath } from "@/lib/safe-url";
 import type { AuthResponse } from "@/lib/types";
 
@@ -14,6 +15,7 @@ export function LoginForm() {
   const id = useId();
   const router = useRouter();
   const search = useSearchParams();
+  const copy = useDictionary();
   const next = safeInternalPath(search.get("next"), "/dashboard");
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
@@ -50,8 +52,8 @@ export function LoginForm() {
       noValidate
     >
       <div className="space-y-1 text-center">
-        <h1 className="font-display text-2xl font-semibold">Welcome back</h1>
-        <p className="text-sm text-muted">Sign in to continue learning and hunting.</p>
+        <h1 className="font-display text-2xl font-semibold">{copy.pages.loginTitle}</h1>
+        <p className="text-sm text-muted">{copy.pages.loginBody}</p>
       </div>
 
       {formError ? (
@@ -100,6 +102,10 @@ export function LoginForm() {
         No account?{" "}
         <Link href="/register" className="text-accent hover:underline">
           Create one
+        </Link>
+        <span className="mx-2 text-faint">·</span>
+        <Link href="/forgot-password" className="text-accent hover:underline">
+          Forgot password?
         </Link>
       </p>
     </form>

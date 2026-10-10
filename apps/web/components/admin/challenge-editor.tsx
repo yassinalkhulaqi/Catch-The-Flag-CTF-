@@ -10,6 +10,8 @@ import { PublishStep } from "@/components/admin/challenge-editor/publish-step";
 import { ScenarioStep } from "@/components/admin/challenge-editor/scenario-step";
 import { StepNav, stepAvailable, type EditorStep } from "@/components/admin/challenge-editor/step-nav";
 import { api } from "@/lib/api/client";
+import { uploadFormData } from "@/lib/admin/upload";
+import { challengeBasicsSchema } from "@/lib/admin/schemas";
 import { errorMessage } from "@/lib/errors";
 import type {
   Category,
@@ -67,6 +69,7 @@ export function ChallengeEditor({
   const [hintCost, setHintCost] = useState("10");
   const [flagValue, setFlagValue] = useState("");
   const [flagLabel, setFlagLabel] = useState("primary");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   function selectStep(next: EditorStep) {
     if (stepAvailable(next, isEdit)) setStep(next);
@@ -77,16 +80,21 @@ export function ChallengeEditor({
     setMessage(null);
     startTransition(async () => {
       try {
-        const body = {
+        const parsed = challengeBasicsSchema.safeParse({
           title,
           slug: slug || slugify(title),
           description,
-          scenario: scenario || null,
+          scenario: scenario.trim() ? scenario : null,
           category_id: Number(categoryId),
           difficulty,
           points: Number(points),
           tag_ids: tagIds,
-        };
+        });
+        if (!parsed.success) {
+          setError(parsed.error.issues[0]?.message ?? "Check the challenge fields.");
+          return;
+        }
+        const body = parsed.data;
         if (isEdit && challenge) {
           await api.put(`/admin/challenges/${challenge.id}`, body);
           setMessage("Challenge saved.");
@@ -119,15 +127,22 @@ export function ChallengeEditor({
   function uploadFile(file: File) {
     if (!challenge) return;
     setError(null);
+    setUploadProgress(0);
     startTransition(async () => {
       try {
         const fd = new FormData();
         fd.append("file", file);
-        const res = await api.post<{ data: ChallengeFile }>(`/admin/challenges/${challenge.id}/files`, fd);
-        setFiles((prev) => [...prev, res.data]);
-        setMessage(`Uploaded ${res.data.original_name}.`);
+        const payload = (await uploadFormData(
+          `/admin/challenges/${challenge.id}/files`,
+          fd,
+          setUploadProgress,
+        )) as { data: ChallengeFile };
+        setFiles((prev) => [...prev, payload.data]);
+        setMessage(`Uploaded ${payload.data.original_name}. The server chose the storage key.`);
       } catch (err) {
-        setError(errorMessage(err));
+        setError(errorMessage(err, "Upload failed."));
+      } finally {
+        setUploadProgress(null);
       }
     });
   }
@@ -248,7 +263,14 @@ export function ChallengeEditor({
       ) : null}
 
       {step === "files" && isEdit ? (
-        <FilesStep id={id} files={files} pending={pending} onUpload={uploadFile} onDelete={deleteFile} />
+        <FilesStep
+          id={id}
+          files={files}
+          pending={pending}
+          progress={uploadProgress}
+          onUpload={uploadFile}
+          onDelete={deleteFile}
+        />
       ) : null}
 
       {step === "hints" && isEdit ? (

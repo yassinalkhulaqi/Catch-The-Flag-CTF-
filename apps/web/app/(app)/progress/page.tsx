@@ -3,6 +3,8 @@ import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { PathCard } from "@/components/path-card";
 import { requireUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { formatXp } from "@/lib/utils";
 import type { Paginated, PathSummary, ProgressOverview, XpEntry } from "@/lib/types";
 
@@ -10,6 +12,7 @@ export const metadata = { title: "My progress" };
 
 export default async function ProgressPage() {
   await requireUser();
+  const copy = dictionaryFor(await getLocale());
 
   let overview: ProgressOverview | null = null;
   let paths: PathSummary[] = [];
@@ -33,8 +36,8 @@ export default async function ProgressPage() {
     <div>
       <PageHeader
         eyebrow="Account"
-        title="My progress"
-        description="Paths in progress and recent XP activity."
+        title={copy.pages.progressTitle}
+        description={copy.pages.progressBody}
       />
 
       {loadError ? (

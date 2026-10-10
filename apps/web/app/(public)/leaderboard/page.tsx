@@ -1,5 +1,7 @@
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { getCurrentUser, serverApi } from "@/lib/api/server";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { formatXp } from "@/lib/utils";
 import type { LeaderboardEntry, Paginated } from "@/lib/types";
 
@@ -7,6 +9,7 @@ export const metadata = { title: "Leaderboard" };
 
 export default async function LeaderboardPage() {
   const user = await getCurrentUser();
+  const copy = dictionaryFor(await getLocale());
   let entries: LeaderboardEntry[] = [];
   let myRank: { rank: number } | null = null;
   let loadError = false;
@@ -33,8 +36,8 @@ export default async function LeaderboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <PageHeader
         eyebrow="Progression"
-        title="Leaderboard"
-        description="Ranked by XP, then solves, then account id — deterministic and server-side."
+        title={copy.pages.leaderboardTitle}
+        description={copy.pages.leaderboardBody}
         actions={
           myRank ? (
             <p className="font-mono text-sm text-accent">Your rank: #{myRank.rank}</p>
@@ -47,6 +50,22 @@ export default async function LeaderboardPage() {
       ) : entries.length === 0 ? (
         <EmptyState title="No rankings yet" description="Solve a challenge to appear here." />
       ) : (
+        <>
+        <ol className="mb-8 grid gap-3 md:grid-cols-3">
+          {entries.slice(0, 3).map((row) => (
+            <li
+              key={row.id}
+              className="rounded-xl border border-border bg-surface p-4"
+            >
+              <p className="font-mono text-xs text-accent">#{row.rank}</p>
+              <p className="mt-2 text-lg font-semibold">
+                {row.name}
+                {user?.id === row.id ? <span className="ms-2 font-mono text-[11px] text-accent">you</span> : null}
+              </p>
+              <p className="font-mono text-sm text-muted">{formatXp(row.xp)} XP · {row.solved_count} solves</p>
+            </li>
+          ))}
+        </ol>
         <div className="overflow-x-auto border border-border">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="border-b border-border bg-surface">
@@ -74,7 +93,7 @@ export default async function LeaderboardPage() {
                     <td className="px-4 py-3 font-medium text-foreground">
                       {row.name}
                       {isMe ? (
-                        <span className="ml-2 font-mono text-[11px] text-accent">you</span>
+                        <span className="ms-2 font-mono text-[11px] text-accent">you</span>
                       ) : null}
                     </td>
                     <td className="px-4 py-3 font-mono">{formatXp(row.xp)}</td>
@@ -86,6 +105,12 @@ export default async function LeaderboardPage() {
             </tbody>
           </table>
         </div>
+        {myRank ? (
+          <div className="sticky bottom-4 z-30 mt-4 rounded-lg border border-accent/40 bg-surface/95 px-4 py-3 text-sm shadow-md backdrop-blur">
+            Your rank <span className="font-mono text-accent">#{myRank.rank}</span>
+          </div>
+        ) : null}
+        </>
       )}
     </div>
   );
