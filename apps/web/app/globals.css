@@ -1,47 +1,122 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Catch The Flag — design tokens (dark-first, restrained accent)
+   Catch The Flag — design tokens
+   Dark-first graphite + signal amber. Light theme deepens amber
+   so text and controls both clear WCAG AA. See docs/design-system.md.
    ============================================================ */
+
 :root {
   color-scheme: dark;
 
-  /* surfaces */
+  /* ---- surfaces ---- */
   --background: #0b0f14;
   --surface: #111820;
   --surface-raised: #161f29;
+  --surface-overlay: #1c2733;
   --border: #22303c;
   --border-strong: #2f4152;
 
-  /* text — faint raised for WCAG AA on dark surfaces (~4.5:1 on --background) */
+  /* ---- text ---- */
   --foreground: #e7eef4;
   --muted: #9aabba;
   --faint: #7a8d9a;
 
-  /* brand: signal amber (flag marker) */
+  /* ---- brand ---- */
   --accent: #f2b544;
   --accent-hover: #ffc95c;
   --accent-foreground: #1a1305;
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
 
-  /* semantic */
+  /* ---- semantic ---- */
   --success: #3fbf7f;
   --success-foreground: #05160d;
+  --warning: #e0a106;
+  --warning-foreground: #1c1400;
   --danger: #e5484d;
   --danger-foreground: #ffffff;
   --info: #56a8e5;
+  --info-foreground: #041018;
 
-  /* focus */
+  /* ---- difficulty (maps API enum, not a second taxonomy) ---- */
+  --difficulty-beginner: #3fbf7f;
+  --difficulty-intermediate: #f2b544;
+  --difficulty-advanced: #e08a3c;
+  --difficulty-expert: #e5484d;
+
+  /* ---- category fallbacks (API color wins when present) ---- */
+  --category-soc: #6cb6ff;
+  --category-dfir: #c4a6ff;
+  --category-network: #5fd0c0;
+  --category-malware: #f07178;
+  --category-re: #f2b544;
+  --category-crypto: #7dcea0;
+  --category-osint: #e6c07b;
+  --category-stego: #e3a6c8;
+
   --ring: #f2b544;
 
-  --radius: 0.5rem;
+  /* ---- radius ---- */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius: var(--radius-md);
+
+  /* ---- elevation ---- */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 0.28);
+  --shadow-lg: 0 18px 50px rgb(0 0 0 / 0.38);
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 28px color-mix(in srgb, var(--accent) 18%, transparent);
+  --glow-success: 0 0 0 1px color-mix(in srgb, var(--success) 50%, transparent),
+    0 0 28px color-mix(in srgb, var(--success) 20%, transparent);
+
+  /* ---- blur / glass ---- */
+  --blur-sm: 8px;
+  --blur-md: 16px;
+  --blur-lg: 28px;
+  --glass: color-mix(in srgb, var(--background) 78%, transparent);
+
+  /* ---- z-index ---- */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 40;
+  --z-overlay: 50;
+  --z-drawer: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+  --z-skip: 90;
+
+  /* ---- motion ---- */
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+  --duration-slow: 420ms;
+  --duration-slower: 720ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* ---- fluid type ---- */
+  --text-display: clamp(2.75rem, 1.4rem + 4.2vw, 5.75rem);
+  --text-title: clamp(1.875rem, 1.4rem + 1.6vw, 2.75rem);
+  --text-heading: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-micro: 0.75rem;
+  --leading-display: 0.98;
+  --leading-body: 1.6;
 }
 
-/* Light palette. Amber is deepened so text and buttons both clear WCAG AA. */
 :root[data-theme="light"] {
   color-scheme: light;
   --background: #f7f5f0;
   --surface: #fffcf7;
   --surface-raised: #efeae2;
+  --surface-overlay: #e7e0d4;
   --border: #d7d0c4;
   --border-strong: #c3b8a8;
   --foreground: #17202a;
@@ -50,12 +125,34 @@
   --accent: #7a4f00;
   --accent-hover: #633f00;
   --accent-foreground: #fffaf3;
+  --accent-soft: color-mix(in srgb, #7a4f00 12%, transparent);
   --success: #0d6b3d;
   --success-foreground: #f3fff8;
+  --warning: #8a5a00;
+  --warning-foreground: #fff8e8;
   --danger: #b42318;
   --danger-foreground: #ffffff;
   --info: #0c5c8a;
+  --info-foreground: #f3f9ff;
+  --difficulty-beginner: #0d6b3d;
+  --difficulty-intermediate: #7a4f00;
+  --difficulty-advanced: #9a4b12;
+  --difficulty-expert: #b42318;
+  --category-soc: #0c5c8a;
+  --category-dfir: #5b3f99;
+  --category-network: #0f6e62;
+  --category-malware: #9f2d35;
+  --category-re: #7a4f00;
+  --category-crypto: #1d6b45;
+  --category-osint: #7a5610;
+  --category-stego: #8a3e68;
   --ring: #7a4f00;
+  --shadow-sm: 0 1px 2px rgb(23 32 42 / 0.06);
+  --shadow-md: 0 10px 28px rgb(23 32 42 / 0.08);
+  --shadow-lg: 0 18px 48px rgb(23 32 42 / 0.12);
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+  --glow-success: 0 0 0 1px color-mix(in srgb, var(--success) 35%, transparent);
+  --glass: color-mix(in srgb, var(--background) 82%, transparent);
 }
 
 @media (prefers-color-scheme: light) {
@@ -64,6 +161,7 @@
     --background: #f7f5f0;
     --surface: #fffcf7;
     --surface-raised: #efeae2;
+    --surface-overlay: #e7e0d4;
     --border: #d7d0c4;
     --border-strong: #c3b8a8;
     --foreground: #17202a;
@@ -72,12 +170,34 @@
     --accent: #7a4f00;
     --accent-hover: #633f00;
     --accent-foreground: #fffaf3;
+    --accent-soft: color-mix(in srgb, #7a4f00 12%, transparent);
     --success: #0d6b3d;
     --success-foreground: #f3fff8;
+    --warning: #8a5a00;
+    --warning-foreground: #fff8e8;
     --danger: #b42318;
     --danger-foreground: #ffffff;
     --info: #0c5c8a;
+    --info-foreground: #f3f9ff;
+    --difficulty-beginner: #0d6b3d;
+    --difficulty-intermediate: #7a4f00;
+    --difficulty-advanced: #9a4b12;
+    --difficulty-expert: #b42318;
+    --category-soc: #0c5c8a;
+    --category-dfir: #5b3f99;
+    --category-network: #0f6e62;
+    --category-malware: #9f2d35;
+    --category-re: #7a4f00;
+    --category-crypto: #1d6b45;
+    --category-osint: #7a5610;
+    --category-stego: #8a3e68;
     --ring: #7a4f00;
+    --shadow-sm: 0 1px 2px rgb(23 32 42 / 0.06);
+    --shadow-md: 0 10px 28px rgb(23 32 42 / 0.08);
+    --shadow-lg: 0 18px 48px rgb(23 32 42 / 0.12);
+    --glow-accent: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+    --glow-success: 0 0 0 1px color-mix(in srgb, var(--success) 35%, transparent);
+    --glass: color-mix(in srgb, var(--background) 82%, transparent);
   }
 }
 
@@ -85,6 +205,7 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-foreground: var(--foreground);
@@ -93,30 +214,66 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
   --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-ring: var(--ring);
+  --color-difficulty-beginner: var(--difficulty-beginner);
+  --color-difficulty-intermediate: var(--difficulty-intermediate);
+  --color-difficulty-advanced: var(--difficulty-advanced);
+  --color-difficulty-expert: var(--difficulty-expert);
+  --color-category-soc: var(--category-soc);
+  --color-category-dfir: var(--category-dfir);
+  --color-category-network: var(--category-network);
+  --color-category-malware: var(--category-malware);
+  --color-category-re: var(--category-re);
+  --color-category-crypto: var(--category-crypto);
+  --color-category-osint: var(--category-osint);
+  --color-category-stego: var(--category-stego);
 
-  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono), ui-monospace, "SF Mono", monospace;
+  --font-arabic: var(--font-arabic), var(--font-body), sans-serif;
 
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+/* Arabic face carries the UI when the document direction flips. */
+html[dir="rtl"] {
+  --font-sans: var(--font-arabic), var(--font-body), sans-serif;
+  --font-display: var(--font-arabic), var(--font-body), sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* keyboard focus, consistent everywhere */
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
@@ -124,19 +281,52 @@ body {
 
 ::selection {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--foreground);
 }
 
-/* thin scrollbars, technical feel */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
 
-.font-display {
-  font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+/* ---- type utilities ---- */
+@utility type-display {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-size: var(--text-display);
+  font-weight: 560;
+  letter-spacing: -0.035em;
+  line-height: var(--leading-display);
 }
 
-/* subtle grid atmosphere for branded surfaces */
+@utility type-title {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-size: var(--text-title);
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+@utility type-heading {
+  font-size: var(--text-heading);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+@utility type-eyebrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.font-display {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+}
+
+/* ---- surfaces ---- */
 .atmosphere {
   background-color: var(--background);
   background-image:
@@ -144,9 +334,18 @@ body {
     linear-gradient(to right, color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px);
   background-size: auto, 48px 48px, 48px 48px;
-  background-position: center, center, center;
 }
 
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur-md));
+}
+
+.shadow-glow {
+  box-shadow: var(--glow-accent);
+}
+
+/* ---- motion keyframes (transform / opacity only) ---- */
 @keyframes ctf-fade-up {
   from {
     opacity: 0;
@@ -158,37 +357,109 @@ body {
   }
 }
 
+@keyframes ctf-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes ctf-draw {
-  from {
-    stroke-dashoffset: 48;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+  from { stroke-dashoffset: 48; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes ctf-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes ctf-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes ctf-pop {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ctf-caret {
+  0%, 40% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 .animate-fade-up {
-  animation: ctf-fade-up 0.7s ease-out both;
+  animation: ctf-fade-up var(--duration-slower) var(--ease-out) both;
 }
 
 .animate-fade-up-delay {
-  animation: ctf-fade-up 0.8s ease-out 0.15s both;
+  animation: ctf-fade-up var(--duration-slower) var(--ease-out) 150ms both;
 }
 
 .animate-fade-up-delay-2 {
-  animation: ctf-fade-up 0.8s ease-out 0.3s both;
+  animation: ctf-fade-up var(--duration-slower) var(--ease-out) 300ms both;
 }
 
 .animate-flag-draw path {
   stroke-dasharray: 48;
-  animation: ctf-draw 1.1s ease-out both;
+  animation: ctf-draw 1.1s var(--ease-out) both;
+}
+
+.animate-shake {
+  animation: ctf-shake var(--duration-slow) var(--ease-in-out);
+}
+
+.animate-pop {
+  animation: ctf-pop var(--duration-base) var(--ease-spring) both;
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--foreground) 8%, transparent),
+    transparent
+  );
+  animation: ctf-shimmer 1.4s var(--ease-in-out) infinite;
+}
+
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.55ch;
+  height: 1em;
+  margin-inline-start: 2px;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: ctf-caret 1s steps(1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-up,
-  .animate-fade-up-delay,
-  .animate-fade-up-delay-2,
-  .animate-flag-draw path {
+  html { scroll-behavior: auto; }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton-shimmer::after,
+  .caret::after {
     animation: none;
   }
 }
