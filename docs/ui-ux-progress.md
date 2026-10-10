@@ -31,9 +31,21 @@ server state.
 - [x] Tests, lint, typecheck, build
 - [x] `docs/design-system.md`, ADR-0011, development.md commands
 
-Still open, on purpose:
+## Follow-up pass
 
-- Category and time-range leaderboards, and public profiles of other players, need API support. The UI does not invent them.
-- Drag-and-drop ordering needs a reorder contract. Position is already a field on write; the admin forms keep that field.
-- A first-run tour is not shipped. The dashboard already recommends the next lesson or challenge from server progress.
-- Playwright is not in the repo. Critical flows stay on Vitest, Testing Library, and MSW.
+- [x] Admin tables (sort, filter, columns, selection, per-row bulk actions), audit filters, stats bars
+- [x] Challenge and path validation, markdown preview, upload progress, module reorder via existing PUT
+- [x] Onboarding tour, local interests, first-challenge recommendation
+- [x] Notifications sheet, Shift+? shortcuts, command palette searches challenges and paths
+- [x] View transitions when supported, challenge layout fade, achievement target bands, profile timeline and radar
+- [x] 404, error, and maintenance pages. `MAINTENANCE_MODE=true` redirects pages, not `/api`
+- [x] Arabic copy for chrome plus the main learner pages. Lesson and challenge markdown stay in the author's language
+- [x] Playwright specs in `apps/web/e2e` (`npm run test:e2e`)
+- [x] Desktop Playwright smoke: home axe, login axe, Arabic `dir`, challenge filter URL, Shift+/ shortcuts. Passed on 2026-10-10.
+- [ ] Authenticated flows (theme, flag, admin wizard) skip when the API is down. This environment has no Docker and no Laravel process on port 8000, so those four specs were skipped. Re-run `npm run test:e2e` with the API seeded to exercise them.
+
+Still not invented:
+
+- Category and time-range leaderboards, and other players' public profiles
+- A date filter on audit logs (the controller does not apply one)
+- A single reorder endpoint (module order sends one update per module)

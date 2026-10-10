@@ -41,6 +41,8 @@ layout, and motion that does not fight the product's calm identity
   native focus styles.
 - Category and time-range leaderboards stay out until the API has them.
 - Adding a heavy motion dependency later needs a new ADR.
+- Module order in the admin path editor calls `PUT /admin/modules/{id}` with the existing title and a new `position`. There is no bulk reorder route. Audit date filters are documented on the API but not implemented in the controller, so the UI does not pretend to filter by date.
+- Onboarding interests live in `localStorage` per user id. The API has no interests field.
 
 ## Alternatives considered
 

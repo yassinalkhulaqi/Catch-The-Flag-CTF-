@@ -81,7 +81,19 @@ use `aria-live`. The command palette is `Ctrl` or `Cmd` + `K`.
 - Guests may set `ctf_theme`. The account value wins when both exist.
 - `ctf_locale` is `en` or `ar`. Copy for chrome is in `lib/i18n`.
 
-## 7. What the UI must not invent
+## 7. Performance
+
+Heavy pieces are split out of the first paint:
+
+- Flag confetti is `import()`ed only after a correct submission.
+- The admin stats bars load through `next/dynamic`.
+- Ambient canvas mounts only on the marketing hero and pauses off-screen.
+
+`npm run build` is the bundle check used in this repo. Route output is printed by Next. There is no separate analyzer package; adding one would be for a later size regression, not for a feature.
+
+Lighthouse was not run as a scored gate in CI. The constraints that protect the score are: server components by default, motion limited to transform and opacity, reduced-motion and data-saver skips, and no chart library on the learner routes.
+
+## 8. What the UI must not invent
 
 Leaderboard windows, other players' profiles, flag plaintext, client-side XP,
 and live machines. A level number is a label on server XP. A heatmap counts
