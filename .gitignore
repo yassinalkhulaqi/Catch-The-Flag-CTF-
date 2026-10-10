@@ -3,6 +3,9 @@ apps/*/.env
 apps/*/.env.local
 node_modules/
 apps/web/.next/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
 apps/api/vendor/
 apps/api/storage/*.key
 apps/api/storage/framework/*
