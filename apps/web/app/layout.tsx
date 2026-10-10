@@ -77,6 +77,7 @@ export default async function RootLayout({
       lang={locale}
       dir={directionFor(locale)}
       data-theme={theme}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${display.variable} ${body.variable} ${mono.variable} ${arabic.variable} h-full antialiased`}
     >

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { ar } from "@/lib/i18n/ar";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
 import { en, type Dictionary } from "@/lib/i18n/en";
 import type { Locale } from "@/lib/theme/locale";
 
@@ -17,7 +17,7 @@ export function LocaleProvider({
 }) {
   return (
     <LocaleCodeContext.Provider value={locale}>
-      <LocaleContext.Provider value={locale === "ar" ? ar : en}>{children}</LocaleContext.Provider>
+      <LocaleContext.Provider value={dictionaryFor(locale)}>{children}</LocaleContext.Provider>
     </LocaleCodeContext.Provider>
   );
 }
@@ -30,6 +30,4 @@ export function useLocale(): Locale {
   return useContext(LocaleCodeContext);
 }
 
-export function dictionaryFor(locale: Locale): Dictionary {
-  return locale === "ar" ? ar : en;
-}
+export { dictionaryFor };

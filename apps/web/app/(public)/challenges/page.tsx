@@ -5,6 +5,8 @@ import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { PaginationNav } from "@/components/pagination-nav";
 import { Skeleton } from "@/components/ui/badge";
 import { serverApi } from "@/lib/api/server";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { toQuery } from "@/lib/format";
 import type { Category, ChallengeSummary, Paginated, Tag } from "@/lib/types";
 
@@ -30,6 +32,7 @@ export default async function ChallengesPage({
   const maxPoints = typeof sp.max_points === "string" ? sp.max_points : undefined;
   const page = typeof sp.page === "string" ? sp.page : "1";
   const view = sp.view === "grid" ? "grid" : "list";
+  const copy = dictionaryFor(await getLocale());
 
   let challenges: Paginated<ChallengeSummary> | null = null;
   let categories: Category[] = [];
@@ -71,8 +74,8 @@ export default async function ChallengesPage({
     <div className="mx-auto max-w-6xl px-4 py-10">
       <PageHeader
         eyebrow="CTF"
-        title="Challenges"
-        description="Static, file-based challenges across SOC, DFIR, malware, RE, crypto, OSINT, and steganography."
+        title={copy.pages.challengesTitle}
+        description={copy.pages.challengesBody}
       />
 
       <Suspense fallback={<Skeleton className="mb-6 h-40 w-full" />}>
@@ -84,15 +87,15 @@ export default async function ChallengesPage({
           <ErrorState description="Challenge list could not be loaded from the API." />
         ) : !challenges || challenges.data.length === 0 ? (
           <EmptyState
-            title="No challenges match"
-            description="Try clearing filters or check back after new challenges are published."
+            title={copy.pages.challengesEmpty}
+            description={copy.pages.challengesEmptyBody}
           />
         ) : (
           <div>
             <p className="mb-2 font-mono text-xs text-faint">
               {challenges.meta.total} challenge{challenges.meta.total === 1 ? "" : "s"}
             </p>
-            <div className={view === "grid" ? "grid gap-3 sm:grid-cols-2" : "border-t border-border"}>
+            <div key={view} className={view === "grid" ? "grid animate-fade-up gap-3 sm:grid-cols-2" : "animate-fade-up border-t border-border"}>
               {challenges.data.map((c) => (
                 <ChallengeCard key={c.id} challenge={c} className={view === "grid" ? "rounded-xl border border-border px-4" : undefined} />
               ))}

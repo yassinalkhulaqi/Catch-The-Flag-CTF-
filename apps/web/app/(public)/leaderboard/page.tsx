@@ -1,5 +1,7 @@
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { getCurrentUser, serverApi } from "@/lib/api/server";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { formatXp } from "@/lib/utils";
 import type { LeaderboardEntry, Paginated } from "@/lib/types";
 
@@ -7,6 +9,7 @@ export const metadata = { title: "Leaderboard" };
 
 export default async function LeaderboardPage() {
   const user = await getCurrentUser();
+  const copy = dictionaryFor(await getLocale());
   let entries: LeaderboardEntry[] = [];
   let myRank: { rank: number } | null = null;
   let loadError = false;
@@ -33,8 +36,8 @@ export default async function LeaderboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <PageHeader
         eyebrow="Progression"
-        title="Leaderboard"
-        description="Ranked by XP, then solves, then account id — deterministic and server-side."
+        title={copy.pages.leaderboardTitle}
+        description={copy.pages.leaderboardBody}
         actions={
           myRank ? (
             <p className="font-mono text-sm text-accent">Your rank: #{myRank.rank}</p>

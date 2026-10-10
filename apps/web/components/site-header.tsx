@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useCommandPalette } from "@/components/command-palette";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { NotificationsCenter } from "@/components/notifications-center";
 import { Logo } from "@/components/logo";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -80,6 +81,7 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
                 {copy.nav.dashboard}
               </Link>
               <span className="font-mono text-xs text-accent">{formatXp(user.xp)} XP</span>
+              <NotificationsCenter />
               {user.role !== "user" ? (
                 <Link
                   href="/admin"

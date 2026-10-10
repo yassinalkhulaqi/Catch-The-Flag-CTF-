@@ -6,7 +6,15 @@ import { createPortal } from "react-dom";
 import { trapTabKey } from "@/lib/a11y/focus";
 import { api } from "@/lib/api/client";
 import { useDictionary } from "@/lib/i18n";
+import { withViewTransition } from "@/lib/motion/view-transition";
 import type { ChallengeSummary, Paginated } from "@/lib/types";
+
+interface RemoteHit {
+  id: string;
+  label: string;
+  hint: string;
+  href: string;
+}
 
 interface CommandApi {
   open: boolean;
@@ -65,7 +73,7 @@ function CommandDialog({ open, onClose }: { open: boolean; onClose: () => void }
   const panelRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const [fetched, setFetched] = useState<{ needle: string; items: ChallengeSummary[] }>({
+  const [fetched, setFetched] = useState<{ needle: string; items: RemoteHit[] }>({
     needle: "",
     items: [],
   });
@@ -89,12 +97,7 @@ function CommandDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
   const options = [
     ...links.map((link) => ({ id: link.href, label: link.label, hint: link.hint, href: link.href })),
-    ...remote.map((challenge) => ({
-      id: `challenge-${challenge.id}`,
-      label: challenge.title,
-      hint: challenge.category.name,
-      href: `/challenges/${challenge.slug}`,
-    })),
+    ...remote,
   ];
 
   useEffect(() => {
@@ -121,11 +124,33 @@ function CommandDialog({ open, onClose }: { open: boolean; onClose: () => void }
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
-        const res = await api.get<Paginated<ChallengeSummary>>(
-          `/challenges?q=${encodeURIComponent(needle)}&per_page=5`,
-          { signal: controller.signal },
-        );
-        setFetched({ needle, items: res.data });
+        const [challenges, paths] = await Promise.all([
+          api.get<Paginated<ChallengeSummary>>(
+            `/challenges?q=${encodeURIComponent(needle)}&per_page=5`,
+            { signal: controller.signal },
+          ),
+          api.get<Paginated<{ id: number; title: string; slug: string }>>(
+            `/paths?q=${encodeURIComponent(needle)}&per_page=5`,
+            { signal: controller.signal },
+          ),
+        ]);
+        setFetched({
+          needle,
+          items: [
+            ...challenges.data.map((challenge) => ({
+              id: `challenge-${challenge.id}`,
+              label: challenge.title,
+              hint: challenge.category.name,
+              href: `/challenges/${challenge.slug}`,
+            })),
+            ...paths.data.map((path) => ({
+              id: `path-${path.id}`,
+              label: path.title,
+              hint: "Path",
+              href: `/paths/${path.slug}`,
+            })),
+          ],
+        });
       } catch {
         if (!controller.signal.aborted) setFetched({ needle, items: [] });
       }
@@ -145,7 +170,7 @@ function CommandDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
   function go(href: string) {
     close();
-    router.push(href);
+    withViewTransition(() => router.push(href));
   }
 
   const current = options.length === 0 ? 0 : Math.min(active, options.length - 1);

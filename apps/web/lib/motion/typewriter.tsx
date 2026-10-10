@@ -32,7 +32,8 @@ export function Typewriter({
   }, [count, line, lines.length, reduced]);
 
   return (
-    <p className={className} aria-label={line}>
+    <p className={className}>
+      <span className="sr-only">{line}</span>
       <span aria-hidden="true">{visible}</span>
       {reduced ? null : <span aria-hidden="true" className="caret" />}
     </p>

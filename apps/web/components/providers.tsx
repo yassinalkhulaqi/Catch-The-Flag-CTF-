@@ -1,6 +1,7 @@
 "use client";
 
 import { CommandProvider } from "@/components/command-palette";
+import { ShortcutsDialog } from "@/components/shortcuts-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 import { LocaleProvider, useDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/theme/locale";
@@ -17,6 +18,7 @@ export function Providers({
       <ToastProvider>
         <CommandProvider>
           <SkipLink />
+          <ShortcutsDialog />
           {children}
         </CommandProvider>
       </ToastProvider>

@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { ActivityHeatmap, heatmapFromTimestamps } from "@/components/charts/activity-heatmap";
+import { OnboardingTour } from "@/components/onboarding/tour";
 import { SkillRadar } from "@/components/charts/skill-radar";
 import { PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
 import { levelFromXp } from "@/lib/design/level";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { CountUp } from "@/lib/motion/count-up";
 import { ProgressRing } from "@/lib/motion/progress-ring";
 import { cn, formatXp } from "@/lib/utils";
@@ -18,6 +21,7 @@ import type {
   PathSummary,
   ProgressOverview,
   XpEntry,
+  Category,
 } from "@/lib/types";
 
 export const metadata = { title: "Dashboard" };
@@ -104,6 +108,7 @@ async function resolveNextAction(
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const copy = dictionaryFor(await getLocale());
 
   let progress: ProgressOverview | null = null;
   let paths: PathSummary[] = [];
@@ -111,15 +116,17 @@ export default async function DashboardPage() {
   let achievements: Achievement[] = [];
   let ledger: XpEntry[] = [];
   let solvedChallenges: ChallengeSummary[] = [];
+  let categories: Category[] = [];
 
   try {
-    const [prog, pathRes, challengeRes, achRes, ledgerRes, solvedRes] = await Promise.all([
+    const [prog, pathRes, challengeRes, achRes, ledgerRes, solvedRes, categoryRes] = await Promise.all([
       serverApi<{ data: ProgressOverview }>("GET", "/me/progress"),
       serverApi<Paginated<PathSummary>>("GET", "/paths?per_page=20"),
       serverApi<Paginated<ChallengeSummary>>("GET", "/challenges?per_page=10"),
       serverApi<{ data: Achievement[] }>("GET", "/me/achievements"),
       serverApi<Paginated<XpEntry>>("GET", "/me/xp-ledger?per_page=100"),
       serverApi<Paginated<ChallengeSummary>>("GET", "/challenges?solved=true&per_page=100"),
+      serverApi<{ data: Category[] }>("GET", "/categories"),
     ]);
     progress = prog.data;
     paths = pathRes.data;
@@ -127,6 +134,7 @@ export default async function DashboardPage() {
     achievements = achRes.data.filter((a) => a.awarded).slice(0, 4);
     ledger = ledgerRes.data;
     solvedChallenges = solvedRes.data;
+    categories = categoryRes.data;
   } catch {
     /* partial dashboard still useful with user payload */
   }
@@ -144,10 +152,11 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <OnboardingTour userId={user.id} categories={categories} challenges={challenges} />
       <PageHeader
         eyebrow="Dashboard"
         title={`Welcome, ${user.name}`}
-        description="Continue learning, track XP, and see what to tackle next."
+        description={copy.pages.dashboardBody}
       />
 
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">

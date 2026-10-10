@@ -6,18 +6,20 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { api } from "@/lib/api/client";
+import { useDictionary } from "@/lib/i18n";
 import type { NotificationItem } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 
 export function NotificationsList({ items }: { items: NotificationItem[] }) {
+  const copy = useDictionary();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   if (items.length === 0) {
     return (
       <EmptyState
-        title="No notifications yet"
-        description="Solves and achievement unlocks will show up here."
+        title={copy.notifications.empty}
+        description={copy.notifications.emptyBody}
       />
     );
   }
@@ -40,7 +42,7 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={markAllRead}>
-          Mark all read
+          {copy.notifications.markAll}
         </Button>
       </div>
       <ul className="divide-y divide-border border-t border-border" aria-label="Notifications">
@@ -77,7 +79,7 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
               ) : (
                 <button
                   type="button"
-                  className="block w-full text-left"
+                  className="block w-full text-start"
                   onClick={() => {
                     if (unread) markRead(n.id);
                   }}
