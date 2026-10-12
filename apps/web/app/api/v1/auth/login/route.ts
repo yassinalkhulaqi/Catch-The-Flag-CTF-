@@ -11,8 +11,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const auth = await serverAuth("/auth/login", await body);
     await issueSession(auth.token ?? "", auth.expires_at);
-    const { token: _token, ...safe } = auth;
-    return NextResponse.json({ data: safe });
+    return NextResponse.json({ data: { user: auth.user, expires_at: auth.expires_at } });
   } catch (error) {
     return errorResponse(error);
   }

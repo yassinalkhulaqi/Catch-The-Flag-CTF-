@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -25,6 +26,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->defineRateLimiters();
+
+        // Password reset links point at the Next.js frontend, never the API:
+        // the token travels in the URL once and is consumed server-side.
+        ResetPassword::createUrlUsing(static function (object $user, string $token): string {
+            $frontend = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+            return "{$frontend}/reset-password?token={$token}&email=".urlencode($user->getEmailForPasswordReset());
+        });
     }
 
     /**

@@ -15,12 +15,24 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'bio'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * In-memory defaults mirroring the database defaults (migrations only
+     * apply on the DB side; a freshly-created instance needs these too).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => 'user',
+        'xp' => 0,
+        'solved_count' => 0,
+    ];
 
     /**
      * Get the attributes that should be cast.

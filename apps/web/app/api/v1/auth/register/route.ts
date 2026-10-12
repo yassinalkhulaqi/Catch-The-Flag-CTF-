@@ -9,8 +9,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const auth: AuthResponse = await serverAuth("/auth/register", await body);
     await issueSession(auth.token ?? "", auth.expires_at);
-    const { token: _token, ...safe } = auth;
-    return NextResponse.json({ data: safe }, { status: 201 });
+    return NextResponse.json(
+      { data: { user: auth.user, expires_at: auth.expires_at } },
+      { status: 201 },
+    );
   } catch (error) {
     return errorResponse(error);
   }

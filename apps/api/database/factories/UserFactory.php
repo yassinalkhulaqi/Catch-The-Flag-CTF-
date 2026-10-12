@@ -42,4 +42,34 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the account is suspended.
+     */
+    public function banned(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'banned_at' => now(),
+        ]);
+    }
+
+    /**
+     * Indicate a privileged role for authorization tests.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+        ]);
+    }
+
+    /**
+     * Indicate a moderator role for authorization tests.
+     */
+    public function moderator(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'moderator',
+        ]);
+    }
 }
