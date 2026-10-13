@@ -43,4 +43,10 @@ class PathModule extends Model
     {
         return $this->hasMany(Lesson::class, 'module_id')->orderBy('position')->orderBy('id');
     }
+
+    /** @return HasMany<Quiz, $this> */
+    public function quizzes(): HasMany
+    {
+        return $this->hasMany(Quiz::class, 'module_id');
+    }
 }

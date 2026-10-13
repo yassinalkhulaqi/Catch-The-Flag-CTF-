@@ -54,4 +54,10 @@ class Lesson extends Model
     {
         return $this->hasMany(LessonCompletion::class);
     }
+
+    /** @return HasMany<Quiz, $this> */
+    public function quizzes(): HasMany
+    {
+        return $this->hasMany(Quiz::class, 'lesson_id');
+    }
 }

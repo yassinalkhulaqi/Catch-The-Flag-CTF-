@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/logo";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
 import { cn, formatXp } from "@/lib/utils";
@@ -62,6 +63,7 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
               >
                 Dashboard
               </Link>
+              <NotificationsBell />
               <span className="font-mono text-xs text-accent">
                 {formatXp(user.xp)} XP
               </span>
@@ -121,6 +123,9 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
               <>
                 <Link href="/dashboard" onClick={() => setOpen(false)} className={linkClass("/dashboard")}>
                   Dashboard
+                </Link>
+                <Link href="/notifications" onClick={() => setOpen(false)} className={linkClass("/notifications")}>
+                  Notifications
                 </Link>
                 <Button variant="ghost" size="sm" className="justify-start" onClick={logout}>
                   Log out

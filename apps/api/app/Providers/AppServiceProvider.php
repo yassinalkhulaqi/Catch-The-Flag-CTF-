@@ -6,10 +6,18 @@ namespace App\Providers;
 
 use App\Models\Category;
 use App\Models\Challenge;
+use App\Models\Lesson;
 use App\Models\Path;
+use App\Models\PathModule;
+use App\Models\Quiz;
+use App\Models\QuizAttempt;
 use App\Policies\CategoryPolicy;
 use App\Policies\ChallengePolicy;
+use App\Policies\LessonPolicy;
+use App\Policies\PathModulePolicy;
 use App\Policies\PathPolicy;
+use App\Policies\QuizAttemptPolicy;
+use App\Policies\QuizPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -54,6 +62,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Challenge::class, ChallengePolicy::class);
         Gate::policy(Path::class, PathPolicy::class);
+        Gate::policy(PathModule::class, PathModulePolicy::class);
+        Gate::policy(Lesson::class, LessonPolicy::class);
+        Gate::policy(Quiz::class, QuizPolicy::class);
+        Gate::policy(QuizAttempt::class, QuizAttemptPolicy::class);
     }
 
     /**

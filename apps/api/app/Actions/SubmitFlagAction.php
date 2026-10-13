@@ -12,7 +12,9 @@ use App\Models\ChallengeSubmission;
 use App\Models\HintUnlock;
 use App\Models\User;
 use App\Models\XpTransaction;
+use App\Services\AchievementEvaluator;
 use App\Services\FlagValidator;
+use App\Services\ProgressCalculator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -28,6 +30,11 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class SubmitFlagAction
 {
+    public function __construct(
+        private readonly AchievementEvaluator $achievements,
+        private readonly ProgressCalculator $progress,
+    ) {}
+
     /**
      * @return array{result: string, points_awarded?: int, already_solved?: bool, xp_total?: int}
      */
@@ -94,10 +101,14 @@ class SubmitFlagAction
             $user->increment('solved_count');
             $challenge->increment('solve_count');
 
+            $fresh = $user->refresh();
+            $this->achievements->evaluate($fresh, $challenge);
+            $this->progress->recomputeForUser($fresh);
+
             return [
                 'result' => 'correct',
                 'points_awarded' => $points,
-                'xp_total' => (int) $user->refresh()->xp,
+                'xp_total' => (int) $fresh->refresh()->xp,
             ];
         });
     }

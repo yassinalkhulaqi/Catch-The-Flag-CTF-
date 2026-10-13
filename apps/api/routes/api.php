@@ -8,8 +8,14 @@ use App\Http\Controllers\Api\V1\ChallengeController;
 use App\Http\Controllers\Api\V1\ChallengeFileController;
 use App\Http\Controllers\Api\V1\HintUnlockController;
 use App\Http\Controllers\Api\V1\LeaderboardController;
+use App\Http\Controllers\Api\V1\LessonController;
+use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\PathController;
+use App\Http\Controllers\Api\V1\PathProgressController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\QuizAttemptController;
+use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Api\V1\SubmissionController;
 use App\Http\Controllers\Api\V1\TagController;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +65,25 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/leaderboard/me', [LeaderboardController::class, 'me']);
         Route::put('/profile', [ProfileController::class, 'update']);
         Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
+
+        Route::post('/paths/{path}/start', [PathProgressController::class, 'start']);
+        Route::get('/paths/{path}/progress', [PathProgressController::class, 'show']);
+        Route::get('/modules/{module}', [ModuleController::class, 'show']);
+        Route::get('/lessons/{lesson}', [LessonController::class, 'show']);
+        Route::post('/lessons/{lesson}/complete', [LessonController::class, 'complete']);
+        Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
+        Route::post('/quizzes/{quiz}/attempts', [QuizController::class, 'startAttempt']);
+        Route::get('/quiz-attempts/{attempt}', [QuizAttemptController::class, 'show']);
+        Route::post('/quiz-attempts/{attempt}/answer', [QuizAttemptController::class, 'answer']);
+        Route::post('/quiz-attempts/{attempt}/submit', [QuizAttemptController::class, 'submit']);
+
+        Route::get('/me/progress', [MeController::class, 'progress']);
+        Route::get('/me/solves', [MeController::class, 'solves']);
+        Route::get('/me/xp-ledger', [MeController::class, 'xpLedger']);
+        Route::get('/me/achievements', [MeController::class, 'achievements']);
+        Route::get('/me/notifications', [MeController::class, 'notifications']);
+        Route::post('/me/notifications/{id}/read', [MeController::class, 'readNotification']);
+        Route::post('/me/notifications/read-all', [MeController::class, 'readAllNotifications']);
 
         Route::post('/challenges/{challenge}/hints/{hint}/unlock', [HintUnlockController::class, 'store']);
         Route::post('/challenges/{challenge}/submissions', [SubmissionController::class, 'store'])

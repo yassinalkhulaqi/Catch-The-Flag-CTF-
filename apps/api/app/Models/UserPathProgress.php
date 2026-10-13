@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\PathProgressStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -22,6 +23,7 @@ class UserPathProgress extends Model
     protected function casts(): array
     {
         return [
+            'status' => PathProgressStatus::class,
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
