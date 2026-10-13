@@ -62,6 +62,17 @@ return [
         'ttl_days' => (int) env('TOKEN_TTL_DAYS', 30),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin authoring (docs/api.md §5)
+    |--------------------------------------------------------------------------
+    */
+
+    'admin' => [
+        // absolute bound for a single manual XP adjustment
+        'max_xp_adjustment' => (int) env('ADMIN_MAX_XP_ADJUSTMENT', 100000),
+    ],
+
     'leaderboard' => [
         'page_size' => 20,
         'max_page_size' => 100,

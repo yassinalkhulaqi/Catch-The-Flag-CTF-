@@ -2,6 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
+use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ChallengeController as AdminChallengeController;
+use App\Http\Controllers\Api\V1\Admin\ChallengeFileController as AdminChallengeFileController;
+use App\Http\Controllers\Api\V1\Admin\FlagController as AdminFlagController;
+use App\Http\Controllers\Api\V1\Admin\HintController as AdminHintController;
+use App\Http\Controllers\Api\V1\Admin\LessonController as AdminLessonController;
+use App\Http\Controllers\Api\V1\Admin\ModuleController as AdminModuleController;
+use App\Http\Controllers\Api\V1\Admin\PathController as AdminPathController;
+use App\Http\Controllers\Api\V1\Admin\QuizController as AdminQuizController;
+use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
+use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ChallengeController;
@@ -88,5 +100,116 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/challenges/{challenge}/hints/{hint}/unlock', [HintUnlockController::class, 'store']);
         Route::post('/challenges/{challenge}/submissions', [SubmissionController::class, 'store'])
             ->middleware(['throttle:submission-user', 'throttle:submission-challenge']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin authoring (docs/api.md §5, Phase 5 backend)
+    |--------------------------------------------------------------------------
+    |
+    | Authorization choice (documented per plan): no per-object policies
+    | here — admin operates cross-ownership, so the `role` middleware is
+    | the authorization layer. Moderators manage content; the nested
+    | `role:admin` group reserves accounts (users/roles) and the audit
+    | trail for administrators. Every mutation audits via AuditLogger.
+    |
+    | Transition endpoints map literally to statuses: publish→published,
+    | unpublish→draft, archive→archived, review→review. Illegal moves
+    | are 409. DELETE on challenges/paths archives instead of deleting.
+    */
+    Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
+        Route::get('/challenges', [AdminChallengeController::class, 'index']);
+        Route::post('/challenges', [AdminChallengeController::class, 'store']);
+        Route::get('/challenges/{challenge}', [AdminChallengeController::class, 'show']);
+        Route::match(['put', 'patch'], '/challenges/{challenge}', [AdminChallengeController::class, 'update']);
+        Route::delete('/challenges/{challenge}', [AdminChallengeController::class, 'destroy']);
+        Route::post('/challenges/{challenge}/publish', [AdminChallengeController::class, 'publish']);
+        Route::post('/challenges/{challenge}/unpublish', [AdminChallengeController::class, 'unpublish']);
+        Route::post('/challenges/{challenge}/archive', [AdminChallengeController::class, 'archive']);
+        Route::post('/challenges/{challenge}/review', [AdminChallengeController::class, 'review']);
+
+        Route::get('/challenges/{challenge}/flags', [AdminFlagController::class, 'index']);
+        Route::post('/challenges/{challenge}/flags', [AdminFlagController::class, 'store']);
+        Route::get('/challenges/{challenge}/flags/{flag}', [AdminFlagController::class, 'show']);
+        Route::match(['put', 'patch'], '/challenges/{challenge}/flags/{flag}', [AdminFlagController::class, 'update']);
+        Route::delete('/challenges/{challenge}/flags/{flag}', [AdminFlagController::class, 'destroy']);
+
+        Route::get('/challenges/{challenge}/hints', [AdminHintController::class, 'index']);
+        Route::post('/challenges/{challenge}/hints', [AdminHintController::class, 'store']);
+        Route::get('/challenges/{challenge}/hints/{hint}', [AdminHintController::class, 'show']);
+        Route::match(['put', 'patch'], '/challenges/{challenge}/hints/{hint}', [AdminHintController::class, 'update']);
+        Route::delete('/challenges/{challenge}/hints/{hint}', [AdminHintController::class, 'destroy']);
+
+        Route::get('/challenges/{challenge}/files', [AdminChallengeFileController::class, 'index']);
+        Route::post('/challenges/{challenge}/files', [AdminChallengeFileController::class, 'store']);
+        Route::get('/challenges/{challenge}/files/{file}', [AdminChallengeFileController::class, 'show']);
+        Route::put('/challenges/{challenge}/files/{file}', [AdminChallengeFileController::class, 'replace']);
+        Route::delete('/challenges/{challenge}/files/{file}', [AdminChallengeFileController::class, 'destroy']);
+
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::get('/categories/{category}', [AdminCategoryController::class, 'show']);
+        Route::match(['put', 'patch'], '/categories/{category}', [AdminCategoryController::class, 'update']);
+        Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy']);
+
+        Route::get('/tags', [AdminTagController::class, 'index']);
+        Route::post('/tags', [AdminTagController::class, 'store']);
+        Route::get('/tags/{tag}', [AdminTagController::class, 'show']);
+        Route::match(['put', 'patch'], '/tags/{tag}', [AdminTagController::class, 'update']);
+        Route::delete('/tags/{tag}', [AdminTagController::class, 'destroy']);
+
+        Route::get('/paths', [AdminPathController::class, 'index']);
+        Route::post('/paths', [AdminPathController::class, 'store']);
+        Route::get('/paths/{path}', [AdminPathController::class, 'show']);
+        Route::match(['put', 'patch'], '/paths/{path}', [AdminPathController::class, 'update']);
+        Route::delete('/paths/{path}', [AdminPathController::class, 'destroy']);
+        Route::post('/paths/{path}/publish', [AdminPathController::class, 'publish']);
+        Route::post('/paths/{path}/unpublish', [AdminPathController::class, 'unpublish']);
+        Route::post('/paths/{path}/archive', [AdminPathController::class, 'archive']);
+        Route::post('/paths/{path}/review', [AdminPathController::class, 'review']);
+
+        Route::get('/paths/{path}/modules', [AdminModuleController::class, 'index']);
+        Route::post('/paths/{path}/modules', [AdminModuleController::class, 'store']);
+        Route::get('/modules/{module}', [AdminModuleController::class, 'show']);
+        Route::match(['put', 'patch'], '/modules/{module}', [AdminModuleController::class, 'update']);
+        Route::delete('/modules/{module}', [AdminModuleController::class, 'destroy']);
+
+        Route::get('/modules/{module}/lessons', [AdminLessonController::class, 'index']);
+        Route::post('/modules/{module}/lessons', [AdminLessonController::class, 'store']);
+        Route::get('/lessons/{lesson}', [AdminLessonController::class, 'show']);
+        Route::match(['put', 'patch'], '/lessons/{lesson}', [AdminLessonController::class, 'update']);
+        Route::delete('/lessons/{lesson}', [AdminLessonController::class, 'destroy']);
+
+        Route::get('/lessons/{lesson}/challenges', [AdminLessonController::class, 'linkedChallenges']);
+        Route::post('/lessons/{lesson}/challenges', [AdminLessonController::class, 'linkChallenge']);
+        Route::delete('/lessons/{lesson}/challenges/{challenge}', [AdminLessonController::class, 'unlinkChallenge']);
+
+        Route::post('/modules/{module}/quizzes', [AdminQuizController::class, 'storeForModule']);
+        Route::post('/lessons/{lesson}/quizzes', [AdminQuizController::class, 'storeForLesson']);
+        Route::get('/quizzes/{quiz}', [AdminQuizController::class, 'show']);
+        Route::match(['put', 'patch'], '/quizzes/{quiz}', [AdminQuizController::class, 'update']);
+        Route::delete('/quizzes/{quiz}', [AdminQuizController::class, 'destroy']);
+
+        Route::get('/quizzes/{quiz}/questions', [AdminQuizController::class, 'questionIndex']);
+        Route::post('/quizzes/{quiz}/questions', [AdminQuizController::class, 'questionStore']);
+        Route::get('/questions/{question}', [AdminQuizController::class, 'questionShow']);
+        Route::match(['put', 'patch'], '/quizzes/{quiz}/questions/{question}', [AdminQuizController::class, 'questionUpdate']);
+        Route::delete('/quizzes/{quiz}/questions/{question}', [AdminQuizController::class, 'questionDestroy']);
+
+        Route::get('/questions/{question}/options', [AdminQuizController::class, 'optionIndex']);
+        Route::post('/questions/{question}/options', [AdminQuizController::class, 'optionStore']);
+        Route::match(['put', 'patch'], '/questions/{question}/options/{option}', [AdminQuizController::class, 'optionUpdate']);
+        Route::delete('/questions/{question}/options/{option}', [AdminQuizController::class, 'optionDestroy']);
+
+        Route::middleware('role:admin')->group(function (): void {
+            Route::get('/users', [AdminUserController::class, 'index']);
+            Route::get('/users/{user}', [AdminUserController::class, 'show']);
+            Route::post('/users/{user}/ban', [AdminUserController::class, 'ban']);
+            Route::post('/users/{user}/unban', [AdminUserController::class, 'unban']);
+            Route::match(['put', 'patch'], '/users/{user}/role', [AdminUserController::class, 'changeRole']);
+            Route::post('/users/{user}/xp', [AdminUserController::class, 'adjustXp']);
+
+            Route::get('/audit-logs', [AdminAuditLogController::class, 'index']);
+        });
     });
 });
