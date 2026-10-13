@@ -29,5 +29,17 @@ class DatabaseSeeder extends Seeder
                 'password' => 'password',
             ],
         );
+
+        // Dependency order matters: challenges need categories, tags, and
+        // the admin author; achievements resolve category ids; paths link
+        // challenges. Every seeder is idempotent — repeated runs converge.
+        $this->call([
+            AdminSeeder::class,
+            CategorySeeder::class,
+            TagSeeder::class,
+            ChallengeSeeder::class,
+            AchievementSeeder::class,
+            PathSeeder::class,
+        ]);
     }
 }
