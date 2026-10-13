@@ -119,7 +119,7 @@ when they arrive and what architecture already anticipates them.
 
 ## 7. UX / visual identity
 
-- **Dark-first**, technical, clean, high readability, strong hierarchy;
+- **Dark-first**, with a light theme and a system theme for signed-in users. Technical, clean, high readability, strong hierarchy;
   one restrained accent (signal amber) + neutral graphite surfaces. No neon
   washes, no glow-everything.
 - Original identity for **Catch The Flag / CTF**: a "flag marker" motif,

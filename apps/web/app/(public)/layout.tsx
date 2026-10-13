@@ -9,7 +9,7 @@ export default async function PublicLayout({
   return (
     <>
       <SiteHeader user={user} />
-      <main className="flex-1">{children}</main>
+      <main id="main" className="flex-1">{children}</main>
       <SiteFooter />
     </>
   );

@@ -1,105 +1,109 @@
-import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { ChallengeCard } from "@/components/challenge-card";
-import { SearchFilterBar } from "@/components/search-filter-bar";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { listChallenges } from "@/lib/api/challenges";
+import { ChallengeFilters } from "@/components/challenge-filters";
+import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
+import { PaginationNav } from "@/components/pagination-nav";
+import { Skeleton } from "@/components/ui/badge";
 import { serverApi } from "@/lib/api/server";
-import type { Category } from "@/lib/types";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
+import { toQuery } from "@/lib/format";
+import type { Category, ChallengeSummary, Paginated, Tag } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Challenges" };
-
-async function getCategories(): Promise<
-  Array<Pick<Category, "id" | "name" | "slug">>
-> {
-  try {
-    const res = await serverApi<{ data: Category[] }>("GET", "/categories");
-    return res.data;
-  } catch {
-    return [];
-  }
-}
-
-function hasActiveFilters(params: Record<string, string | undefined>): boolean {
-  return ["q", "category", "difficulty", "solved"].some(
-    (key) => params[key] !== undefined && params[key] !== "",
-  );
-}
+export const metadata = {
+  title: "Challenges",
+  description:
+    "Browse published static CTF challenges across SOC, DFIR, malware analysis, reverse engineering, cryptography, OSINT, and steganography.",
+};
 
 export default async function ChallengesPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    q?: string;
-    category?: string;
-    difficulty?: string;
-    solved?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams;
-  const [challenges, categories] = await Promise.all([
-    listChallenges({
-      q: params.q,
-      category: params.category,
-      difficulty: params.difficulty,
-      solved: params.solved,
-    }),
-    getCategories(),
-  ]);
-  const filtered = hasActiveFilters(params);
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q : undefined;
+  const category = typeof sp.category === "string" ? sp.category : undefined;
+  const difficulty = typeof sp.difficulty === "string" ? sp.difficulty : undefined;
+  const tags = typeof sp.tags === "string" ? sp.tags : undefined;
+  const solved = typeof sp.solved === "string" ? sp.solved : undefined;
+  const sort = typeof sp.sort === "string" ? sp.sort : undefined;
+  const minPoints = typeof sp.min_points === "string" ? sp.min_points : undefined;
+  const maxPoints = typeof sp.max_points === "string" ? sp.max_points : undefined;
+  const page = typeof sp.page === "string" ? sp.page : "1";
+  const view = sp.view === "grid" ? "grid" : "list";
+  const copy = dictionaryFor(await getLocale());
+
+  let challenges: Paginated<ChallengeSummary> | null = null;
+  let categories: Category[] = [];
+  let allTags: Tag[] = [];
+  let loadError = false;
+
+  try {
+    const [chRes, catRes, tagRes] = await Promise.all([
+      serverApi<Paginated<ChallengeSummary>>(
+        "GET",
+        `/challenges${toQuery({ q, category, difficulty, tags, solved, sort, min_points: minPoints, max_points: maxPoints, page, per_page: 20 })}`,
+      ),
+      serverApi<{ data: Category[] }>("GET", "/categories"),
+      serverApi<{ data: Tag[] }>("GET", "/tags"),
+    ]);
+    challenges = chRes;
+    categories = catRes.data;
+    allTags = tagRes.data;
+  } catch {
+    loadError = true;
+  }
+
+  function hrefForPage(nextPage: number) {
+    return `/challenges${toQuery({
+      q,
+      category,
+      difficulty,
+      tags,
+      solved,
+      sort,
+      min_points: minPoints,
+      max_points: maxPoints,
+      view: view === "grid" ? "grid" : undefined,
+      page: nextPage > 1 ? nextPage : undefined,
+    })}`;
+  }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent">
-        Challenges
-      </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-        File-based CTF challenges
-      </h1>
-      <p className="mt-3 max-w-2xl text-muted">
-        Download the files, analyse them offline, submit the flag. No live
-        infrastructure in V1 — the artifact is the arena.
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-10">
+      <PageHeader
+        eyebrow="CTF"
+        title={copy.pages.challengesTitle}
+        description={copy.pages.challengesBody}
+      />
+
+      <Suspense fallback={<Skeleton className="mb-6 h-40 w-full" />}>
+        <ChallengeFilters categories={categories} tags={allTags} />
+      </Suspense>
 
       <div className="mt-8">
-        <Suspense>
-          <SearchFilterBar categories={categories} />
-        </Suspense>
+        {loadError ? (
+          <ErrorState description="Challenge list could not be loaded from the API." />
+        ) : !challenges || challenges.data.length === 0 ? (
+          <EmptyState
+            title={copy.pages.challengesEmpty}
+            description={copy.pages.challengesEmptyBody}
+          />
+        ) : (
+          <div>
+            <p className="mb-2 font-mono text-xs text-faint">
+              {challenges.meta.total} challenge{challenges.meta.total === 1 ? "" : "s"}
+            </p>
+            <div key={view} className={view === "grid" ? "grid animate-fade-up gap-3 sm:grid-cols-2" : "animate-fade-up border-t border-border"}>
+              {challenges.data.map((c) => (
+                <ChallengeCard key={c.id} challenge={c} className={view === "grid" ? "rounded-xl border border-border px-4" : undefined} />
+              ))}
+            </div>
+            <PaginationNav meta={challenges.meta} hrefForPage={hrefForPage} />
+          </div>
+        )}
       </div>
-
-      {challenges.length === 0 ? (
-        <Card className="mt-8">
-          <CardTitle>
-            {filtered
-              ? "No challenges match your filters"
-              : "No challenges published yet"}
-          </CardTitle>
-          <CardDescription className="mt-2">
-            {filtered
-              ? "Try widening the search or clearing the active filters."
-              : "The first challenge set is being authored. Pick a learning path in the meantime."}
-          </CardDescription>
-          {filtered ? (
-            <Link href="/challenges" className={buttonVariants("outline", "sm")}>
-              Clear filters
-            </Link>
-          ) : (
-            <Link href="/paths" className={buttonVariants("outline", "sm")}>
-              Browse paths
-            </Link>
-          )}
-        </Card>
-      ) : (
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {challenges.map((c) => (
-            <li key={c.id}>
-              <ChallengeCard challenge={c} />
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

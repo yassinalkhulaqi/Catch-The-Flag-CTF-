@@ -44,6 +44,10 @@ export interface CurrentUser {
   avatar_url: string | null;
   created_at: string;
   achievements_count?: number;
+  /** Present on admin user list/detail responses only. */
+  banned_at?: string | null;
+  /** Present when the payload is the signed-in user (`/auth/me`). */
+  theme?: UserSettings["theme"];
 }
 
 export interface AuthResponse {
@@ -101,9 +105,13 @@ export interface PathModule {
 
 export interface PathDetail extends PathSummary {
   description: string | null;
-  prerequisites: Array<Pick<PathSummary, "id" | "title" | "slug">>;
+  prerequisites: Array<Pick<PathSummary, "id" | "title" | "slug"> & { completed: boolean }>;
   modules: PathModule[];
   completed: boolean;
+  /** False when a published prerequisite is still incomplete. */
+  can_start: boolean;
+  /** True once a progress row exists, including a start from before a prerequisite was added. */
+  started: boolean;
 }
 
 export interface LessonChallengeRef {
@@ -131,15 +139,22 @@ export interface Lesson {
   next_lesson_id: number | null;
 }
 
+export interface ModuleLesson {
+  id: number;
+  title: string;
+  slug: string;
+  position: number;
+  completed: boolean;
+  estimated_minutes: number;
+}
+
 export interface ModuleDetail {
   id: number;
   path_id: number;
   title: string;
   description: string | null;
   position: number;
-  lessons: Array<
-    LessonChallengeRef & { position: number; completed: boolean; estimated_minutes: number }
-  >;
+  lessons: ModuleLesson[];
 }
 
 /* ---------- quiz ---------- */
@@ -219,7 +234,7 @@ export interface ChallengeDetail extends ChallengeSummary {
   author: { id: number; name: string } | null;
   published_at: string | null;
   points_remaining: number; // after hints unlocked by me
-  related: ChallengeSummary[];
+  related?: ChallengeSummary[];
 }
 
 export type SubmissionResultKind = "correct" | "incorrect";
@@ -255,9 +270,36 @@ export interface Achievement {
   title: string;
   description: string;
   icon: string | null;
-  awarded: boolean;
-  awarded_at: string | null;
+  awarded?: boolean;
+  awarded_at?: string | null;
   progress?: { current: number; target: number };
+}
+
+export type AchievementCriteriaType =
+  | "solves_total"
+  | "xp_total"
+  | "paths_completed"
+  | "category_solves"
+  | "first_blood";
+
+export interface AchievementCriteria {
+  type: AchievementCriteriaType;
+  threshold: number;
+  category_id?: number;
+}
+
+/** Staff authoring shape. Learner Achievement omits criteria and catalog fields. */
+export interface AdminAchievement {
+  id: number;
+  key: string;
+  title: string;
+  description: string;
+  icon: string | null;
+  criteria: AchievementCriteria;
+  points: number;
+  is_active: boolean;
+  sort_order: number;
+  awarded_count: number;
 }
 
 export interface LeaderboardEntry {
@@ -285,4 +327,40 @@ export interface NotificationItem {
   data: { title: string; body?: string; url?: string };
   read_at: string | null;
   created_at: string;
+}
+
+/* ---------- admin ---------- */
+
+export interface AdminStats {
+  users: number;
+  challenges_published: number;
+  paths_published: number;
+  solves_total: number;
+  challenges_draft?: number;
+  paths_draft?: number;
+  users_banned?: number;
+}
+
+export interface ChallengeFlagMeta {
+  id: number;
+  label: string | null;
+  case_sensitive: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  actor_id: number | null;
+  actor?: { id: number; name: string } | null;
+  action: string;
+  auditable_type: string | null;
+  auditable_id: number | null;
+  changes: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface UserSettings {
+  email: string;
+  theme: "system" | "light" | "dark";
 }

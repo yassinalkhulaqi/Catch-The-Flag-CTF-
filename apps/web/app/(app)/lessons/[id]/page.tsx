@@ -1,21 +1,30 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { DifficultyPill } from "@/components/difficulty-pill";
-import { MarkCompleteButton } from "@/components/mark-complete-button";
-import { Badge } from "@/components/ui/badge";
+import { notFound } from "next/navigation";
+import { DifficultyBadge } from "@/components/difficulty-badge";
+import { ErrorState, PageHeader } from "@/components/empty-state";
+import { CompleteLessonButton } from "@/components/learning-actions";
+import { LessonToc, ReadingProgress } from "@/components/lesson-tools";
+import { headingId, Markdown } from "@/components/markdown";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { getLesson } from "@/lib/api/lessons";
-import { MarkdownContent } from "@/lib/markdown";
+import { Badge } from "@/components/ui/badge";
+import { ApiError } from "@/lib/api/client";
+import { requireUser } from "@/lib/auth";
+import { serverApi } from "@/lib/api/server";
+import { cn, formatXp } from "@/lib/utils";
+import type { Lesson } from "@/lib/types";
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+}) {
   const { id } = await params;
-  const lesson = await getLesson(id);
-  return { title: lesson ? `${lesson.title} · Lesson` : "Lesson" };
+  try {
+    const res = await serverApi<{ data: Lesson }>("GET", `/lessons/${id}`);
+    return { title: res.data.title };
+  } catch {
+    return { title: "Lesson" };
+  }
 }
 
 export default async function LessonPage({
@@ -23,154 +32,121 @@ export default async function LessonPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireUser();
   const { id } = await params;
-  const lesson = await getLesson(id);
 
-  if (!lesson) {
-    return (
-      <div>
-        <Card>
-          <CardTitle>Lesson not found</CardTitle>
-          <CardDescription className="mt-2">
-            This lesson doesn&apos;t exist, isn&apos;t published, or the
-            backend is unavailable.
-          </CardDescription>
-          <Link href="/paths" className={buttonVariants("outline", "sm")}>
-            Back to paths
-          </Link>
-        </Card>
-      </div>
-    );
+  let lesson: Lesson | null = null;
+  try {
+    const res = await serverApi<{ data: Lesson }>("GET", `/lessons/${id}`);
+    lesson = res.data;
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 403)) notFound();
+    return <ErrorState title="Lesson unavailable" />;
   }
 
+  if (!lesson) notFound();
+
+  const toc = lesson.content
+    .split("\n")
+    .flatMap((line) => {
+      const match = /^(#{2,3})\s+(.+)$/.exec(line.trim());
+      if (!match) return [];
+      const text = match[2].replace(/[`*_]/g, "");
+      return [{ depth: match[1].length, text, id: headingId(text) }];
+    });
+
   return (
-    <article className="mx-auto max-w-3xl">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent">
-        Lesson {lesson.position}
-      </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-        {lesson.title}
-      </h1>
-      {lesson.summary ? (
-        <p className="mt-3 text-muted">{lesson.summary}</p>
-      ) : null}
+    <div>
+      <ReadingProgress />
+      <PageHeader
+        eyebrow="Lesson"
+        title={lesson.title}
+        description={lesson.summary ?? undefined}
+        actions={<CompleteLessonButton lessonId={lesson.id} completed={lesson.completed} />}
+      />
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {lesson.completed ? (
-          <Badge tone="success">Completed</Badge>
-        ) : (
-          <Badge tone="neutral">Not completed</Badge>
-        )}
-        <span className="font-mono text-xs text-faint">
-          ~{lesson.estimated_minutes} min
-        </span>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <article className="max-w-3xl">
+          <Markdown content={lesson.content} />
+        </article>
+        <LessonToc items={toc} />
       </div>
 
-      <div className="mt-6">
-        <MarkdownContent content={lesson.content} />
-      </div>
-
-      <section aria-labelledby="lesson-challenges" className="mt-10">
-        <h2
-          id="lesson-challenges"
-          className="text-lg font-semibold text-foreground"
-        >
-          Practice challenges
-        </h2>
-        {lesson.challenges.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">
-            No challenges linked to this lesson yet.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
+      {lesson.challenges.length > 0 ? (
+        <section className="mt-10" aria-labelledby="linked-challenges">
+          <h2
+            id="linked-challenges"
+            className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
+          >
+            Practice challenges
+          </h2>
+          <ul className="divide-y divide-border border border-border">
             {lesson.challenges.map((c) => (
-              <li key={c.id}>
-                <Card className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      <Link
-                        href={`/challenges/${c.slug}`}
-                        className="hover:text-accent"
-                      >
-                        {c.title}
-                      </Link>
-                    </p>
-                    <p className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs text-faint">
-                      {c.points} pts
-                      {c.solved ? (
-                        <Badge tone="success">Solved</Badge>
-                      ) : null}
-                    </p>
+              <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div className="space-y-1">
+                  <Link
+                    href={`/challenges/${c.slug}`}
+                    className="font-semibold hover:text-accent"
+                  >
+                    {c.title}
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <DifficultyBadge difficulty={c.difficulty} />
+                    {c.solved ? <Badge tone="success">Solved</Badge> : null}
                   </div>
-                  <DifficultyPill difficulty={c.difficulty} />
-                </Card>
+                </div>
+                <span className="font-mono text-sm text-accent">{formatXp(c.points)} pts</span>
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      ) : null}
 
-      <section aria-labelledby="lesson-quiz" className="mt-10">
-        <h2 id="lesson-quiz" className="text-lg font-semibold text-foreground">
-          Check your knowledge
-        </h2>
-        {lesson.quiz ? (
-          <Card className="mt-3 flex flex-wrap items-center justify-between gap-3">
+      {lesson.quiz ? (
+        <section className="mt-10" aria-labelledby="quiz-heading">
+          <h2
+            id="quiz-heading"
+            className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
+          >
+            Knowledge check
+          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 border border-border bg-surface p-4">
             <div>
-              <p className="text-sm font-medium text-foreground">
-                {lesson.quiz.title}
-              </p>
-              <p className="mt-1">
-                {lesson.quiz.passed ? (
-                  <Badge tone="success">Passed</Badge>
-                ) : (
-                  <Badge tone="neutral">Not passed</Badge>
-                )}
-              </p>
+              <p className="font-semibold">{lesson.quiz.title}</p>
+              {lesson.quiz.passed ? (
+                <p className="text-sm text-success">Passed</p>
+              ) : (
+                <p className="text-sm text-muted">Not yet passed</p>
+              )}
             </div>
             <Link
               href={`/quizzes/${lesson.quiz.id}`}
-              className={buttonVariants("primary", "sm")}
+              className={cn(buttonVariants("outline", "sm"))}
             >
               {lesson.quiz.passed ? "Review quiz" : "Take quiz"}
             </Link>
-          </Card>
-        ) : (
-          <p className="mt-2 text-sm text-muted">
-            No quiz attached to this lesson.
-          </p>
-        )}
-      </section>
+          </div>
+        </section>
+      ) : null}
 
-      <div className="mt-10 border-t border-border pt-6">
-        <MarkCompleteButton lessonId={lesson.id} completed={lesson.completed} />
-      </div>
-
-      <nav
-        aria-label="Lesson navigation"
-        className="mt-6 flex items-center justify-between gap-3"
-      >
-        {lesson.prev_lesson_id !== null ? (
-          <Link
-            href={`/lessons/${lesson.prev_lesson_id}`}
-            className={buttonVariants("outline", "sm")}
-          >
-            ← Previous lesson
+      <nav className="mt-10 flex justify-between border-t border-border pt-4 text-sm" aria-label="Lesson navigation">
+        {lesson.prev_lesson_id ? (
+          <Link href={`/lessons/${lesson.prev_lesson_id}`} className="text-muted hover:text-foreground">
+            Previous
           </Link>
         ) : (
           <span />
         )}
-        {lesson.next_lesson_id !== null ? (
-          <Link
-            href={`/lessons/${lesson.next_lesson_id}`}
-            className={buttonVariants("outline", "sm")}
-          >
-            Next lesson →
+        {lesson.next_lesson_id ? (
+          <Link href={`/lessons/${lesson.next_lesson_id}`} className="text-muted hover:text-foreground">
+            Next
           </Link>
         ) : (
-          <span />
+          <Link href={`/modules/${lesson.module_id}`} className="text-accent hover:underline">
+            Back to module
+          </Link>
         )}
       </nav>
-    </article>
+    </div>
   );
 }

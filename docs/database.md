@@ -67,6 +67,7 @@ erDiagram
 | solved_count | int NOT NULL DEFAULT 0 | denormalized, maintained in solve transaction |
 | bio | varchar(500) NULL | profile |
 | avatar_path | varchar(255) NULL | storage key, not a URL |
+| preferences | jsonb NULL | non-sensitive prefs (e.g. `{ "theme": "system"|"light"|"dark" }`); never mass-assignable |
 | banned_at | timestamptz NULL | soft kill-switch for abuse |
 | last_login_at | timestamptz NULL | |
 | remember_token | — | not used (token auth) |
@@ -136,7 +137,7 @@ GIN `search_vector` (generated: title+summary+description).
 ### `path_prerequisites`
 `(path_id, prerequisite_path_id)` composite PK, both FKs → paths
 (`ON DELETE CASCADE`), `CHECK (path_id <> prerequisite_path_id)`.
-Optional — V1 does not hard-block on prerequisites, it *displays* them
+Published prerequisites are required before a learner can start the path or open its modules and lessons. A path the learner already started stays open. Draft or archived prerequisites do not block and are omitted from the learner payload. Cycles are rejected on update.
 (documented product rule).
 
 ### `path_modules`
@@ -323,14 +324,22 @@ V1 = global all-time only. Weekly/monthly/event boards are V2 (roadmap) and
 will be derived from `xp_transactions.created_at` — no schema change needed.
 
 ### `achievements`
-`id, key varchar(80) UNIQUE NOT NULL, title, description, icon varchar(60),
-criteria_type varchar(40) CHECK IN ('solves_total','xp_total',
-'paths_completed','category_solves','first_blood'),
-criteria jsonb NOT NULL DEFAULT '{}'` (e.g. `{"threshold":10}`),
-`points int DEFAULT 0, is_active bool DEFAULT true, sort_order int`.
+`id, key varchar(80) UNIQUE NOT NULL, title, description, icon varchar(60) NULL,
+criteria jsonb NULL, points int DEFAULT 0, is_active bool DEFAULT true,
+sort_order int`.
 
-Criteria **config** is JSON because it is configuration, not relational data
-(ADR-0006); the *evaluation logic* is typed PHP in `AchievementEvaluator`.
+`criteria` is configuration, not relational data. It must contain `type` and an
+integer `threshold` (>= 1). `type` is checked in
+`achievements_criteria_type_check`:
+
+`solves_total` · `xp_total` · `paths_completed` · `category_solves` · `first_blood`
+
+`category_solves` also requires integer `category_id`. Category existence is
+enforced in the admin form request (a CHECK cannot follow category deletes).
+Example: `{"type":"solves_total","threshold":10}`.
+
+The evaluation logic is typed PHP in `AchievementService`. The key is immutable
+after create. Deleting an achievement cascades to `user_achievements`.
 
 ### `user_achievements`
 `id, user_id FK, achievement_id FK, awarded_at timestamptz`,

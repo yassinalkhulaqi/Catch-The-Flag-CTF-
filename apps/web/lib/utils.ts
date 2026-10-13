@@ -1,10 +1,9 @@
-/**
- * Shared client helpers. No API calls here — see lib/api/*.
- */
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-/** Class name joiner (dependency-free). */
-export function cn(...parts: Array<string | false | null | undefined>): string {
-  return parts.filter(Boolean).join(" ");
+/** Merge Tailwind classes. Later utilities win, falsy values drop out. */
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
 }
 
 /** Format XP with thin thousands separators. */
@@ -13,9 +12,10 @@ export function formatXp(xp: number): string {
 }
 
 /** Relative time like "3h ago" for timelines. */
-export function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+export function timeAgo(iso: string, now = Date.now()): string {
+  const diff = now - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60_000);
+  if (Number.isNaN(minutes)) return "";
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);

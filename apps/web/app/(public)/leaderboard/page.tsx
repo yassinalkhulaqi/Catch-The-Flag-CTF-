@@ -1,144 +1,116 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { getLeaderboard } from "@/lib/api/leaderboard";
+import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
+import { getCurrentUser, serverApi } from "@/lib/api/server";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { formatXp } from "@/lib/utils";
+import type { LeaderboardEntry, Paginated } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Leaderboard" };
+export const metadata = { title: "Leaderboard" };
 
-const PER_PAGE = 20;
+export default async function LeaderboardPage() {
+  const user = await getCurrentUser();
+  const copy = dictionaryFor(await getLocale());
+  let entries: LeaderboardEntry[] = [];
+  let myRank: { rank: number } | null = null;
+  let loadError = false;
 
-export default async function LeaderboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
-  const params = await searchParams;
-  const parsed = Number.parseInt(params.page ?? "1", 10);
-  const page = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-
-  const result = await getLeaderboard(page, PER_PAGE);
-  const entries = result?.data ?? [];
-  const meta = result?.meta ?? null;
-  const lastPage = meta?.last_page ?? 1;
-  const total = meta?.total ?? entries.length;
+  try {
+    const res = await serverApi<Paginated<LeaderboardEntry>>(
+      "GET",
+      "/leaderboard?per_page=50",
+    );
+    entries = res.data;
+    if (user) {
+      try {
+        const me = await serverApi<{ data: { rank: number } }>("GET", "/leaderboard/me");
+        myRank = me.data;
+      } catch {
+        myRank = null;
+      }
+    }
+  } catch {
+    loadError = true;
+  }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent">
-        Leaderboard
-      </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-        Ranked by XP, then solves
-      </h1>
-      <p className="mt-3 text-muted">
-        Deterministic order: XP descending, solved count descending, account
-        age ascending. Computed server-side.
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-10">
+      <PageHeader
+        eyebrow="Progression"
+        title={copy.pages.leaderboardTitle}
+        description={copy.pages.leaderboardBody}
+        actions={
+          myRank ? (
+            <p className="font-mono text-sm text-accent">Your rank: #{myRank.rank}</p>
+          ) : null
+        }
+      />
 
-      {entries.length === 0 ? (
-        <Card className="mt-8">
-          <CardTitle>No rankings yet</CardTitle>
-          <CardDescription className="mt-2">
-            Solve a challenge to take the top spot.
-          </CardDescription>
-        </Card>
+      {loadError ? (
+        <ErrorState />
+      ) : entries.length === 0 ? (
+        <EmptyState title="No rankings yet" description="Solve a challenge to appear here." />
       ) : (
         <>
-          <div className="mt-8 overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <caption className="sr-only">
-                Leaderboard ranked by XP, then solves
-              </caption>
-              <thead>
-                <tr className="border-b border-border bg-surface-raised font-mono text-xs uppercase tracking-wide text-muted">
-                  <th scope="col" className="px-4 py-3 text-left font-medium">
-                    Rank
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left font-medium">
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-right font-medium"
-                  >
-                    XP
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-right font-medium"
-                  >
-                    Solves
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((e) => (
+        <ol className="mb-8 grid gap-3 md:grid-cols-3">
+          {entries.slice(0, 3).map((row) => (
+            <li
+              key={row.id}
+              className="rounded-xl border border-border bg-surface p-4"
+            >
+              <p className="font-mono text-xs text-accent">#{row.rank}</p>
+              <p className="mt-2 text-lg font-semibold">
+                {row.name}
+                {user?.id === row.id ? <span className="ms-2 font-mono text-[11px] text-accent">you</span> : null}
+              </p>
+              <p className="font-mono text-sm text-muted">{formatXp(row.xp)} XP · {row.solved_count} solves</p>
+            </li>
+          ))}
+        </ol>
+        <div className="overflow-x-auto border border-border">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <caption className="sr-only">
+              Leaderboard ranked by XP, then solves
+            </caption>
+            <thead className="border-b border-border bg-surface">
+              <tr className="font-mono text-[11px] uppercase tracking-wide text-muted">
+                <th scope="col" className="px-4 py-3">Rank</th>
+                <th scope="col" className="px-4 py-3">Player</th>
+                <th scope="col" className="px-4 py-3">XP</th>
+                <th scope="col" className="px-4 py-3">Solves</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((row) => {
+                const isMe = user?.id === row.id;
+                return (
                   <tr
-                    key={e.id}
-                    className="border-b border-border last:border-0"
+                    key={row.id}
+                    className={
+                      isMe
+                        ? "border-b border-border bg-accent/5"
+                        : "border-b border-border/70"
+                    }
                   >
-                    <td className="px-4 py-3 font-mono text-faint">
-                      {String(e.rank).padStart(2, "0")}
+                    <td className="px-4 py-3 font-mono text-accent">#{row.rank}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {row.name}
+                      {isMe ? (
+                        <span className="ms-2 font-mono text-[11px] text-accent">you</span>
+                      ) : null}
                     </td>
-                    <th
-                      scope="row"
-                      className="px-4 py-3 text-left font-semibold text-foreground"
-                    >
-                      {e.name}
-                    </th>
-                    <td className="px-4 py-3 text-right font-mono text-muted">
-                      {formatXp(e.xp)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-muted">
-                      {e.solved_count}
-                    </td>
+                    <td className="px-4 py-3 font-mono">{formatXp(row.xp)}</td>
+                    <td className="px-4 py-3 font-mono">{row.solved_count}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {myRank ? (
+          <div className="sticky bottom-4 z-30 mt-4 rounded-lg border border-accent/40 bg-surface/95 px-4 py-3 text-sm shadow-md backdrop-blur">
+            Your rank <span className="font-mono text-accent">#{myRank.rank}</span>
           </div>
-
-          <nav
-            aria-label="Leaderboard pages"
-            className="mt-4 flex items-center justify-between gap-3"
-          >
-            {page > 1 ? (
-              <Link
-                href={`/leaderboard?page=${page - 1}`}
-                className={buttonVariants("outline", "sm")}
-              >
-                ← Previous
-              </Link>
-            ) : (
-              <span
-                aria-disabled="true"
-                className={buttonVariants("outline", "sm", "opacity-50")}
-              >
-                ← Previous
-              </span>
-            )}
-            <p className="font-mono text-xs text-faint" aria-live="polite">
-              Page {page} of {lastPage} · {total}{" "}
-              {total === 1 ? "user" : "users"}
-            </p>
-            {page < lastPage ? (
-              <Link
-                href={`/leaderboard?page=${page + 1}`}
-                className={buttonVariants("outline", "sm")}
-              >
-                Next →
-              </Link>
-            ) : (
-              <span
-                aria-disabled="true"
-                className={buttonVariants("outline", "sm", "opacity-50")}
-              >
-                Next →
-              </span>
-            )}
-          </nav>
+        ) : null}
         </>
       )}
     </div>

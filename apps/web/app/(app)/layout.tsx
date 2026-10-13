@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <>
       <SiteHeader user={user} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <DashboardNav />
         <div className="py-6">{children}</div>
       </main>

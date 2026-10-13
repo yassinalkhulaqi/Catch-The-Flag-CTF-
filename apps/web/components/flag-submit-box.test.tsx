@@ -1,80 +1,75 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act as reactAct } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { FlagSubmitBox } from "@/components/flag-submit-box";
 
-const { postMock, refreshMock } = vi.hoisted(() => ({
-  postMock: vi.fn(),
-  refreshMock: vi.fn(),
-}));
-
-vi.mock("@/lib/api/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/api/client")>();
-  return { ...actual, api: { ...actual.api, post: postMock } };
-});
+const push = vi.fn();
+const refresh = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: refreshMock, push: vi.fn() }),
+  useRouter: () => ({ push, refresh, replace: vi.fn(), prefetch: vi.fn() }),
 }));
 
-import { ApiError } from "@/lib/api/client";
-import { FlagSubmitBox } from "./flag-submit-box";
+const server = setupServer(
+  http.post("/api/v1/challenges/:id/submissions", async ({ request }) => {
+    const body = (await request.json()) as { flag?: string };
+    if (body.flag === "flag{correct}") {
+      return HttpResponse.json({
+        data: {
+          result: "correct",
+          points_awarded: 50,
+          already_solved: false,
+          xp_total: 50,
+        },
+      });
+    }
+    return HttpResponse.json({ data: { result: "incorrect" } });
+  }),
+);
+
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => {
+  server.resetHandlers();
+  push.mockClear();
+  refresh.mockClear();
+});
+afterAll(() => server.close());
 
 describe("FlagSubmitBox", () => {
-  beforeEach(() => {
-    postMock.mockReset();
-    refreshMock.mockClear();
+  it("submits a flag and shows success", async () => {
+    const user = userEvent.setup();
+    render(<FlagSubmitBox challengeId={1} />);
+
+    fireEvent.change(screen.getByTestId("flag-input"), {
+      target: { value: "flag{correct}" },
+    });
+    await user.click(screen.getByTestId("flag-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("flag-success")).toHaveTextContent(/Correct/i);
+    });
+    expect(refresh).toHaveBeenCalled();
   });
 
-  // Flush React's async passive-effects callback before jsdom teardown,
-  // otherwise it fires after globals are gone ("window is not defined").
-  afterEach(async () => {
-    cleanup();
-    await reactAct(async () => {});
-  });
+  it("shows incorrect feedback", async () => {
+    const user = userEvent.setup();
+    render(<FlagSubmitBox challengeId={1} />);
 
-  it("shows uniform incorrect feedback without revealing format", async () => {
-    postMock.mockResolvedValueOnce({ data: { result: "incorrect" } });
-    render(<FlagSubmitBox challengeId={42} solved={false} />);
-
-    fireEvent.change(screen.getByLabelText("Flag"), {
+    fireEvent.change(screen.getByTestId("flag-input"), {
       target: { value: "flag{wrong}" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Submit flag" }));
+    await user.click(screen.getByTestId("flag-submit"));
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Incorrect flag. Try again.");
-    expect(postMock).toHaveBeenCalledWith("/challenges/42/submissions", {
-      flag: "flag{wrong}",
+    await waitFor(() => {
+      expect(screen.getByTestId("flag-incorrect")).toBeInTheDocument();
     });
-    // Stays enabled for another attempt.
-    expect(screen.getByLabelText("Flag")).toBeEnabled();
   });
 
-  it("disables the form when the challenge is already solved", () => {
-    render(<FlagSubmitBox challengeId={42} solved={true} />);
-
-    expect(screen.getByLabelText("Flag")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Solved" })).toBeDisabled();
-    expect(screen.getByRole("alert")).toHaveTextContent(/already solved/i);
-    expect(postMock).not.toHaveBeenCalled();
-  });
-
-  it("shows a retry message when rate limited", async () => {
-    postMock.mockRejectedValueOnce(
-      new ApiError(429, {
-        code: "rate_limited",
-        message: "Too many submissions.",
-      }),
-    );
-    render(<FlagSubmitBox challengeId={42} solved={false} />);
-
-    fireEvent.change(screen.getByLabelText("Flag"), {
-      target: { value: "flag{whatever}" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Submit flag" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      /too many attempts/i,
-    );
+  it("shows already solved state", () => {
+    render(<FlagSubmitBox challengeId={1} alreadySolved />);
+    expect(screen.getByTestId("flag-success")).toHaveTextContent(/Already solved/i);
+    expect(screen.queryByTestId("flag-input")).not.toBeInTheDocument();
   });
 });

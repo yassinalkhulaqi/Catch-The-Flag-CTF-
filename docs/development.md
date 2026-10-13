@@ -70,7 +70,12 @@ npm run build        # production build (also runs typecheck)
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
 npm run test         # Vitest unit/component
+npm run test:e2e     # Playwright smoke + flows (needs the web server; flows also need the API)
 npm run test:watch   # watch mode
+
+# Design-system gallery (development only; production 404s unless opted in)
+# http://localhost:3000/dev/design-system
+# ENABLE_DESIGN_SYSTEM=true npm run start   # optional production preview
 ```
 
 ### Root helpers

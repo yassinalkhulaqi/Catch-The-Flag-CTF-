@@ -1,39 +1,22 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { ChallengeForm } from "@/components/admin/challenge-form";
-import { Card } from "@/components/ui/card";
-import { getCategoriesServer } from "@/lib/api/admin-server";
+import { PageHeader } from "@/components/empty-state";
+import { ChallengeEditor } from "@/components/admin/challenge-editor";
+import { requireStaff } from "@/lib/auth";
+import { serverApi } from "@/lib/api/server";
+import type { Category, Tag } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Admin · New challenge" };
+export const metadata = { title: "New challenge" };
 
-/** Challenge authoring entry point (categories resolved server-side). */
-export default async function AdminChallengeNewPage() {
-  const categories = await getCategoriesServer();
+export default async function NewChallengePage() {
+  await requireStaff();
+  const [cats, tags] = await Promise.all([
+    serverApi<{ data: Category[] }>("GET", "/categories"),
+    serverApi<{ data: Tag[] }>("GET", "/tags"),
+  ]);
 
   return (
     <div>
-      <p className="text-sm text-muted">
-        <Link href="/admin/challenges" className="hover:text-accent">
-          ← Challenges
-        </Link>
-      </p>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-        New challenge
-      </h1>
-      <p className="mt-1 text-sm text-muted">
-        Drafts are invisible to learners until published. Files, hints and
-        flags are added after creation.
-      </p>
-      <Card className="mt-6">
-        <ChallengeForm
-          mode="create"
-          categories={categories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-          }))}
-        />
-      </Card>
+      <PageHeader eyebrow="Authoring" title="New challenge" />
+      <ChallengeEditor categories={cats.data} tags={tags.data} />
     </div>
   );
 }

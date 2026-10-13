@@ -84,7 +84,7 @@ URLs; APIs accept `id` (frontend resolves slug→id via detail endpoints).
 | POST | `/auth/login` | — | `{email, password}` → `{user, token}` |
 | POST | `/auth/logout` | ✔ | Revoke current token |
 | POST | `/auth/logout-all` | ✔ | Revoke all of user's tokens |
-| GET | `/auth/me` | ✔ | Current user + role + unread count |
+| GET | `/auth/me` | ✔ | Current user + role + unread count + own `theme` |
 | PUT | `/profile` | ✔ | Update own name/bio/avatar |
 | PUT | `/profile/password` | ✔ | Change password (revokes other tokens) |
 | POST | `/auth/forgot-password` | — | Always 202 (no enumeration) |
@@ -101,8 +101,8 @@ an httpOnly cookie; the raw token never reaches browser JS.
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/paths` | — | Published paths; filters: `q, category, difficulty, progress` |
-| GET | `/paths/{idOrSlug}` | — | Detail incl. modules→lessons summary, prerequisites, my progress |
-| POST | `/paths/{id}/start` | ✔ | Idempotent start → progress row |
+| GET | `/paths/{idOrSlug}` | — | Detail incl. modules, published prerequisites (`completed`), `can_start`, `started`, my progress |
+| POST | `/paths/{id}/start` | ✔ | Idempotent start. 422 when a published prerequisite is incomplete |
 | GET | `/paths/{id}/progress` | ✔ | Deterministic completion breakdown |
 
 ### Lessons / modules
@@ -142,7 +142,7 @@ ordering).
 | GET | `/me/xp-ledger` | Paginated `xp_transactions` |
 | GET | `/me/achievements` | Awarded + progress-toward-locked achievements |
 | GET | `/me/notifications` | Paginated; `POST /me/notifications/{id}/read`, `POST /me/notifications/read-all` |
-| GET | `/me/settings` / PUT | Email, theme prefs (minimal) |
+| GET | `/me/settings` / PUT | Email + persisted theme (`system`/`light`/`dark`) |
 
 ### Quizzes
 | Method | Path | Description |
@@ -182,8 +182,19 @@ GET             /admin/users            GET/PUT /admin/users/{id}
 PUT             /admin/users/{id}/role  POST /admin/users/{id}/ban|unban
 POST            /admin/users/{id}/xp    {amount, reason}  (audited)
 GET             /admin/audit-logs       (filter: actor, action, entity, date)
-GET             /admin/stats            (dashboard counters)
+GET             /admin/stats            (dashboard counters; Gate `viewAdminDashboard`)
 ```
+
+Admin quiz `GET/POST/PUT` responses include option `is_correct` for staff editors.
+Learner `GET /quizzes/{id}` never includes `is_correct`.
+
+Admin achievement `GET/POST/PUT` responses include `criteria`, `points`,
+`is_active`, `sort_order`, and `awarded_count`. Learner
+`GET /me/achievements` and `GET /achievements` never include those fields.
+`key` is immutable (`PUT` rejects it). `DELETE` is admin-only and cascades to
+existing awards. `criteria.type` must be one of `solves_total`, `xp_total`,
+`paths_completed`, `category_solves`, `first_blood`, with integer `threshold`
+≥ 1. `category_solves` also requires `criteria.category_id`.
 
 **Flag rule in admin API:** `POST/PUT` accept `{ value }`; responses only ever
 return `{ id, label, case_sensitive, is_active, created_at }` — never the value.
@@ -196,7 +207,7 @@ re-read — security.md §5).
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/health` | `{ status, version, db: "up", time }` — no config/stack exposure |
+| GET | `/health` | `{ status, version, db, storage, time }` — 503 when degraded; no config/stack exposure |
 
 ---
 

@@ -1,8 +1,13 @@
-import type { Metadata } from "next";
-import { LoginForm } from "@/components/login-form";
+import { Suspense } from "react";
+import { LoginForm } from "@/components/auth/login-form";
+import { Skeleton } from "@/components/ui/badge";
 
-export const metadata: Metadata = { title: "Log in" };
+export const metadata = { title: "Log in" };
 
 export default function LoginPage() {
-  return <LoginForm />;
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <LoginForm />
+    </Suspense>
+  );
 }

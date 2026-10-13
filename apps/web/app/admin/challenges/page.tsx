@@ -1,13 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { ChallengeTable } from "@/components/admin/challenge-table";
+import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { listAdminChallengesServer } from "@/lib/api/admin-server";
+import { requireStaff } from "@/lib/auth";
+import { serverApi } from "@/lib/api/server";
 import { cn } from "@/lib/utils";
-import type { ContentStatus } from "@/lib/types";
+import type {
+  Category,
+  ChallengeSummary,
+  ContentStatus,
+  Paginated,
+  Tag,
+} from "@/lib/types";
 
 export const metadata: Metadata = { title: "Admin · Challenges" };
+
+/**
+ * OUR admin list shape (`AdminChallengeResource`): scalar fields plus tags,
+ * but only a `category_id` — no nested category object. The table below
+ * joins the taxonomy list server-side so every row carries a real category.
+ */
+interface AdminChallengeRow {
+  id: number;
+  title: string;
+  slug: string;
+  category_id: number | null;
+  difficulty: ChallengeSummary["difficulty"];
+  points: number;
+  estimated_minutes: number;
+  solve_count: number;
+  status: ContentStatus;
+  tags: Tag[];
+}
 
 const FILTERS: Array<{ value: string; label: string }> = [
   { value: "", label: "All" },
@@ -16,13 +41,6 @@ const FILTERS: Array<{ value: string; label: string }> = [
   { value: "published", label: "Published" },
   { value: "archived", label: "Archived" },
 ];
-
-const STATUS_TONE: Record<ContentStatus, "neutral" | "info" | "success"> = {
-  draft: "neutral",
-  review: "info",
-  published: "success",
-  archived: "neutral",
-};
 
 function isStatus(value: string | undefined): value is ContentStatus {
   return (
@@ -33,40 +51,74 @@ function isStatus(value: string | undefined): value is ContentStatus {
   );
 }
 
-/** Admin challenge table with server-side status filter. */
+function unwrapCategories(payload: unknown): Category[] {
+  if (Array.isArray(payload)) return payload as Category[];
+  if (payload !== null && typeof payload === "object") {
+    const data = (payload as { data?: unknown }).data;
+    if (Array.isArray(data)) return data as Category[];
+  }
+  return [];
+}
+
+/** Admin challenge table (premium table UX) with server-side status filter. */
 export default async function AdminChallengesPage({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  await requireStaff();
   const params = await searchParams;
   const active = isStatus(params.status) ? params.status : "";
-  const { items, total } = await listAdminChallengesServer({
-    status: active || undefined,
-    per_page: 100,
-  });
+
+  let items: ChallengeSummary[] = [];
+  let total = 0;
+  let loadError = false;
+  try {
+    const qs = new URLSearchParams({ per_page: "50" });
+    if (active) qs.set("status", active);
+    const [chRes, catRes] = await Promise.all([
+      serverApi<Paginated<AdminChallengeRow>>("GET", `/admin/challenges?${qs}`),
+      serverApi<{ data: Category[] } | Category[]>("GET", "/categories"),
+    ]);
+    const byId = new Map(unwrapCategories(catRes).map((c) => [c.id, c]));
+    items = chRes.data.map((row) => {
+      const cat =
+        row.category_id != null ? byId.get(row.category_id) : undefined;
+      return {
+        id: row.id,
+        title: row.title,
+        slug: row.slug,
+        category: cat
+          ? { id: cat.id, name: cat.name, slug: cat.slug, color: cat.color }
+          : { id: 0, name: "Uncategorized", slug: "uncategorized", color: null },
+        difficulty: row.difficulty,
+        points: row.points,
+        estimated_minutes: row.estimated_minutes ?? 0,
+        tags: row.tags ?? [],
+        solved: false,
+        solve_count: row.solve_count ?? 0,
+        status: row.status,
+      } satisfies ChallengeSummary;
+    });
+    total = chRes.meta?.total ?? items.length;
+  } catch {
+    loadError = true;
+  }
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Challenges
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {total} {total === 1 ? "challenge" : "challenges"}
-            {active ? ` with status “${active}”` : " across all statuses"}.
-          </p>
-        </div>
-        <Link
-          href="/admin/challenges/new"
-          className={buttonVariants("primary", "sm")}
-        >
-          New challenge
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Authoring"
+        title="Challenges"
+        description={`Create, edit, and publish static challenges.${total ? ` ${total} in view.` : ""}`}
+        actions={
+          <Link href="/admin/challenges/new" className={cn(buttonVariants("primary", "sm"))}>
+            New challenge
+          </Link>
+        }
+      />
 
-      <div className="mt-4 flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
+      <div className="mb-6 flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
         {FILTERS.map((f) => {
           const selected = active === f.value;
           return (
@@ -87,57 +139,20 @@ export default async function AdminChallengesPage({
         })}
       </div>
 
-      {items.length === 0 ? (
-        <Card className="mt-4">
-          <CardTitle>No challenges found</CardTitle>
-          <CardDescription className="mt-2">
-            {active
-              ? "Nothing in this status yet — try another filter or author a new challenge."
-              : "The backend may be unreachable, or no challenges exist yet. Author the first one to get started."}
-          </CardDescription>
-        </Card>
+      {loadError ? (
+        <ErrorState description="The challenge list could not be loaded. Retry from the admin navigation." />
+      ) : items.length === 0 ? (
+        <EmptyState
+          title="No challenges yet"
+          description="Create a draft, add a write-only flag, then publish."
+          action={
+            <Link href="/admin/challenges/new" className={cn(buttonVariants("primary", "sm"))}>
+              New challenge
+            </Link>
+          }
+        />
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-border">
-          <table className="w-full min-w-[560px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface-raised text-xs uppercase tracking-wide text-muted">
-                <th scope="col" className="px-4 py-2.5 font-medium">Title</th>
-                <th scope="col" className="px-4 py-2.5 font-medium">Status</th>
-                <th scope="col" className="px-4 py-2.5 font-medium">Difficulty</th>
-                <th scope="col" className="px-4 py-2.5 text-right font-medium">Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-border bg-surface last:border-b-0 hover:bg-surface-raised"
-                >
-                  <td className="px-4 py-2.5">
-                    <Link
-                      href={`/admin/challenges/${c.id}`}
-                      className="font-medium text-foreground hover:text-accent"
-                    >
-                      {c.title}
-                    </Link>
-                    <span className="block font-mono text-xs text-faint">
-                      {c.slug}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <Badge tone={STATUS_TONE[c.status] ?? "neutral"}>
-                      {c.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted">{c.difficulty}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-foreground">
-                    {c.points}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ChallengeTable rows={items} />
       )}
     </div>
   );

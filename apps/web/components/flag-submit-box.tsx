@@ -1,144 +1,157 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
-import { ApiError, api } from "@/lib/api/client";
+import { api, ApiError } from "@/lib/api/client";
+import { errorMessage } from "@/lib/errors";
+import { CountUp } from "@/lib/motion/count-up";
+import { prefersReducedMotion } from "@/lib/motion/reduced";
+import { cn } from "@/lib/utils";
 import type { SubmissionOutcome } from "@/lib/types";
 
-interface Feedback {
-  tone: "success" | "info" | "error";
-  message: string;
-}
-
-const toneClass: Record<Feedback["tone"], string> = {
-  success: "text-success",
-  info: "text-muted",
-  error: "text-danger",
-};
-
-/**
- * Flag submission island for the challenge detail page.
- * POSTs through the same-origin BFF; the backend owns grading, points, XP
- * and solve state. Incorrect feedback is intentionally uniform — it never
- * hints at the expected format.
- */
 export function FlagSubmitBox({
   challengeId,
-  solved,
+  alreadySolved = false,
+  pointsRemaining,
 }: {
   challengeId: number;
-  solved: boolean;
+  alreadySolved?: boolean;
+  pointsRemaining?: number;
 }) {
+  const id = useId();
   const router = useRouter();
+  const panelRef = useRef<HTMLElement>(null);
   const [flag, setFlag] = useState("");
-  const [pending, setPending] = useState(false);
-  const [justSolved, setJustSolved] = useState(false);
-  const [feedback, setFeedback] = useState<Feedback | null>(
-    solved
-      ? {
-          tone: "info",
-          message: "You have already solved this challenge.",
-        }
-      : null,
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<SubmissionOutcome | null>(
+    alreadySolved ? { result: "correct", already_solved: true } : null,
   );
+  const [error, setError] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [shake, setShake] = useState(false);
+  const [retryIn, setRetryIn] = useState<number | null>(null);
 
-  const disabled = solved || justSolved;
+  const solved = alreadySolved || result?.result === "correct";
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (disabled || pending) return;
-    const value = flag.trim();
-    if (!value) return;
-    setPending(true);
-    setFeedback(null);
-    try {
-      const res = await api.post<{ data: SubmissionOutcome }>(
-        `/challenges/${challengeId}/submissions`,
-        { flag: value },
-      );
-      const outcome = res.data;
-      if (outcome.result === "correct") {
-        if (outcome.already_solved) {
-          setFeedback({
-            tone: "info",
-            message:
-              "Already solved — this flag was accepted before. No additional points awarded.",
-          });
-        } else {
-          const points = outcome.points_awarded ?? 0;
-          const xp =
-            outcome.xp_total !== undefined
-              ? ` · ${outcome.xp_total} XP total`
-              : "";
-          setFeedback({
-            tone: "success",
-            message: `Correct! +${points} pts${xp}.`,
-          });
-        }
-        setJustSolved(true);
-        router.refresh();
-      } else {
-        setFeedback({ tone: "error", message: "Incorrect flag. Try again." });
-      }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
-        setFeedback({
-          tone: "error",
-          message:
-            "Too many attempts — rate limited. Wait a moment, then try again.",
-        });
-      } else if (err instanceof ApiError && err.status === 401) {
-        setFeedback({ tone: "error", message: "Log in to submit flags." });
-      } else {
-        setFeedback({
-          tone: "error",
-          message:
-            err instanceof ApiError
-              ? err.message
-              : "Submission failed. Try again.",
-        });
-      }
-    } finally {
-      setPending(false);
+  useEffect(() => {
+    if (retryIn === null || retryIn <= 0) return;
+    const timer = window.setTimeout(() => {
+      setRetryIn((current) => (current === null ? null : current - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [retryIn]);
+
+  function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    if (retryIn !== null && retryIn > 0) return;
+    if (!flag.trim()) {
+      setError("Enter a flag to submit.");
+      return;
     }
+    startTransition(async () => {
+      try {
+        const res = await api.post<{ data: SubmissionOutcome }>(
+          `/challenges/${challengeId}/submissions`,
+          { flag: flag.trim() },
+        );
+        setResult(res.data);
+        setAttempts((count) => count + 1);
+        if (res.data.result === "correct") {
+          setFlag("");
+          if (!res.data.already_solved && !prefersReducedMotion() && panelRef.current) {
+            const rect = panelRef.current.getBoundingClientRect();
+            const { burstConfetti } = await import("@/lib/motion/confetti");
+            burstConfetti({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+          }
+          router.refresh();
+        } else {
+          setShake(true);
+          window.setTimeout(() => setShake(false), 450);
+        }
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/login");
+          return;
+        }
+        if (err instanceof ApiError && err.status === 429) {
+          setRetryIn(err.retryAfterSeconds ?? 60);
+          setError("Too many submissions. Wait for the timer, then try again.");
+          return;
+        }
+        setError(errorMessage(err, "Submission failed."));
+      }
+    });
   }
 
   return (
-    <Card>
-      <form onSubmit={onSubmit} aria-label="Submit flag" className="space-y-3">
-        <Field label="Flag" htmlFor="flag-input">
-          <Input
-            id="flag-input"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            required
-            disabled={disabled || pending}
-            value={flag}
-            onChange={(e) => setFlag(e.target.value)}
-            placeholder="Enter the flag"
-          />
-        </Field>
-        <Button
-          type="submit"
-          disabled={disabled || pending || flag.trim() === ""}
-        >
-          {pending ? "Checking…" : disabled ? "Solved" : "Submit flag"}
-        </Button>
-        {feedback ? (
-          <p
-            role="alert"
-            aria-live="polite"
-            className={`text-sm ${toneClass[feedback.tone]}`}
-          >
-            {feedback.message}
+    <section
+      ref={panelRef}
+      aria-labelledby={`${id}-title`}
+      className={cn("rounded-xl border border-border bg-surface p-5", shake && "animate-shake")}
+      data-testid="flag-submit-box"
+    >
+      <h2 id={`${id}-title`} className="type-eyebrow text-accent">
+        Submit flag
+      </h2>
+      {pointsRemaining !== undefined ? (
+        <p className="mt-2 font-mono text-xs text-muted">Worth up to {pointsRemaining} points after hints.</p>
+      ) : null}
+
+      <div aria-live="polite">
+        {solved ? (
+          <p className="mt-3 text-sm text-success" role="status" data-testid="flag-success">
+            {result?.already_solved ? (
+              "Already solved — nice work."
+            ) : (
+              <>
+                Correct! +
+                <CountUp value={result?.points_awarded ?? 0} /> points awarded.
+              </>
+            )}
           </p>
         ) : null}
-      </form>
-    </Card>
+      </div>
+
+      {solved ? null : (
+        <form onSubmit={onSubmit} className="mt-4 space-y-3" aria-busy={pending}>
+          <Field
+            label="Flag"
+            htmlFor={`${id}-flag`}
+            error={error ?? undefined}
+            hint="Format varies. The comparison happens on the server."
+          >
+            <Input
+              id={`${id}-flag`}
+              name="flag"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="flag{…}"
+              value={flag}
+              onChange={(event) => setFlag(event.target.value)}
+              disabled={pending || (retryIn !== null && retryIn > 0)}
+              aria-invalid={!!error || result?.result === "incorrect"}
+              data-testid="flag-input"
+            />
+          </Field>
+          <Button type="submit" disabled={pending || (retryIn !== null && retryIn > 0)} data-testid="flag-submit">
+            {pending ? "Checking…" : "Submit"}
+          </Button>
+        </form>
+      )}
+
+      {result?.result === "incorrect" ? (
+        <p className="mt-3 text-sm text-danger" role="alert" data-testid="flag-incorrect">
+          Incorrect flag. Try again.
+        </p>
+      ) : null}
+
+      <p className="mt-3 font-mono text-[11px] text-faint">
+        Attempts this session: {attempts}
+        {retryIn !== null && retryIn > 0 ? ` · retry in ${retryIn}s` : ""}
+      </p>
+    </section>
   );
 }

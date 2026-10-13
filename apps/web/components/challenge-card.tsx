@@ -1,36 +1,56 @@
 import Link from "next/link";
-import { DifficultyPill } from "@/components/difficulty-pill";
+import { DifficultyBadge } from "@/components/difficulty-badge";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { cn, formatXp } from "@/lib/utils";
 import type { ChallengeSummary } from "@/lib/types";
 
-/** Card for challenge listings. Server Component — no interactivity. */
-export function ChallengeCard({ challenge }: { challenge: ChallengeSummary }) {
+export function ChallengeCard({
+  challenge,
+  className,
+}: {
+  challenge: ChallengeSummary;
+  className?: string;
+}) {
   return (
-    <Card className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="neutral">{challenge.category.name}</Badge>
-        <DifficultyPill difficulty={challenge.difficulty} />
-        {challenge.solved ? <Badge tone="success">Solved</Badge> : null}
+    <Link
+      href={`/challenges/${challenge.slug}`}
+      className={cn(
+        "group block border-b border-border py-4 transition-colors hover:bg-surface/60",
+        className,
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="inline-block size-2 rounded-full"
+              style={{ background: challenge.category.color ?? "var(--accent)" }}
+              aria-hidden="true"
+            />
+            <span className="font-mono text-[11px] uppercase tracking-wide text-muted">
+              {challenge.category.name}
+            </span>
+            <DifficultyBadge difficulty={challenge.difficulty} />
+            {challenge.solved ? (
+              <Badge tone="success" data-testid="solved-badge">
+                Solved
+              </Badge>
+            ) : null}
+          </div>
+          <h3 className="text-base font-semibold text-foreground group-hover:text-accent">
+            {challenge.title}
+          </h3>
+          {challenge.tags.length > 0 ? (
+            <p className="font-mono text-xs text-faint">
+              {challenge.tags.map((t) => t.name).join(" · ")}
+            </p>
+          ) : null}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="font-mono text-sm text-accent">{formatXp(challenge.points)} pts</p>
+          <p className="text-xs text-faint">{challenge.solve_count} solves</p>
+        </div>
       </div>
-      <CardTitle className="mt-3 text-base">
-        <Link
-          href={`/challenges/${challenge.slug}`}
-          className="hover:text-accent"
-        >
-          {challenge.title}
-        </Link>
-      </CardTitle>
-      <CardDescription className="mt-2">
-        {challenge.points} pts · {challenge.solve_count}{" "}
-        {challenge.solve_count === 1 ? "solve" : "solves"} · ~
-        {challenge.estimated_minutes} min
-      </CardDescription>
-      {challenge.tags.length > 0 ? (
-        <p className="mt-3 font-mono text-xs text-faint">
-          {challenge.tags.map((t) => `#${t.slug}`).join(" ")}
-        </p>
-      ) : null}
-    </Card>
+    </Link>
   );
 }

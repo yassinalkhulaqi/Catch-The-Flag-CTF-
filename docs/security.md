@@ -63,7 +63,8 @@ responses are constant-shaped and constant-timing in their error paths.
 
 - **Every** read/write of a domain object passes through a Laravel Policy
   (`ChallengePolicy`, `PathPolicy`, `LessonPolicy`, `QuizPolicy`,
-  `FilePolicy`, `AdminSectionPolicy`, …).
+  `ChallengeFilePolicy`, …) or an explicit Gate (`viewAdminDashboard`,
+  `viewAuditLogs`).
 - Roles: `user < moderator < admin` (`users.role`, CHECK-constrained).
   - `user`: browse published content, submit flags, own profile/progress.
   - `moderator`: create/edit content, move it through `draft → review →
@@ -71,13 +72,34 @@ responses are constant-shaped and constant-timing in their error paths.
   - `admin`: everything + users, roles, categories, tags, achievements, audit
     logs, force-publish, XP adjustments.
 - Admin routes are prefixed `/api/v1/admin/*`, grouped behind
-  `EnsureAdminRole` middleware **and** per-resource policies (defense in depth).
+  `role:moderator,admin` middleware **and** per-resource policies (defense in depth).
+  User-management routes additionally require `role:admin`.
 - **IDOR prevention:** object access is always by policy on the *authenticated
   user*, never by trusting an id in the payload. Users can only read their own
   submissions, progress, quiz attempts, XP ledger, and notifications. Tests
   explicitly attempt cross-user IDOR (see testing doc).
 - Server is the source of truth for: permissions, points, XP, progress, solve
   status, flags. Clients send *intent* (`{flag}`), never *results* (`{xp}`).
+
+### 3.1 Permission matrix (V1)
+
+| Capability | User | Moderator | Admin |
+|---|---|---|---|
+| Browse published paths/challenges | ✓ | ✓ | ✓ |
+| Submit flags / complete lessons / take quizzes | ✓ | ✓ | ✓ |
+| Download published challenge files | ✓ | ✓ | ✓ |
+| Edit own profile / settings / password | ✓ | ✓ | ✓ |
+| Read own notifications / XP ledger / solves | ✓ | ✓ | ✓ |
+| Admin dashboard stats | — | ✓ | ✓ |
+| Create/edit/publish paths, lessons, quizzes | — | ✓ | ✓ |
+| Create/edit/publish challenges + files/hints/flags | — | ✓ | ✓ |
+| Manage categories / tags / achievements | — | ✓ | ✓ |
+| View audit logs | — | ✓ | ✓ |
+| List/ban users, change roles, adjust XP | — | — | ✓ |
+| Delete achievements | — | — | ✓ |
+| Demote last remaining admin | — | — | blocked |
+
+UI hiding is never sufficient — every row above is enforced server-side.
 
 ---
 

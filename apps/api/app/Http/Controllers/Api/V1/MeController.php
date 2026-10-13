@@ -49,7 +49,7 @@ class MeController extends Controller
     public function solves(Request $request): JsonResponse
     {
         $solves = ChallengeSolve::query()
-            ->with('challenge.category')
+            ->with('challenge.category', 'challenge.tags')
             ->where('user_id', $request->user()->id)
             ->orderByDesc('solved_at')
             ->orderByDesc('id')

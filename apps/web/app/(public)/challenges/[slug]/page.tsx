@@ -1,35 +1,30 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ChallengeCard } from "@/components/challenge-card";
-import { DifficultyPill } from "@/components/difficulty-pill";
-import { FileDownloadButton } from "@/components/file-download-button";
+import { ChallengeFiles } from "@/components/challenge-files";
+import { DifficultyBadge } from "@/components/difficulty-badge";
+import { ErrorState, PageHeader } from "@/components/empty-state";
 import { FlagSubmitBox } from "@/components/flag-submit-box";
-import { HintUnlockButton } from "@/components/hint-unlock-button";
+import { HintList } from "@/components/hint-list";
+import { Markdown } from "@/components/markdown";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { getChallenge } from "@/lib/api/challenges";
+import { ApiError } from "@/lib/api/client";
+import { getCurrentUser, serverApi } from "@/lib/api/server";
+import { formatXp } from "@/lib/utils";
+import type { ChallengeDetail } from "@/lib/types";
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+}) {
   const { slug } = await params;
-  const challenge = await getChallenge(slug);
-  return { title: challenge ? `${challenge.title} · Challenges` : "Challenge" };
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB"];
-  let value = bytes / 1024;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
+  try {
+    const res = await serverApi<{ data: ChallengeDetail }>("GET", `/challenges/${slug}`);
+    return { title: res.data.title };
+  } catch {
+    return { title: "Challenge" };
   }
-  return `${value.toFixed(1)} ${units[unit]}`;
 }
 
 export default async function ChallengeDetailPage({
@@ -38,165 +33,124 @@ export default async function ChallengeDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const challenge = await getChallenge(slug);
+  const user = await getCurrentUser();
 
-  if (!challenge) {
+  let challenge: ChallengeDetail | null = null;
+  try {
+    const res = await serverApi<{ data: ChallengeDetail }>("GET", `/challenges/${slug}`);
+    challenge = res.data;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) notFound();
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <Card>
-          <CardTitle>Challenge not found</CardTitle>
-          <CardDescription className="mt-2">
-            This challenge doesn&apos;t exist, isn&apos;t published, or the
-            backend is unavailable.
-          </CardDescription>
-          <Link href="/challenges" className={buttonVariants("outline", "sm")}>
-            Back to challenges
-          </Link>
-        </Card>
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <ErrorState title="Challenge unavailable" />
       </div>
     );
   }
 
-  const hints = [...challenge.hints].sort((a, b) => a.position - b.position);
+  if (!challenge) notFound();
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent">
-        <Link href="/challenges" className="hover:underline">
-          Challenges
-        </Link>{" "}
-        / {challenge.category.slug}
-      </p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-        {challenge.title}
-      </h1>
+    <div className="mx-auto max-w-6xl px-4 py-10">
+      <PageHeader
+        eyebrow={challenge.category.name}
+        title={challenge.title}
+        description={challenge.scenario ?? undefined}
+        actions={
+          <div className="flex flex-col items-end gap-2">
+            <DifficultyBadge difficulty={challenge.difficulty} />
+            <p className="font-mono text-sm text-accent">{formatXp(challenge.points)} pts</p>
+            {challenge.solved ? <Badge tone="success">Solved</Badge> : null}
+          </div>
+        }
+      />
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Badge tone="neutral">{challenge.category.name}</Badge>
-        <DifficultyPill difficulty={challenge.difficulty} />
-        {challenge.solved ? <Badge tone="success">Solved</Badge> : null}
-        {challenge.tags.map((t) => (
-          <span key={t.id} className="font-mono text-xs text-faint">
-            #{t.slug}
-          </span>
-        ))}
+      <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-10">
+          <section aria-labelledby="desc-heading">
+            <h2 id="desc-heading" className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
+              Description
+            </h2>
+            <div className="mt-3">
+              <Markdown content={challenge.description} />
+            </div>
+          </section>
+
+          <section aria-labelledby="files-heading">
+            <h2 id="files-heading" className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent">
+              Files
+            </h2>
+            <ChallengeFiles
+              challengeId={challenge.id}
+              files={challenge.files}
+              authenticated={!!user}
+            />
+          </section>
+
+          <section aria-labelledby="hints-heading">
+            <h2 id="hints-heading" className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent">
+              Hints
+            </h2>
+            {user ? (
+              <HintList challengeId={challenge.id} hints={challenge.hints} />
+            ) : (
+              <p className="text-sm text-muted">
+                <Link href="/login" className="text-accent hover:underline">
+                  Log in
+                </Link>{" "}
+                to unlock hints.
+              </p>
+            )}
+          </section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          {user ? (
+            <FlagSubmitBox challengeId={challenge.id} alreadySolved={challenge.solved} />
+          ) : (
+            <div className="border border-border bg-surface p-5">
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
+                Submit flag
+              </p>
+              <p className="mt-3 text-sm text-muted">
+                <Link href="/login" className="text-accent hover:underline">
+                  Sign in
+                </Link>{" "}
+                to submit flags and earn XP.
+              </p>
+            </div>
+          )}
+          <div className="border border-border bg-surface p-4 text-sm text-muted">
+            <p>
+              Points remaining:{" "}
+              <span className="font-mono text-foreground">{challenge.points_remaining}</span>
+            </p>
+            <p className="mt-1">
+              Solves:{" "}
+              <span className="font-mono text-foreground">{challenge.solve_count}</span>
+            </p>
+            {challenge.tags.length > 0 ? (
+              <p className="mt-3 font-mono text-xs text-faint">
+                {challenge.tags.map((t) => t.name).join(" · ")}
+              </p>
+            ) : null}
+          </div>
+        </aside>
       </div>
 
-      <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-muted">
-        <div>
-          <dt className="sr-only">Points</dt>
-          <dd>{challenge.points} pts</dd>
-        </div>
-        <div>
-          <dt className="sr-only">Solves</dt>
-          <dd>{challenge.solve_count} solves</dd>
-        </div>
-        <div>
-          <dt className="sr-only">Estimated time</dt>
-          <dd>~{challenge.estimated_minutes} min</dd>
-        </div>
-        {challenge.author ? (
-          <div>
-            <dt className="sr-only">Author</dt>
-            <dd>by {challenge.author.name}</dd>
-          </div>
-        ) : null}
-      </dl>
-
-      {challenge.scenario ? (
-        <section aria-labelledby="scenario" className="mt-8">
-          <h2 id="scenario" className="text-lg font-semibold text-foreground">
-            Scenario
-          </h2>
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
-            {challenge.scenario}
-          </p>
-        </section>
-      ) : null}
-
-      <section aria-labelledby="description" className="mt-8">
-        <h2 id="description" className="text-lg font-semibold text-foreground">
-          Description
-        </h2>
-        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
-          {challenge.description}
-        </p>
-      </section>
-
-      <section aria-labelledby="submit-flag" className="mt-10">
-        <h2 id="submit-flag" className="text-lg font-semibold text-foreground">
-          Submit flag
-        </h2>
-        <div className="mt-3">
-          <FlagSubmitBox challengeId={challenge.id} solved={challenge.solved} />
-        </div>
-      </section>
-
-      <section aria-labelledby="attachments" className="mt-10">
-        <h2 id="attachments" className="text-lg font-semibold text-foreground">
-          Attachments
-        </h2>
-        {challenge.files.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">
-            No files attached — everything you need is in the description.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {challenge.files.map((f) => (
-              <li key={f.id}>
-                <Card className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {f.original_name}
-                    </p>
-                    <p className="mt-1 font-mono text-xs text-faint">
-                      {formatBytes(f.size_bytes)} · sha256:{f.checksum_sha256}
-                    </p>
-                  </div>
-                  <FileDownloadButton challengeId={challenge.id} file={f} />
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="hints" className="mt-10">
-        <h2 id="hints" className="text-lg font-semibold text-foreground">
-          Hints
-        </h2>
-        {hints.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">
-            No hints for this challenge. Good hunting.
-          </p>
-        ) : (
-          <ol className="mt-3 space-y-3">
-            {hints.map((h) => (
-              <li key={h.id}>
-                <Card>
-                  <p className="font-mono text-xs text-muted">
-                    Hint {h.position} · costs {h.cost_points} pts
-                  </p>
-                  <HintUnlockButton challengeId={challenge.id} hint={h} />
-                </Card>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
-
-      {challenge.related.length > 0 ? (
-        <section aria-labelledby="related" className="mt-10">
-          <h2 id="related" className="text-lg font-semibold text-foreground">
+      {(challenge.related?.length ?? 0) > 0 ? (
+        <section className="mt-14" aria-labelledby="related-heading">
+          <h2
+            id="related-heading"
+            className="font-mono text-xs uppercase tracking-[0.16em] text-accent"
+          >
             Related challenges
           </h2>
-          <ul className="mt-3 grid gap-4 sm:grid-cols-2">
-            {challenge.related.map((c) => (
-              <li key={c.id}>
-                <ChallengeCard challenge={c} />
-              </li>
+          <div className="mt-3 border-t border-border">
+            {(challenge.related ?? []).map((c) => (
+              <ChallengeCard key={c.id} challenge={c} />
             ))}
-          </ul>
+          </div>
         </section>
       ) : null}
     </div>

@@ -33,7 +33,8 @@ Full details: **[docs/architecture.md](docs/architecture.md)**.
 apps/web/            Next.js frontend (+ BFF route handlers)
 apps/api/            Laravel backend
 docs/                architecture · product · database · api · security ·
-                     development · deployment · roadmap · decisions/ (ADRs)
+                     development · deployment · content-authoring · roadmap ·
+                     decisions/ (ADRs)
 infra/docker/        container build files
 infra/deployment/    sample reverse-proxy configs
 scripts/dev.sh       up / test / lint helpers
@@ -151,7 +152,8 @@ Postgres, S3-compatible storage, hardening checklist, backup drill):
 
 Details: [docs/roadmap.md](docs/roadmap.md) ·
 ADRs: [docs/decisions/](docs/decisions/) ·
-Product spec: [docs/product.md](docs/product.md).
+Product spec: [docs/product.md](docs/product.md) ·
+Authoring: [docs/content-authoring.md](docs/content-authoring.md).
 
 ---
 

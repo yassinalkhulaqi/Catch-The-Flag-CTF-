@@ -141,7 +141,8 @@ optimization, does not change schema).
 
 - App logs → stdout/stderr (JSON-ish context incl. `request_id`) → collected
   by whatever the host provides (journald, Loki, CloudWatch…).
-- `GET /api/v1/health` for LB checks (DB status, version, no config leak).
+- `GET /api/v1/health` for LB checks (DB + challenge-files storage probe,
+  version; 503 when degraded; no config leak).
 - Audit log table = security-relevant trail (query via admin UI).
 - Future (not built): metrics (Prometheus), tracing, SIEM export — roadmap V3.
 

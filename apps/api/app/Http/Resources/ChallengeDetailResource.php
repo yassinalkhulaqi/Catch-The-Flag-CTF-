@@ -114,6 +114,7 @@ class ChallengeDetailResource extends JsonResource
     private function relatedChallenges(): Collection
     {
         return Challenge::query()
+            ->with(['category', 'tags'])
             ->published()
             ->where('category_id', $this->category_id)
             ->where('id', '!=', $this->id)
