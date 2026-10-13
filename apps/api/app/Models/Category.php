@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Data-driven taxonomy (docs/database.md §3). New categories are pure
+ * data — no code change required to add one.
+ */
 class Category extends Model
 {
     use HasFactory;
@@ -23,6 +26,9 @@ class Category extends Model
         'is_active',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -31,18 +37,15 @@ class Category extends Model
         ];
     }
 
+    /** @return HasMany<Challenge, $this> */
     public function challenges(): HasMany
     {
         return $this->hasMany(Challenge::class);
     }
 
+    /** @return HasMany<Path, $this> */
     public function paths(): HasMany
     {
         return $this->hasMany(Path::class);
-    }
-
-    public function scopeActive(Builder $query): Builder
-    {
-        return $query->where('is_active', true);
     }
 }

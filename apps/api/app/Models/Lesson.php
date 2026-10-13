@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Lesson extends Model
 {
@@ -27,6 +25,9 @@ class Lesson extends Model
         'is_published',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -36,28 +37,27 @@ class Lesson extends Model
         ];
     }
 
+    /** @return BelongsTo<PathModule, $this> */
     public function module(): BelongsTo
     {
         return $this->belongsTo(PathModule::class, 'module_id');
     }
 
+    /** @return BelongsToMany<Challenge, $this> */
     public function challenges(): BelongsToMany
     {
         return $this->belongsToMany(Challenge::class, 'lesson_challenge');
     }
 
-    public function quiz(): HasOne
-    {
-        return $this->hasOne(Quiz::class);
-    }
-
+    /** @return HasMany<LessonCompletion, $this> */
     public function completions(): HasMany
     {
         return $this->hasMany(LessonCompletion::class);
     }
 
-    public function scopePublished(Builder $query): Builder
+    /** @return HasMany<Quiz, $this> */
+    public function quizzes(): HasMany
     {
-        return $query->where('is_published', true);
+        return $this->hasMany(Quiz::class, 'lesson_id');
     }
 }

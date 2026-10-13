@@ -7,23 +7,78 @@ namespace Database\Seeders;
 use App\Models\Category;
 use Illuminate\Database\Seeder;
 
+/**
+ * The 8 V1 disciplines (docs/database.md §3). Keyed on slug so repeated
+ * runs converge instead of failing.
+ */
 class CategorySeeder extends Seeder
 {
+    /**
+     * @var list<array{slug: string, name: string, description: string, sort_order: int}>
+     */
+    private const CATEGORIES = [
+        [
+            'slug' => 'web',
+            'name' => 'Web Exploitation',
+            'description' => 'SQL injection, XSS, SSRF, auth bypass, and other web application attacks.',
+            'sort_order' => 10,
+        ],
+        [
+            'slug' => 'crypto',
+            'name' => 'Cryptography',
+            'description' => 'Classical ciphers, RSA, AES, hashing, and protocol flaws.',
+            'sort_order' => 20,
+        ],
+        [
+            'slug' => 'forensics',
+            'name' => 'Digital Forensics',
+            'description' => 'Disk images, memory dumps, steganography, and artifact recovery.',
+            'sort_order' => 30,
+        ],
+        [
+            'slug' => 'pwn',
+            'name' => 'Binary Exploitation',
+            'description' => 'Buffer overflows, format strings, ROP, and memory corruption.',
+            'sort_order' => 40,
+        ],
+        [
+            'slug' => 'reverse',
+            'name' => 'Reverse Engineering',
+            'description' => 'Disassembly, decompilation, and binary analysis with Ghidra and friends.',
+            'sort_order' => 50,
+        ],
+        [
+            'slug' => 'osint',
+            'name' => 'OSINT',
+            'description' => 'Open-source intelligence: usernames, metadata, and public records.',
+            'sort_order' => 60,
+        ],
+        [
+            'slug' => 'network',
+            'name' => 'Network Security',
+            'description' => 'Packet analysis, Wi-Fi, protocols, and traffic forensics.',
+            'sort_order' => 70,
+        ],
+        [
+            'slug' => 'misc',
+            'name' => 'Miscellaneous',
+            'description' => 'Trivia, scripting puzzles, and everything that fits nowhere else.',
+            'sort_order' => 80,
+        ],
+    ];
+
     public function run(): void
     {
-        $categories = [
-            ['name' => 'SOC', 'slug' => 'soc', 'description' => 'Security Operations Center workflows', 'color' => '#3B82F6', 'icon' => 'shield', 'sort_order' => 1],
-            ['name' => 'Digital Forensics', 'slug' => 'digital-forensics', 'description' => 'Disk, memory, and artifact analysis', 'color' => '#8B5CF6', 'icon' => 'hard-drive', 'sort_order' => 2],
-            ['name' => 'Network Forensics', 'slug' => 'network-forensics', 'description' => 'Packet capture and traffic analysis', 'color' => '#06B6D4', 'icon' => 'network', 'sort_order' => 3],
-            ['name' => 'Malware Analysis', 'slug' => 'malware-analysis', 'description' => 'Static and dynamic malware triage', 'color' => '#EF4444', 'icon' => 'bug', 'sort_order' => 4],
-            ['name' => 'Reverse Engineering', 'slug' => 'reverse-engineering', 'description' => 'Binary analysis and decompilation', 'color' => '#F59E0B', 'icon' => 'cpu', 'sort_order' => 5],
-            ['name' => 'Cryptography', 'slug' => 'cryptography', 'description' => 'Ciphers, encodings, and crypto challenges', 'color' => '#10B981', 'icon' => 'key', 'sort_order' => 6],
-            ['name' => 'OSINT', 'slug' => 'osint', 'description' => 'Open-source intelligence techniques', 'color' => '#EC4899', 'icon' => 'search', 'sort_order' => 7],
-            ['name' => 'Steganography', 'slug' => 'steganography', 'description' => 'Hidden data in media and files', 'color' => '#64748B', 'icon' => 'image', 'sort_order' => 8],
-        ];
-
-        foreach ($categories as $row) {
-            Category::query()->updateOrCreate(['slug' => $row['slug']], $row + ['is_active' => true]);
+        foreach (self::CATEGORIES as $category) {
+            Category::updateOrCreate(
+                ['slug' => $category['slug']],
+                [
+                    'name' => $category['name'],
+                    'description' => $category['description'],
+                    'sort_order' => $category['sort_order'],
+                    'is_active' => true,
+                ],
+            );
         }
     }
 }

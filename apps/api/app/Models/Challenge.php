@@ -29,10 +29,12 @@ class Challenge extends Model
         'points',
         'estimated_minutes',
         'flag_validation_type',
-        'author_id',
         'max_attempts',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -47,72 +49,68 @@ class Challenge extends Model
         ];
     }
 
-    public function resolveRouteBinding($value, $field = null)
+    /**
+     * Learner-visible scope: only published challenges (docs/database.md §6).
+     *
+     * @param  Builder<Challenge>  $query
+     * @return Builder<Challenge>
+     */
+    public function scopePublished(Builder $query): Builder
     {
-        if ($field !== null) {
-            return $this->where($field, $value)->firstOrFail();
-        }
-
-        // PostgreSQL rejects non-numeric values against bigint id columns.
-        if (ctype_digit((string) $value)) {
-            return $this->where('id', (int) $value)->orWhere('slug', $value)->firstOrFail();
-        }
-
-        return $this->where('slug', $value)->firstOrFail();
+        return $query->where('status', ContentStatus::Published->value);
     }
 
+    /** @return BelongsTo<Category, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    /** @return BelongsToMany<Tag, $this> */
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'challenge_tag');
     }
 
-    public function lessons(): BelongsToMany
-    {
-        return $this->belongsToMany(Lesson::class, 'lesson_challenge');
-    }
-
-    public function flags(): HasMany
-    {
-        return $this->hasMany(ChallengeFlag::class);
-    }
-
-    public function hints(): HasMany
-    {
-        return $this->hasMany(ChallengeHint::class)->orderBy('position');
-    }
-
+    /** @return HasMany<ChallengeFile, $this> */
     public function files(): HasMany
     {
         return $this->hasMany(ChallengeFile::class);
     }
 
+    /** @return HasMany<ChallengeHint, $this> */
+    public function hints(): HasMany
+    {
+        return $this->hasMany(ChallengeHint::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** @return HasMany<ChallengeFlag, $this> */
+    public function flags(): HasMany
+    {
+        return $this->hasMany(ChallengeFlag::class);
+    }
+
+    /** @return HasMany<ChallengeSubmission, $this> */
     public function submissions(): HasMany
     {
         return $this->hasMany(ChallengeSubmission::class);
     }
 
+    /** @return HasMany<ChallengeSolve, $this> */
     public function solves(): HasMany
     {
         return $this->hasMany(ChallengeSolve::class);
     }
 
-    public function scopePublished(Builder $query): Builder
+    /** @return BelongsToMany<Lesson, $this> */
+    public function lessons(): BelongsToMany
     {
-        return $query->where('status', ContentStatus::Published);
-    }
-
-    public function scopeSearch(Builder $query, string $q): Builder
-    {
-        return $query->whereRaw("search_vector @@ plainto_tsquery('simple', ?)", [$q]);
+        return $this->belongsToMany(Lesson::class, 'lesson_challenge');
     }
 }

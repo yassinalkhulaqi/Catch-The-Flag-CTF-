@@ -6,87 +6,73 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Http\Request;
 
-final class AuditLogger
+/**
+ * Append-only audit trail writer (docs/database.md §9).
+ *
+ * Every admin mutation funnels through here with a before/after diff.
+ * Secrets are redacted as a second layer of defense: any array key
+ * containing `flag`, `password`, or `token` (case-insensitive, at any
+ * nesting depth) is stored as `***`. Callers must still never pass
+ * plaintext flags — redaction only limits blast radius on mistakes.
+ */
+class AuditLogger
 {
-    private const REDACT_KEYS = [
-        'password',
-        'password_confirmation',
-        'token',
-        'flag',
-        'flag_value',
-        'value',
-        'flag_ciphertext',
-        'flag_hash',
-        'current_password',
-        'remember_token',
-    ];
+    /** @var list<string> */
+    private const SENSITIVE_FRAGMENTS = ['flag', 'password', 'token'];
 
-    public function log(?User $actor, string $action, Model|string $auditable, ?array $changes = null): AuditLog
-    {
-        if (is_string($auditable)) {
-            $type = $auditable;
-            $id = null;
-        } else {
-            $type = strtolower(class_basename($auditable));
-            $id = $auditable->getKey();
-        }
-
-        return AuditLog::query()->create([
-            'actor_id' => $actor?->id,
-            'action' => $action,
-            'auditable_type' => $type,
-            'auditable_id' => $id,
-            'changes' => $changes === null ? null : $this->redact($changes),
-            'ip_address' => Request::ip(),
-            'user_agent' => substr((string) Request::userAgent(), 0, 255) ?: null,
-            'created_at' => now(),
+    public static function log(
+        User $actor,
+        string $action,
+        string $auditableType,
+        ?int $auditableId,
+        ?array $changes,
+        Request $request,
+    ): AuditLog {
+        return AuditLog::forceCreate([
+            'actor_id' => $actor->id,
+            'action' => substr($action, 0, 80),
+            'auditable_type' => substr($auditableType, 0, 80),
+            'auditable_id' => $auditableId,
+            'changes' => self::redact($changes),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent() !== null ? substr($request->userAgent(), 0, 255) : null,
         ]);
     }
 
     /**
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
+     * Recursively replace values under sensitive keys with `***`.
+     *
+     * @return array<string, mixed>|null
      */
-    public function redact(array $data): array
+    public static function redact(?array $changes): ?array
     {
-        $out = [];
-        foreach ($data as $key => $value) {
-            $keyStr = (string) $key;
-            if ($this->shouldRedact($keyStr)) {
-                $out[$keyStr] = '***';
-
-                continue;
-            }
-            if (is_array($value)) {
-                $out[$keyStr] = $this->redact($value);
-
-                continue;
-            }
-            $out[$keyStr] = $value;
+        if ($changes === null) {
+            return null;
         }
 
-        return $out;
+        $redacted = [];
+
+        foreach ($changes as $key => $value) {
+            if (is_string($key) && self::isSensitive($key)) {
+                $redacted[$key] = '***';
+            } elseif (is_array($value)) {
+                $redacted[$key] = self::redact($value);
+            } else {
+                $redacted[$key] = $value;
+            }
+        }
+
+        return $redacted;
     }
 
-    private function shouldRedact(string $key): bool
+    private static function isSensitive(string $key): bool
     {
-        $normalized = strtolower($key);
+        $lower = strtolower($key);
 
-        if (in_array($normalized, ['flag_validation_type', 'flag_format'], true)) {
-            return false;
-        }
-
-        foreach (self::REDACT_KEYS as $secret) {
-            if ($normalized === $secret || str_ends_with($normalized, '_'.$secret) || str_starts_with($normalized, $secret.'_')) {
-                return true;
-            }
-            if ($secret === 'flag' && ($normalized === 'flag' || str_contains($normalized, 'flag_'))) {
-                return true;
-            }
-            if ($secret === 'value' && $normalized === 'value') {
+        foreach (self::SENSITIVE_FRAGMENTS as $fragment) {
+            if (str_contains($lower, $fragment)) {
                 return true;
             }
         }

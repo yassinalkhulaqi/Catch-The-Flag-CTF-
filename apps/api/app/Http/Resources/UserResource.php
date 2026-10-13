@@ -7,30 +7,33 @@ namespace App\Http\Resources;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
-/** @mixin User */
+/**
+ * Public user shape. Never includes password hashes, tokens, flags,
+ * or internal paths (docs/security.md §4).
+ *
+ * @mixin User
+ */
 class UserResource extends JsonResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'role' => $this->role?->value ?? $this->role,
+            'role' => $this->role->value,
             'xp' => (int) $this->xp,
             'solved_count' => (int) $this->solved_count,
             'bio' => $this->bio,
-            'avatar_url' => $this->avatarUrl(),
-            'created_at' => optional($this->created_at)?->toIso8601String(),
-            'achievements_count' => $this->when(isset($this->achievements_count) || $this->relationLoaded('userAchievements'),
-                fn () => (int) ($this->achievements_count ?? $this->userAchievements->count())
-            ),
-            'banned_at' => $this->when($request->user()?->isAdmin(), optional($this->banned_at)?->toIso8601String()),
-            'theme' => $this->when(
-                $request->user()?->is($this->resource),
-                fn () => $request->user()->themePreference(),
-            ),
+            'avatar_url' => $this->avatar_path !== null
+                ? Storage::disk('public')->url($this->avatar_path)
+                : null,
+            'created_at' => $this->created_at?->toISOString(),
         ];
     }
 }

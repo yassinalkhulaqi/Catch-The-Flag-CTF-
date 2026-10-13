@@ -6,155 +6,144 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\PathProgressStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\AchievementResource;
-use App\Http\Resources\SolveResource;
-use App\Http\Resources\XpTransactionResource;
+use App\Http\Resources\AchievementStatusResource;
+use App\Http\Resources\NotificationResource;
+use App\Http\Resources\SolveEntryResource;
+use App\Http\Resources\XpEntryResource;
 use App\Models\Achievement;
+use App\Models\ChallengeSolve;
 use App\Models\LessonCompletion;
 use App\Models\UserAchievement;
 use App\Models\UserPathProgress;
-use App\Services\AchievementService;
+use App\Services\AchievementEvaluator;
 use App\Services\LeaderboardService;
-use App\Services\ProgressService;
+use App\Services\ProgressCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-final class MeController extends Controller
+/**
+ * Authenticated "me" namespace: progress, solves, ledger, achievements,
+ * notifications. Every query is scoped to the caller — there is no
+ * user-id parameter anywhere in this controller (IDOR by construction).
+ */
+class MeController extends Controller
 {
-    public function progress(Request $request, ProgressService $progress, LeaderboardService $leaderboard): JsonResponse
+    public function progress(Request $request, ProgressCalculator $calculator, LeaderboardService $board): JsonResponse
     {
         $user = $request->user();
-        $started = UserPathProgress::query()->where('user_id', $user->id)->count();
-        $completed = UserPathProgress::query()
-            ->where('user_id', $user->id)
-            ->where('status', PathProgressStatus::Completed)
-            ->count();
 
         return response()->json(['data' => [
-            'paths_started' => $started,
-            'paths_completed' => $completed,
+            'paths_started' => UserPathProgress::query()->where('user_id', $user->id)->count(),
+            'paths_completed' => UserPathProgress::query()
+                ->where('user_id', $user->id)
+                ->where('status', PathProgressStatus::Completed)
+                ->count(),
             'lessons_completed' => LessonCompletion::query()->where('user_id', $user->id)->count(),
-            'challenges_solved' => (int) $user->solved_count,
+            'challenges_solved' => ChallengeSolve::query()->where('user_id', $user->id)->count(),
             'xp' => (int) $user->xp,
-            'rank' => $leaderboard->rankFor($user),
-            'streak_days' => 0,
+            'rank' => $board->rankFor($user),
+            'streak_days' => $calculator->streakDays($user),
         ]]);
     }
 
     public function solves(Request $request): JsonResponse
     {
-        $solves = $request->user()->solves()
-            ->with(['challenge.category', 'challenge.tags'])
+        $solves = ChallengeSolve::query()
+            ->with('challenge.category', 'challenge.tags')
+            ->where('user_id', $request->user()->id)
             ->orderByDesc('solved_at')
+            ->orderByDesc('id')
             ->paginate(20);
 
         return response()->json([
-            'data' => SolveResource::collection($solves->items()),
+            'data' => SolveEntryResource::collection($solves),
             'meta' => [
                 'current_page' => $solves->currentPage(),
                 'per_page' => $solves->perPage(),
                 'total' => $solves->total(),
                 'last_page' => $solves->lastPage(),
             ],
+            'links' => ['next' => $solves->nextPageUrl(), 'prev' => $solves->previousPageUrl()],
         ]);
     }
 
     public function xpLedger(Request $request): JsonResponse
     {
-        $rows = $request->user()->xpTransactions()->orderByDesc('created_at')->paginate(20);
+        $entries = $request->user()->xpTransactions()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return response()->json([
-            'data' => XpTransactionResource::collection($rows->items()),
+            'data' => XpEntryResource::collection($entries),
             'meta' => [
-                'current_page' => $rows->currentPage(),
-                'per_page' => $rows->perPage(),
-                'total' => $rows->total(),
-                'last_page' => $rows->lastPage(),
+                'current_page' => $entries->currentPage(),
+                'per_page' => $entries->perPage(),
+                'total' => $entries->total(),
+                'last_page' => $entries->lastPage(),
             ],
+            'links' => ['next' => $entries->nextPageUrl(), 'prev' => $entries->previousPageUrl()],
         ]);
     }
 
-    public function achievements(Request $request, AchievementService $service): JsonResponse
+    public function achievements(Request $request, AchievementEvaluator $evaluator): JsonResponse
     {
         $user = $request->user();
-        $owned = UserAchievement::query()->where('user_id', $user->id)->get()->keyBy('achievement_id');
-        $all = Achievement::query()->active()->orderBy('sort_order')->get();
 
-        $data = $all->map(function (Achievement $a) use ($owned, $service, $user) {
-            $row = $owned->get($a->id);
-            $a->awarded = $row !== null;
-            $a->awarded_at = $row?->awarded_at?->toIso8601String();
-            if (! $a->awarded) {
-                $a->progress = $service->progressToward($user, $a);
-            }
+        $awarded = UserAchievement::query()
+            ->where('user_id', $user->id)
+            ->pluck('awarded_at', 'achievement_id');
 
-            return $a;
+        $all = Achievement::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        $data = $all->map(function ($achievement) use ($awarded, $evaluator, $user): AchievementStatusResource {
+            $at = $awarded->get($achievement->id);
+
+            return new AchievementStatusResource(
+                $achievement,
+                $at !== null,
+                $at !== null ? $at->toISOString() : null,
+                $at !== null ? null : $evaluator->progressFor($user, $achievement),
+            );
         });
 
-        return response()->json(['data' => AchievementResource::collection($data)]);
+        return response()->json(['data' => $data]);
     }
 
     public function notifications(Request $request): JsonResponse
     {
-        $notifications = $request->user()->notifications()->paginate(20);
+        $notes = $request->user()->notifications()
+            ->orderByDesc('created_at')
+            ->paginate(20);
 
         return response()->json([
-            'data' => $notifications->getCollection()->map(fn ($n) => [
-                'id' => $n->id,
-                'type' => class_basename($n->type),
-                'data' => $n->data,
-                'read_at' => optional($n->read_at)?->toIso8601String(),
-                'created_at' => optional($n->created_at)?->toIso8601String(),
-            ]),
+            'data' => NotificationResource::collection($notes),
             'meta' => [
-                'current_page' => $notifications->currentPage(),
-                'per_page' => $notifications->perPage(),
-                'total' => $notifications->total(),
-                'last_page' => $notifications->lastPage(),
+                'current_page' => $notes->currentPage(),
+                'per_page' => $notes->perPage(),
+                'total' => $notes->total(),
+                'last_page' => $notes->lastPage(),
             ],
+            'links' => ['next' => $notes->nextPageUrl(), 'prev' => $notes->previousPageUrl()],
         ]);
     }
 
     public function readNotification(Request $request, string $id): JsonResponse
     {
-        $notification = $request->user()->notifications()->where('id', $id)->firstOrFail();
-        $notification->markAsRead();
+        $note = $request->user()->notifications()->where('id', $id)->firstOrFail();
+        $note->markAsRead();
 
-        return response()->json(['data' => ['ok' => true]]);
+        return response()->json(['data' => new NotificationResource($note->refresh())]);
     }
 
     public function readAllNotifications(Request $request): JsonResponse
     {
         $request->user()->unreadNotifications->markAsRead();
 
-        return response()->json(['data' => ['ok' => true]]);
-    }
-
-    public function settings(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        return response()->json(['data' => [
-            'email' => $user->email,
-            'theme' => $user->themePreference(),
-        ]]);
-    }
-
-    public function updateSettings(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'theme' => ['required', 'string', 'in:system,light,dark'],
-        ]);
-
-        $user = $request->user();
-        $prefs = $user->preferences ?? [];
-        $prefs['theme'] = $data['theme'];
-        // preferences is intentionally not mass-assignable — write via forceFill only.
-        $user->forceFill(['preferences' => $prefs])->save();
-
-        return response()->json(['data' => [
-            'email' => $user->email,
-            'theme' => $user->themePreference(),
-        ]]);
+        return response()->json(['data' => ['read' => true]]);
     }
 }

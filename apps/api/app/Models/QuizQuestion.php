@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\QuizQuestionType;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +24,9 @@ class QuizQuestion extends Model
         'is_published',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -35,18 +37,15 @@ class QuizQuestion extends Model
         ];
     }
 
+    /** @return BelongsTo<Quiz, $this> */
     public function quiz(): BelongsTo
     {
         return $this->belongsTo(Quiz::class);
     }
 
+    /** @return HasMany<QuizOption, $this> */
     public function options(): HasMany
     {
-        return $this->hasMany(QuizQuestionOption::class, 'question_id')->orderBy('position');
-    }
-
-    public function scopePublished(Builder $query): Builder
-    {
-        return $query->where('is_published', true);
+        return $this->hasMany(QuizOption::class, 'question_id')->orderBy('position')->orderBy('id');
     }
 }

@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Append-only security trail (docs/database.md §9). Rows are written
+ * exclusively via Services\AuditLogger — never mass-assigned, never
+ * updated or deleted through the API.
+ */
 class AuditLog extends Model
 {
-    use HasFactory;
-
-    public $timestamps = false;
+    public const UPDATED_AT = null;
 
     protected $fillable = [
         'actor_id',
@@ -22,17 +24,19 @@ class AuditLog extends Model
         'changes',
         'ip_address',
         'user_agent',
-        'created_at',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
             'changes' => 'array',
-            'created_at' => 'datetime',
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_id');

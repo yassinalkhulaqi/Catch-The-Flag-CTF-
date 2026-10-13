@@ -7,7 +7,7 @@ export function formatBytes(bytes: number): string {
 
 /** Build a same-origin BFF download path (never call Laravel from the browser). */
 export function challengeFilePath(challengeId: number, fileId: number): string {
-  return `/api/v1/challenges/${challengeId}/files/${fileId}`;
+  return `/api/v1/challenges/${challengeId}/files/${fileId}/download`;
 }
 
 /** Safe query-string builder. */

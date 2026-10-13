@@ -5,33 +5,31 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ModuleResource;
-use App\Models\LessonCompletion;
+use App\Http\Resources\LessonSummaryResource;
 use App\Models\PathModule;
-use App\Services\ProgressService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
-final class ModuleController extends Controller
+/**
+ * Module detail with ordered published lessons.
+ */
+class ModuleController extends Controller
 {
-    public function show(Request $request, PathModule $module, ProgressService $progress): JsonResponse
+    public function show(int $module): JsonResponse
     {
-        $this->authorize('view', $module);
-        $module->load(['path', 'lessons' => fn ($q) => $q->published()]);
-        if ($module->path) {
-            $progress->ensureUnlocked($request->user(), $module->path);
-        }
+        $model = PathModule::query()->with(['path', 'lessons'])->findOrFail($module);
 
-        $completedIds = LessonCompletion::query()
-            ->where('user_id', $request->user()->id)
-            ->whereIn('lesson_id', $module->lessons->pluck('id'))
-            ->pluck('lesson_id')
-            ->all();
+        Gate::authorize('view', $model);
 
-        foreach ($module->lessons as $lesson) {
-            $lesson->completed = in_array($lesson->id, $completedIds, true);
-        }
+        $lessons = $model->lessons->where('is_published', true)->sortBy([['position', 'asc'], ['id', 'asc']])->values();
 
-        return response()->json(['data' => new ModuleResource($module)]);
+        return response()->json(['data' => [
+            'id' => $model->id,
+            'path_id' => $model->path_id,
+            'title' => $model->title,
+            'description' => $model->description,
+            'position' => (int) $model->position,
+            'lessons' => LessonSummaryResource::collection($lessons),
+        ]]);
     }
 }

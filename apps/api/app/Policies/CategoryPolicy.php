@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\Role;
 use App\Models\Category;
 use App\Models\User;
-use App\Policies\Concerns\ChecksRoles;
 
+/**
+ * Categories are governed by is_active (docs/api.md §3: "active
+ * items only"). Guests and learners see active categories;
+ * moderators and admins see all.
+ */
 class CategoryPolicy
 {
-    use ChecksRoles;
-
     public function viewAny(?User $user): bool
     {
         return true;
@@ -19,21 +22,10 @@ class CategoryPolicy
 
     public function view(?User $user, Category $category): bool
     {
-        return $category->is_active || $this->isStaff($user);
-    }
+        if ($category->is_active) {
+            return true;
+        }
 
-    public function create(User $user): bool
-    {
-        return $this->isStaff($user);
-    }
-
-    public function update(User $user, Category $category): bool
-    {
-        return $this->isStaff($user);
-    }
-
-    public function delete(User $user, Category $category): bool
-    {
-        return $this->isAdmin($user);
+        return $user !== null && $user->hasRole(Role::Moderator);
     }
 }

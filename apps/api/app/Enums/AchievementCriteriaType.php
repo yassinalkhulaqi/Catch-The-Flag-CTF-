@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * Achievement evaluation rules — configuration-driven, logic lives in
- * Services/AchievementService (docs/database.md §7).
+ * Services/AchievementEvaluator (docs/database.md §7).
  */
 enum AchievementCriteriaType: string
 {

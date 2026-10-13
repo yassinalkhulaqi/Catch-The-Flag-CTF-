@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Achievement extends Model
@@ -25,6 +23,9 @@ class Achievement extends Model
         'sort_order',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -35,19 +36,9 @@ class Achievement extends Model
         ];
     }
 
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'user_achievements')
-            ->withPivot('awarded_at');
-    }
-
-    public function userAchievements(): HasMany
+    /** @return HasMany<UserAchievement, $this> */
+    public function awards(): HasMany
     {
         return $this->hasMany(UserAchievement::class);
-    }
-
-    public function scopeActive(Builder $query): Builder
-    {
-        return $query->where('is_active', true);
     }
 }

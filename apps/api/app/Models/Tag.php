@@ -17,6 +17,7 @@ class Tag extends Model
         'slug',
     ];
 
+    /** @return BelongsToMany<Challenge, $this> */
     public function challenges(): BelongsToMany
     {
         return $this->belongsToMany(Challenge::class, 'challenge_tag');

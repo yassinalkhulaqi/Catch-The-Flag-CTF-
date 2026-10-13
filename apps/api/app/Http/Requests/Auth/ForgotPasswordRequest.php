@@ -13,10 +13,13 @@ class ForgotPasswordRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string', 'email:rfc', 'max:255'],
         ];
     }
 }

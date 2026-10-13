@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\Role;
 use App\Models\Path;
 use App\Models\User;
-use App\Policies\Concerns\ChecksRoles;
 
+/**
+ * Learners and guests see published paths only. Moderators and
+ * admins see every status.
+ */
 class PathPolicy
 {
-    use ChecksRoles;
-
     public function viewAny(?User $user): bool
     {
         return true;
@@ -19,35 +21,10 @@ class PathPolicy
 
     public function view(?User $user, Path $path): bool
     {
-        if ($this->published($path)) {
+        if ($path->status?->isVisible() ?? $path->status === 'published') {
             return true;
         }
 
-        return $this->isStaff($user);
-    }
-
-    public function start(User $user, Path $path): bool
-    {
-        return $this->published($path) && ! $user->isBanned();
-    }
-
-    public function create(User $user): bool
-    {
-        return $this->isStaff($user);
-    }
-
-    public function update(User $user, Path $path): bool
-    {
-        return $this->isStaff($user);
-    }
-
-    public function delete(User $user, Path $path): bool
-    {
-        return $this->isStaff($user);
-    }
-
-    public function publish(User $user, Path $path): bool
-    {
-        return $this->isStaff($user);
+        return $user !== null && $user->hasRole(Role::Moderator);
     }
 }

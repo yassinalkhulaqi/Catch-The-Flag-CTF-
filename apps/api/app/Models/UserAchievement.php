@@ -17,23 +17,25 @@ class UserAchievement extends Model
     protected $fillable = [
         'user_id',
         'achievement_id',
-        'awarded_at',
-        'created_at',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
             'awarded_at' => 'datetime',
-            'created_at' => 'datetime',
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Achievement, $this> */
     public function achievement(): BelongsTo
     {
         return $this->belongsTo(Achievement::class);

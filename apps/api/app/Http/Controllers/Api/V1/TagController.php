@@ -7,14 +7,17 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TagResource;
 use App\Models\Tag;
-use Illuminate\Http\JsonResponse;
 
-final class TagController extends Controller
+/**
+ * Tag lookup (docs/api.md §3). No auth, full list — tags carry no
+ * visibility state.
+ */
+class TagController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(): mixed
     {
-        $tags = Tag::query()->orderBy('name')->get();
+        $tags = Tag::query()->orderBy('name')->orderBy('id')->get();
 
-        return response()->json(['data' => TagResource::collection($tags)]);
+        return TagResource::collection($tags);
     }
 }

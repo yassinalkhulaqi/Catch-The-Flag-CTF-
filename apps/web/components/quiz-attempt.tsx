@@ -34,10 +34,10 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
     setError(null);
     startTransition(async () => {
       try {
-        const res = await api.post<{ data: { id: number } }>(
+        const res = await api.post<{ data: { attempt: { id: number } } }>(
           `/quizzes/${quiz.id}/attempts`,
         );
-        setAttemptId(res.data.id);
+        setAttemptId(res.data.attempt.id);
         setResult(null);
         setAnswers({});
       } catch (err) {

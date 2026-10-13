@@ -20,6 +20,9 @@ class ChallengeHint extends Model
         'position',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -28,11 +31,13 @@ class ChallengeHint extends Model
         ];
     }
 
+    /** @return BelongsTo<Challenge, $this> */
     public function challenge(): BelongsTo
     {
         return $this->belongsTo(Challenge::class);
     }
 
+    /** @return HasMany<HintUnlock, $this> */
     public function unlocks(): HasMany
     {
         return $this->hasMany(HintUnlock::class, 'hint_id');

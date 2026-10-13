@@ -7,23 +7,24 @@ namespace Database\Factories;
 use App\Models\Lesson;
 use App\Models\PathModule;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
-/** @extends Factory<Lesson> */
+/**
+ * @extends Factory<Lesson>
+ */
 class LessonFactory extends Factory
 {
     public function definition(): array
     {
-        $title = fake()->sentence(3);
+        $title = ucfirst(fake()->words(3, true));
 
         return [
             'module_id' => PathModule::factory(),
-            'title' => rtrim($title, '.'),
-            'slug' => Str::slug($title).'-'.Str::random(4),
+            'title' => $title,
+            'slug' => strtolower((string) preg_replace('/[^a-z0-9]+/', '-', $title)).'-'.fake()->unique()->randomNumber(5),
             'summary' => fake()->sentence(),
-            'content' => '# '.fake()->sentence()."\n\n".fake()->paragraph(),
-            'position' => 1,
-            'estimated_minutes' => 10,
+            'content' => "# Lesson\n\nLearn things.\n",
+            'position' => 0,
+            'estimated_minutes' => 15,
             'is_published' => true,
         ];
     }

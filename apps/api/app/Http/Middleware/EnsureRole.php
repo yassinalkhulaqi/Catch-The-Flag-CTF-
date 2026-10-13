@@ -9,73 +9,45 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Defense-in-depth role gate for admin/moderator route groups.
- * Policies still authorize every object access.
- */
-final class EnsureRole
+class EnsureRole
 {
     /**
-     * @param  Closure(Request): Response  $next
+     * Handle an incoming request.
+     *
+     * Usage: ->middleware('role:admin,moderator'). Role hierarchy applies:
+     * a higher role satisfies a lower requirement (admin >= moderator >= user).
+     *
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
-        $requestId = $request->attributes->get('request_id')
-            ?? $request->headers->get('X-Request-Id');
-
         if ($user === null) {
             return response()->json([
                 'error' => [
                     'code' => 'unauthenticated',
-                    'message' => 'Unauthenticated.',
-                    'request_id' => $requestId,
+                    'message' => 'Authentication required.',
                 ],
-            ], 401);
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
-        if ($user->banned_at !== null) {
-            return response()->json([
-                'error' => [
-                    'code' => 'account_banned',
-                    'message' => 'This account has been suspended.',
-                    'request_id' => $requestId,
-                ],
-            ], 403);
-        }
-
-        $allowed = collect($roles)
-            ->map(fn (string $role) => Role::tryFrom($role))
-            ->filter()
-            ->values();
-
-        $userRole = $user->role instanceof Role ? $user->role : Role::tryFrom((string) $user->role);
-
-        if ($userRole === null || $allowed->isEmpty()) {
-            return response()->json([
-                'error' => [
-                    'code' => 'forbidden',
-                    'message' => 'Forbidden.',
-                    'request_id' => $requestId,
-                ],
-            ], 403);
-        }
-
-        $ok = $allowed->contains(
-            fn (Role $required) => $userRole->isAtLeast($required)
+        $required = array_map(
+            static fn (string $role): Role => Role::from(strtolower(trim($role))),
+            $roles,
         );
 
-        if (! $ok) {
-            return response()->json([
-                'error' => [
-                    'code' => 'forbidden',
-                    'message' => 'Forbidden.',
-                    'request_id' => $requestId,
-                ],
-            ], 403);
+        foreach ($required as $role) {
+            if ($user->hasRole($role)) {
+                return $next($request);
+            }
         }
 
-        return $next($request);
+        return response()->json([
+            'error' => [
+                'code' => 'forbidden',
+                'message' => 'You do not have permission to perform this action.',
+            ],
+        ], Response::HTTP_FORBIDDEN);
     }
 }

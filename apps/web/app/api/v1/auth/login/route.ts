@@ -22,9 +22,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
     await issueSession(auth.token, auth.expires_at);
-    const { token, ...safe } = auth;
-    void token;
-    return NextResponse.json({ data: safe });
+    return NextResponse.json({ data: { user: auth.user, expires_at: auth.expires_at } });
   } catch (error) {
     return errorResponse(error);
   }

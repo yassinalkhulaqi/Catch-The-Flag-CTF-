@@ -78,6 +78,9 @@ async function proxy(
 
   const retryAfter = res.headers.get("Retry-After");
   if (retryAfter) responseHeaders.set("Retry-After", retryAfter);
+  // File downloads: preserve the sniffing guard.
+  const noSniff = res.headers.get("X-Content-Type-Options");
+  if (noSniff) responseHeaders.set("X-Content-Type-Options", noSniff);
 
   return new NextResponse(await res.arrayBuffer(), {
     status: res.status,

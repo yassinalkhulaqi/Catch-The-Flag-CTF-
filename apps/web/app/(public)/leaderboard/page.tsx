@@ -68,13 +68,15 @@ export default async function LeaderboardPage() {
         </ol>
         <div className="overflow-x-auto border border-border">
           <table className="w-full min-w-[560px] text-left text-sm">
+            <caption className="sr-only">
+              Leaderboard ranked by XP, then solves
+            </caption>
             <thead className="border-b border-border bg-surface">
               <tr className="font-mono text-[11px] uppercase tracking-wide text-muted">
-                <th className="px-4 py-3">Rank</th>
-                <th className="px-4 py-3">Player</th>
-                <th className="px-4 py-3">XP</th>
-                <th className="px-4 py-3">Solves</th>
-                <th className="px-4 py-3">Achievements</th>
+                <th scope="col" className="px-4 py-3">Rank</th>
+                <th scope="col" className="px-4 py-3">Player</th>
+                <th scope="col" className="px-4 py-3">XP</th>
+                <th scope="col" className="px-4 py-3">Solves</th>
               </tr>
             </thead>
             <tbody>
@@ -98,7 +100,6 @@ export default async function LeaderboardPage() {
                     </td>
                     <td className="px-4 py-3 font-mono">{formatXp(row.xp)}</td>
                     <td className="px-4 py-3 font-mono">{row.solved_count}</td>
-                    <td className="px-4 py-3 font-mono">{row.achievements_count}</td>
                   </tr>
                 );
               })}

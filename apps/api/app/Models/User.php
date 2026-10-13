@@ -4,66 +4,102 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Role;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+#[Fillable(['name', 'email', 'password', 'bio'])]
+#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'bio',
-        'avatar_path',
+    /**
+     * In-memory defaults mirroring the database defaults (migrations only
+     * apply on the DB side; a freshly-created instance needs these too).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => 'user',
+        'xp' => 0,
+        'solved_count' => 0,
     ];
 
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => Role::class,
-            'xp' => 'integer',
-            'solved_count' => 'integer',
             'banned_at' => 'datetime',
             'last_login_at' => 'datetime',
-            'preferences' => 'array',
         ];
     }
 
-    public function themePreference(): string
+    /** @return HasMany<ChallengeSubmission, $this> */
+    public function submissions(): HasMany
     {
-        $theme = $this->preferences['theme'] ?? 'system';
-
-        return in_array($theme, ['system', 'light', 'dark'], true) ? $theme : 'system';
+        return $this->hasMany(ChallengeSubmission::class);
     }
 
-    public function hasRole(Role|string $role): bool
+    /** @return HasMany<ChallengeSolve, $this> */
+    public function solves(): HasMany
     {
-        $expected = $role instanceof Role ? $role : Role::tryFrom($role);
-
-        return $expected !== null && $this->role === $expected;
+        return $this->hasMany(ChallengeSolve::class);
     }
 
-    public function isAtLeast(Role $role): bool
+    /** @return HasMany<UserPathProgress, $this> */
+    public function pathProgress(): HasMany
     {
-        return $this->role instanceof Role && $this->role->isAtLeast($role);
+        return $this->hasMany(UserPathProgress::class);
+    }
+
+    /** @return HasMany<LessonCompletion, $this> */
+    public function lessonCompletions(): HasMany
+    {
+        return $this->hasMany(LessonCompletion::class);
+    }
+
+    /** @return HasMany<XpTransaction, $this> */
+    public function xpTransactions(): HasMany
+    {
+        return $this->hasMany(XpTransaction::class);
+    }
+
+    /** @return HasMany<UserAchievement, $this> */
+    public function achievements(): HasMany
+    {
+        return $this->hasMany(UserAchievement::class);
+    }
+
+    /**
+     * Role check with hierarchy: admin satisfies moderator and user
+     * requirements, moderator satisfies user.
+     */
+    public function hasRole(Role|string ...$roles): bool
+    {
+        foreach ($roles as $role) {
+            $role = $role instanceof Role ? $role : Role::from($role);
+            if ($this->role instanceof Role && $this->role->isAtLeast($role)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function isAdmin(): bool
@@ -71,79 +107,8 @@ class User extends Authenticatable
         return $this->hasRole(Role::Admin);
     }
 
-    public function isModerator(): bool
-    {
-        return $this->isAtLeast(Role::Moderator);
-    }
-
     public function isBanned(): bool
     {
         return $this->banned_at !== null;
-    }
-
-    public function scopeNotBanned(Builder $query): Builder
-    {
-        return $query->whereNull('banned_at');
-    }
-
-    public function scopeLeaderboardEligible(Builder $query): Builder
-    {
-        return $query->whereNull('deleted_at')->whereNull('banned_at');
-    }
-
-    public function solves(): HasMany
-    {
-        return $this->hasMany(ChallengeSolve::class);
-    }
-
-    public function submissions(): HasMany
-    {
-        return $this->hasMany(ChallengeSubmission::class);
-    }
-
-    public function xpTransactions(): HasMany
-    {
-        return $this->hasMany(XpTransaction::class);
-    }
-
-    public function pathProgress(): HasMany
-    {
-        return $this->hasMany(UserPathProgress::class);
-    }
-
-    public function lessonCompletions(): HasMany
-    {
-        return $this->hasMany(LessonCompletion::class);
-    }
-
-    public function achievements(): BelongsToMany
-    {
-        return $this->belongsToMany(Achievement::class, 'user_achievements')
-            ->withPivot('awarded_at')
-            ->withTimestamps(false);
-    }
-
-    public function userAchievements(): HasMany
-    {
-        return $this->hasMany(UserAchievement::class);
-    }
-
-    public function hintUnlocks(): HasMany
-    {
-        return $this->hasMany(HintUnlock::class);
-    }
-
-    public function quizAttempts(): HasMany
-    {
-        return $this->hasMany(QuizAttempt::class);
-    }
-
-    public function avatarUrl(): ?string
-    {
-        if ($this->avatar_path === null) {
-            return null;
-        }
-
-        return asset('storage/'.$this->avatar_path);
     }
 }

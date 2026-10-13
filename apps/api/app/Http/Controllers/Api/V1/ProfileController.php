@@ -4,30 +4,37 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Auth\PasswordAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Profile\UpdatePasswordRequest;
-use App\Http\Requests\Profile\UpdateProfileRequest;
+use App\Http\Requests\UpdatePasswordRequest;
+use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
 
-final class ProfileController extends Controller
+/**
+ * Own-profile mutations. Users can only ever touch their own row:
+ * the target is always the authenticated user, never an id from input.
+ */
+class ProfileController extends Controller
 {
-    public function update(UpdateProfileRequest $request): JsonResponse
+    public function update(UpdateProfileRequest $request, PasswordAction $action): JsonResponse
     {
-        $user = $request->user();
-        $user->fill($request->safe()->only(['name', 'bio', 'avatar_path']));
-        $user->save();
+        $user = $action->updateProfile(
+            $request->user(),
+            $request->safe()->except('avatar'),
+            $request->file('avatar'),
+        );
 
-        return response()->json(['data' => new UserResource($user->fresh())]);
+        return response()->json(['data' => new UserResource($user)]);
     }
 
-    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
+    public function updatePassword(UpdatePasswordRequest $request, PasswordAction $action): JsonResponse
     {
-        $user = $request->user();
-        $user->forceFill(['password' => Hash::make($request->validated('password'))])->save();
-        $user->tokens()->where('id', '!=', $user->currentAccessToken()?->id)->delete();
+        $action->updatePassword(
+            $request->user(),
+            $request->string('password')->toString(),
+        );
 
-        return response()->json(['data' => ['ok' => true]]);
+        return response()->json(['data' => ['updated' => true]]);
     }
 }

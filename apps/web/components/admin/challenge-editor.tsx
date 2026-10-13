@@ -192,7 +192,7 @@ export function ChallengeEditor({
     startTransition(async () => {
       try {
         const res = await api.post<{ data: ChallengeFlagMeta }>(`/admin/challenges/${challenge.id}/flags`, {
-          value: flagValue,
+          flag: flagValue,
           label: flagLabel || null,
           case_sensitive: true,
           is_active: true,

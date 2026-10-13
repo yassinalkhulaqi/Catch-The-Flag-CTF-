@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\XpReason;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * Append-only XP ledger. users.xp is a denormalized mirror maintained
+ * transactionally alongside these rows — never from client input
+ * (docs/architecture.md §8.3).
+ */
 class XpTransaction extends Model
 {
-    use HasFactory;
-
     public $timestamps = false;
 
     protected $fillable = [
@@ -23,9 +24,11 @@ class XpTransaction extends Model
         'reference_type',
         'reference_id',
         'note',
-        'created_at',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -35,13 +38,9 @@ class XpTransaction extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function reference(): MorphTo
-    {
-        return $this->morphTo(__FUNCTION__, 'reference_type', 'reference_id');
     }
 }

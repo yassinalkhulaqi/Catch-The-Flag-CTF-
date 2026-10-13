@@ -4,113 +4,145 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\PathProgressStatus;
+use App\Enums\ContentStatus;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PathIndexRequest;
 use App\Http\Resources\PathDetailResource;
 use App\Http\Resources\PathSummaryResource;
 use App\Models\Path;
-use App\Models\UserPathProgress;
-use App\Services\ProgressService;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
-final class PathController extends Controller
+/**
+ * Public learning-path catalog (docs/api.md §3). Accepts id OR slug
+ * on detail. Guests are forced to published; staff may filter by
+ * status. Invisible records are 404, never 403.
+ */
+class PathController extends Controller
 {
-    public function index(Request $request, ProgressService $progress): JsonResponse
+    public function index(PathIndexRequest $request): mixed
     {
-        $query = Path::query()->published()->with('category')
-            ->withCount(['modules', 'lessons']);
+        Gate::authorize('viewAny', Path::class);
 
-        if ($q = $request->string('q')->toString()) {
-            if (strlen($q) >= (int) config('ctf.search.min_query_length', 2)) {
-                $query->search($q);
-            }
+        $viewer = $request->user('sanctum');
+        $isStaff = $viewer !== null && $viewer->hasRole(Role::Moderator);
+
+        $query = Path::query()->with(['category']);
+
+        $this->applyStatus($query, $request->validated(), $isStaff);
+        $this->applyFilters($query, $request->validated(), $viewer?->id);
+        $this->applySorting($query, (string) ($request->validated()['sort'] ?? '-created_at'));
+
+        $perPage = min(max((int) ($request->validated()['per_page'] ?? 20), 1), 100);
+        $page = max(1, (int) ($request->validated()['page'] ?? 1));
+
+        return PathSummaryResource::collection($query->paginate($perPage, ['*'], 'page', $page));
+    }
+
+    public function show(Request $request, string $path): PathDetailResource
+    {
+        $model = $this->resolve($path);
+
+        if ($model === null || Gate::denies('view', $model)) {
+            abort(404);
         }
-        if ($request->filled('category')) {
-            $query->whereHas('category', fn ($q) => $q->where('slug', $request->string('category')));
-        }
-        if ($request->filled('difficulty')) {
-            $query->where('difficulty', $request->string('difficulty'));
-        }
 
-        $paginator = $query->orderBy('id')->paginate(min(100, (int) $request->integer('per_page', 20)));
+        $viewer = $request->user('sanctum');
+        $isStaff = $viewer !== null && $viewer->hasRole(Role::Moderator);
 
-        $user = $request->user('sanctum');
-        $percents = $user
-            ? $progress->progressPercentsFor($user, $paginator->getCollection())
-            : [];
-        $paginator->getCollection()->transform(function (Path $path) use ($percents) {
-            $path->progress_percent = $percents[$path->id] ?? 0;
-            $path->challenges_count = 0;
-
-            return $path;
-        });
-
-        return response()->json([
-            'data' => PathSummaryResource::collection($paginator->items()),
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-                'last_page' => $paginator->lastPage(),
-            ],
+        $model->load([
+            'category',
+            'prerequisites' => fn ($prerequisites) => $prerequisites
+                ->when(! $isStaff, fn ($q) => $q->published())
+                ->with('category'),
+            'modules' => fn ($modules) => $modules
+                ->when(! $isStaff, fn ($q) => $q->where('is_published', true))
+                ->orderBy('position')->orderBy('id'),
+            'modules.lessons' => fn ($lessons) => $lessons
+                ->when(! $isStaff, fn ($q) => $q->where('is_published', true))
+                ->orderBy('position')->orderBy('id'),
         ]);
+
+        return new PathDetailResource($model);
     }
 
-    public function show(Request $request, Path $path, ProgressService $progress): JsonResponse
+    /**
+     * @param  Builder<Path>  $query
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyStatus(Builder $query, array $filters, bool $isStaff): void
     {
-        $this->authorize('view', $path);
+        if ($isStaff && is_string($filters['status'] ?? null)) {
+            $query->where('status', strtolower(trim($filters['status'])));
+        } else {
+            $query->where('status', ContentStatus::Published->value);
+        }
+    }
 
-        $path->load(['category', 'prerequisites', 'modules' => fn ($q) => $q->published()->withCount('lessons')]);
-        $user = $request->user('sanctum');
-        $required = $progress->publishedPrerequisites($path);
-        $path->setRelation('prerequisites', $required);
-
-        $completedIds = $user
-            ? UserPathProgress::query()
-                ->where('user_id', $user->id)
-                ->where('status', PathProgressStatus::Completed)
-                ->whereIn('path_id', $required->pluck('id'))
-                ->pluck('path_id')
-            : collect();
-
-        foreach ($required as $prerequisite) {
-            $prerequisite->viewer_completed = $completedIds->contains($prerequisite->id);
+    /**
+     * @param  Builder<Path>  $query
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyFilters(Builder $query, array $filters, ?int $viewerId): void
+    {
+        if (trim((string) ($filters['q'] ?? '')) !== '' && mb_strlen(trim((string) $filters['q'])) >= (int) config('ctf.search.min_query_length', 2)) {
+            $query->whereRaw("paths.search_vector @@ plainto_tsquery('simple', ?)", [trim((string) $filters['q'])]);
         }
 
-        $path->progress_percent = $user ? $progress->progressPercent($user, $path) : 0;
-        $path->completed = $user ? $progress->isPathComplete($user, $path) : false;
-        $path->can_start = $required->every(fn (Path $pre) => (bool) $pre->viewer_completed);
-        $path->started = $user ? $progress->hasStarted($user, $path) : false;
-        $path->modules_count = $path->modules->count();
-        $path->lessons_count = $path->modules->sum('lessons_count');
-        $path->challenges_count = 0;
-
-        foreach ($path->modules as $module) {
-            $module->completed_lesson_count = 0;
-            $module->challenge_count = 0;
+        if (trim((string) ($filters['category'] ?? '')) !== '') {
+            $slug = trim((string) $filters['category']);
+            $query->whereHas('category', fn (Builder $related) => $related->where('slug', $slug));
         }
 
-        return response()->json(['data' => new PathDetailResource($path)]);
+        if (trim((string) ($filters['difficulty'] ?? '')) !== '') {
+            $query->where('difficulty', trim((string) $filters['difficulty']));
+        }
+
+        $progress = $filters['progress'] ?? null;
+
+        if ($viewerId !== null && is_string($progress) && $progress !== '') {
+            match ($progress) {
+                'completed' => $query->whereHas('progress', fn (Builder $related) => $related->where('user_id', $viewerId)->where('status', 'completed')),
+                'in_progress' => $query->whereHas('progress', fn (Builder $related) => $related->where('user_id', $viewerId)->where('status', 'in_progress')),
+                'not_started' => $query->whereNotExists(function ($exists) use ($viewerId): void {
+                    $exists->selectRaw('1')->from('user_path_progress')
+                        ->whereColumn('user_path_progress.path_id', 'paths.id')
+                        ->where('user_path_progress.user_id', $viewerId);
+                }),
+                default => null,
+            };
+        }
     }
 
-    public function start(Request $request, Path $path, ProgressService $progress): JsonResponse
+    /**
+     * @param  Builder<Path>  $query
+     */
+    private function applySorting(Builder $query, string $sort): void
     {
-        $this->authorize('start', $path);
-        $row = $progress->startPath($request->user(), $path);
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+        $field = ltrim($sort, '-');
 
-        return response()->json(['data' => [
-            'path_id' => $path->id,
-            'status' => $row->status?->value ?? $row->status,
-            'started_at' => optional($row->started_at)?->toIso8601String(),
-        ]]);
+        $column = match ($field) {
+            'title' => 'title',
+            'estimated_minutes' => 'estimated_minutes',
+            default => 'created_at',
+        };
+
+        $query->orderBy($column, $direction)->orderBy('id', 'asc');
     }
 
-    public function progress(Request $request, Path $path, ProgressService $progress): JsonResponse
+    private function resolve(string $key): ?Path
     {
-        $this->authorize('start', $path);
-        $breakdown = $progress->breakdown($request->user(), $path);
+        $query = Path::query();
 
-        return response()->json(['data' => $breakdown]);
+        if (ctype_digit($key)) {
+            $query->where('id', (int) $key)->orWhere('slug', $key);
+        } else {
+            $query->where('slug', $key);
+        }
+
+        return $query->first();
     }
 }

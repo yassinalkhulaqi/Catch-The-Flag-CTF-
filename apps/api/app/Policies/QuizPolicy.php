@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\Role;
 use App\Models\Quiz;
 use App\Models\User;
-use App\Policies\Concerns\ChecksRoles;
 
 class QuizPolicy
 {
-    use ChecksRoles;
-
-    public function view(User $user, Quiz $quiz): bool
+    public function view(?User $user, Quiz $quiz): bool
     {
-        if ($this->isStaff($user)) {
+        if ($user !== null && $user->hasRole(Role::Moderator)) {
             return true;
         }
 
@@ -22,29 +20,17 @@ class QuizPolicy
             return false;
         }
 
-        $quiz->loadMissing(['lesson.module.path', 'module.path']);
-        $path = $quiz->lesson?->module?->path ?? $quiz->module?->path;
+        if ($quiz->lesson !== null) {
+            return $quiz->lesson->is_published
+                && $quiz->lesson->module->is_published
+                && $quiz->lesson->module->path->status->isVisible();
+        }
 
-        return $path !== null && $this->published($path);
-    }
+        if ($quiz->module !== null) {
+            return $quiz->module->is_published
+                && $quiz->module->path->status->isVisible();
+        }
 
-    public function attempt(User $user, Quiz $quiz): bool
-    {
-        return $this->view($user, $quiz) && ! $user->isBanned();
-    }
-
-    public function create(User $user): bool
-    {
-        return $this->isStaff($user);
-    }
-
-    public function update(User $user, Quiz $quiz): bool
-    {
-        return $this->isStaff($user);
-    }
-
-    public function delete(User $user, Quiz $quiz): bool
-    {
-        return $this->isStaff($user);
+        return false;
     }
 }

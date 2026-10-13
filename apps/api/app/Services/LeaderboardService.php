@@ -6,49 +6,69 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Builder;
 
-final class LeaderboardService
+/**
+ * Deterministic global ranking: xp DESC, solved_count DESC, id ASC
+ * (docs/architecture.md §8.3). Suspended and deleted accounts never rank.
+ */
+class LeaderboardService
 {
-    public function paginate(int $perPage = 20): LengthAwarePaginator
+    /**
+     * @return LengthAwarePaginator<int, User>
+     */
+    public function page(int $page, int $perPage): LengthAwarePaginator
     {
-        $perPage = max(1, min($perPage, (int) config('ctf.leaderboard.max_page_size', 100)));
+        $perPage = min(max($perPage, 1), (int) config('ctf.leaderboard.max_page_size'));
 
-        return User::query()
-            ->leaderboardEligible()
-            ->withCount('userAchievements as achievements_count')
-            ->orderByDesc('xp')
-            ->orderByDesc('solved_count')
-            ->orderBy('id')
-            ->paginate($perPage);
+        return $this->rankedQuery()->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**
-     * Dense rank matching ORDER BY xp DESC, solved_count DESC, id ASC.
+     * 1-based rank of the user within the same deterministic ordering,
+     * or null when the user does not rank (banned).
      */
     public function rankFor(User $user): ?int
     {
-        if ($user->banned_at !== null || $user->trashed()) {
+        if ($user->isBanned()) {
             return null;
         }
 
-        $rank = DB::table('users')
-            ->whereNull('deleted_at')
-            ->whereNull('banned_at')
-            ->where(function ($q) use ($user): void {
-                $q->where('xp', '>', $user->xp)
-                    ->orWhere(function ($q2) use ($user): void {
-                        $q2->where('xp', $user->xp)
+        $ahead = $this->rankedQuery()
+            ->where(function ($query) use ($user): void {
+                $query->where('xp', '>', $user->xp)
+                    ->orWhere(function ($query) use ($user): void {
+                        $query->where('xp', $user->xp)
                             ->where('solved_count', '>', $user->solved_count);
                     })
-                    ->orWhere(function ($q3) use ($user): void {
-                        $q3->where('xp', $user->xp)
+                    ->orWhere(function ($query) use ($user): void {
+                        $query->where('xp', $user->xp)
                             ->where('solved_count', $user->solved_count)
                             ->where('id', '<', $user->id);
                     });
             })
             ->count();
 
-        return $rank + 1;
+        return $ahead + 1;
+    }
+
+    /**
+     * @return Builder<User>
+     */
+    private function rankedQuery(): Builder
+    {
+        return User::query()
+            ->whereNull('banned_at')
+            ->orderByDesc('xp')
+            ->orderByDesc('solved_count')
+            ->orderBy('id');
+    }
+
+    /**
+     * Rank of the first row on a paginator page (for entry numbering).
+     */
+    public function rankOffset(LengthAwarePaginator $paginator): int
+    {
+        return (int) (($paginator->currentPage() - 1) * $paginator->perPage());
     }
 }

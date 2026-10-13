@@ -4,11 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Path;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * Path card shape for listings (docs/api.md §3).
+ *
+ * @mixin Path
+ */
 class PathSummaryResource extends JsonResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         return [
@@ -16,20 +25,12 @@ class PathSummaryResource extends JsonResource
             'title' => $this->title,
             'slug' => $this->slug,
             'summary' => $this->summary,
-            'difficulty' => $this->difficulty?->value ?? $this->difficulty,
-            'category' => $this->whenLoaded('category', fn () => $this->category ? [
-                'id' => $this->category->id,
-                'name' => $this->category->name,
-                'slug' => $this->category->slug,
-                'color' => $this->category->color,
-            ] : null),
-            'thumbnail_url' => $this->thumbnailUrl(),
+            'category' => new CategoryResource($this->whenLoaded('category')),
+            'difficulty' => $this->difficulty->value,
             'estimated_minutes' => (int) $this->estimated_minutes,
-            'module_count' => (int) ($this->modules_count ?? $this->whenLoaded('modules', fn () => $this->modules->count(), 0)),
-            'lesson_count' => (int) ($this->lessons_count ?? 0),
-            'challenge_count' => (int) ($this->challenges_count ?? 0),
-            'progress_percent' => (int) ($this->progress_percent ?? 0),
-            'status' => $this->status?->value ?? $this->status,
+            'status' => $this->status->value,
+            'published_at' => $this->published_at?->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
         ];
     }
 }

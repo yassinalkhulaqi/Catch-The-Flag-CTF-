@@ -19,6 +19,9 @@ class QuizAttempt extends Model
         'started_at',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -29,22 +32,25 @@ class QuizAttempt extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Quiz, $this> */
     public function quiz(): BelongsTo
     {
         return $this->belongsTo(Quiz::class);
     }
 
+    /** @return HasMany<QuizAttemptAnswer, $this> */
     public function answers(): HasMany
     {
         return $this->hasMany(QuizAttemptAnswer::class, 'attempt_id');
     }
 
-    public function isCompleted(): bool
+    public function isSubmitted(): bool
     {
         return $this->completed_at !== null;
     }

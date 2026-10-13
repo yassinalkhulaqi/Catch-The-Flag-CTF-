@@ -9,161 +9,113 @@ use App\Models\ChallengeFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-final class ChallengeFileService
+/**
+ * Challenge file storage (docs/security.md §6). Every byte is hostile:
+ * MIME is detected server-side with finfo, storage keys are UUIDs, and
+ * archives are never extracted. Downloads always stream as attachments.
+ */
+class ChallengeFileService
 {
-    public function store(Challenge $challenge, UploadedFile $upload): ChallengeFile
+    public const DISK = 'challenge-files';
+
+    /**
+     * Validate + persist an uploaded challenge file. Returns the metadata row.
+     *
+     * @throws HttpException 413 when over the configured limit, 422 on MIME.
+     */
+    public function store(Challenge $challenge, UploadedFile $file): ChallengeFile
     {
-        $this->assertWithinSizeLimit($upload);
+        $maxBytes = (int) config('ctf.uploads.max_file_mb') * 1024 * 1024;
 
-        $originalName = $this->sanitizeOriginalName($upload->getClientOriginalName());
-        $detectedMime = $this->detectMime($upload);
-        $this->assertAllowedMime($detectedMime);
-
-        $extension = strtolower($upload->getClientOriginalExtension() ?: pathinfo($originalName, PATHINFO_EXTENSION));
-        $extension = preg_replace('/[^a-z0-9]+/i', '', (string) $extension) ?: 'bin';
-        $storageKey = Str::uuid()->toString().'/'.Str::uuid()->toString().'.'.$extension;
-
-        $disk = 'challenge-files';
-        $stream = fopen($upload->getRealPath(), 'rb');
-        if ($stream === false) {
-            throw ValidationException::withMessages([
-                'file' => ['Unable to read uploaded file.'],
-            ]);
+        if ($file->getSize() === false || $file->getSize() > $maxBytes) {
+            throw new HttpException(413, 'File exceeds the configured size limit.');
         }
 
-        Storage::disk($disk)->put($storageKey, $stream);
-        if (is_resource($stream)) {
-            fclose($stream);
+        // Server-side detection: never trust the client extension or MIME.
+        $detected = $file->getMimeType();
+
+        if (! in_array($detected, (array) config('ctf.uploads.allowed_mime_types'), true)) {
+            throw new HttpException(422, 'File type is not allowed.');
         }
 
-        $checksum = hash_file('sha256', $upload->getRealPath()) ?: '';
-        $size = $upload->getSize() ?: Storage::disk($disk)->size($storageKey);
+        $disk = Storage::disk(self::DISK);
+        $key = 'challenges/'.$challenge->id.'/'.Str::uuid().'.'.$this->safeExtension($file->getClientOriginalName());
 
-        return ChallengeFile::query()->create([
+        $contents = file_get_contents($file->getRealPath());
+
+        if ($contents === false) {
+            throw new HttpException(422, 'Uploaded file could not be read.');
+        }
+
+        $disk->put($key, $contents);
+
+        return ChallengeFile::forceCreate([
             'challenge_id' => $challenge->id,
-            'original_name' => $originalName,
-            'storage_disk' => $disk,
-            'storage_key' => $storageKey,
-            'mime_type' => $detectedMime,
-            'size_bytes' => $size,
-            'checksum_sha256' => $checksum,
-            'visibility' => 'authenticated',
+            'original_name' => $this->sanitizeName($file->getClientOriginalName()),
+            'storage_disk' => self::DISK,
+            'storage_key' => $key,
+            'mime_type' => $detected,
+            'size_bytes' => $file->getSize(),
+            'checksum_sha256' => hash('sha256', $contents),
+            'visibility' => 'private',
         ]);
     }
 
-    public function replace(ChallengeFile $file, UploadedFile $upload): ChallengeFile
-    {
-        $oldKey = $file->storage_key;
-        $oldDisk = $file->storage_disk;
-
-        $this->assertWithinSizeLimit($upload);
-        $originalName = $this->sanitizeOriginalName($upload->getClientOriginalName());
-        $detectedMime = $this->detectMime($upload);
-        $this->assertAllowedMime($detectedMime);
-
-        $extension = strtolower($upload->getClientOriginalExtension() ?: pathinfo($originalName, PATHINFO_EXTENSION));
-        $extension = preg_replace('/[^a-z0-9]+/i', '', (string) $extension) ?: 'bin';
-        $storageKey = Str::uuid()->toString().'/'.Str::uuid()->toString().'.'.$extension;
-
-        $disk = 'challenge-files';
-        $stream = fopen($upload->getRealPath(), 'rb');
-        if ($stream === false) {
-            throw ValidationException::withMessages([
-                'file' => ['Unable to read uploaded file.'],
-            ]);
-        }
-        Storage::disk($disk)->put($storageKey, $stream);
-        if (is_resource($stream)) {
-            fclose($stream);
-        }
-
-        $file->forceFill([
-            'original_name' => $originalName,
-            'storage_disk' => $disk,
-            'storage_key' => $storageKey,
-            'mime_type' => $detectedMime,
-            'size_bytes' => $upload->getSize() ?: Storage::disk($disk)->size($storageKey),
-            'checksum_sha256' => hash_file('sha256', $upload->getRealPath()) ?: '',
-        ])->save();
-
-        Storage::disk($oldDisk)->delete($oldKey);
-
-        return $file->refresh();
-    }
-
-    public function delete(ChallengeFile $file): void
-    {
-        Storage::disk($file->storage_disk)->delete($file->storage_key);
-        $file->delete();
-    }
-
-    public function streamDownload(ChallengeFile $file): StreamedResponse
+    /**
+     * Authorized streaming download. Always attachment + octet-stream +
+     * nosniff: challenge files may be live malware samples.
+     */
+    public function downloadResponse(ChallengeFile $file): StreamedResponse
     {
         $disk = Storage::disk($file->storage_disk);
 
-        return response()->streamDownload(function () use ($disk, $file): void {
-            $stream = $disk->readStream($file->storage_key);
-            if ($stream === false) {
-                return;
-            }
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, $file->original_name, [
-            'Content-Type' => 'application/octet-stream',
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Disposition' => 'attachment; filename="'.$this->headerSafeFilename($file->original_name).'"',
-        ]);
-    }
-
-    public function sanitizeOriginalName(string $name): string
-    {
-        $name = str_replace(["\0", "\r", "\n"], '', $name);
-        $name = basename(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $name));
-        $name = preg_replace('/[^\P{C}\s]+/u', '', $name) ?? 'file';
-        $name = trim($name);
-        if ($name === '' || $name === '.' || $name === '..') {
-            $name = 'file.bin';
+        if (! $disk->exists($file->storage_key)) {
+            abort(404, 'Resource not found.');
         }
 
-        return Str::limit($name, 255, '');
+        return $disk->response(
+            $file->storage_key,
+            $file->original_name,
+            [
+                'Content-Type' => 'application/octet-stream',
+                'Content-Disposition' => 'attachment; filename="'.$this->asciiFilename($file->original_name).'"',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
+        );
     }
 
-    private function detectMime(UploadedFile $upload): string
+    /**
+     * Metadata-only sanitization: strip path separators and control chars.
+     * The result is never used as a filesystem path.
+     */
+    public function sanitizeName(string $name): string
     {
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $detected = $finfo->file($upload->getRealPath()) ?: 'application/octet-stream';
+        $name = str_replace(['/', '\\'], '_', $name);
+        $name = (string) preg_replace('/[\x00-\x1F\x7F]/', '', $name);
+        $name = trim($name, ' .');
 
-        return $detected;
-    }
-
-    private function assertAllowedMime(string $mime): void
-    {
-        $allowed = config('ctf.uploads.allowed_mime_types', []);
-        if (! in_array($mime, $allowed, true)) {
-            throw ValidationException::withMessages([
-                'file' => ['File type is not allowed.'],
-            ]);
+        if ($name === '') {
+            $name = 'file';
         }
+
+        return mb_substr($name, 0, 255);
     }
 
-    private function assertWithinSizeLimit(UploadedFile $upload): void
+    private function safeExtension(string $originalName): string
     {
-        $maxMb = (int) config('ctf.uploads.max_file_mb', 64);
-        $maxBytes = $maxMb * 1024 * 1024;
-        if (($upload->getSize() ?? 0) > $maxBytes) {
-            throw ValidationException::withMessages([
-                'file' => ["File exceeds maximum allowed size ({$maxMb} MB)."],
-            ]);
-        }
+        $ext = strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
+        $ext = (string) preg_replace('/[^a-z0-9]/', '', $ext);
+
+        return $ext !== '' ? substr($ext, 0, 12) : 'bin';
     }
 
-    private function headerSafeFilename(string $name): string
+    private function asciiFilename(string $name): string
     {
-        return str_replace(['"', "\r", "\n"], '', $name);
+        $ascii = (string) preg_replace('/[^\x20-\x7E]/', '_', $name);
+
+        return $ascii !== '' ? $ascii : 'download';
     }
 }

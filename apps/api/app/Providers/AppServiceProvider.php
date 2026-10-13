@@ -4,34 +4,21 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Enums\FlagValidationType;
-use App\Enums\Role;
-use App\Models\Achievement;
 use App\Models\Category;
 use App\Models\Challenge;
-use App\Models\ChallengeFile;
-use App\Models\ChallengeHint;
 use App\Models\Lesson;
 use App\Models\Path;
 use App\Models\PathModule;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
-use App\Models\Tag;
-use App\Models\User;
-use App\Policies\AchievementPolicy;
 use App\Policies\CategoryPolicy;
-use App\Policies\ChallengeFilePolicy;
-use App\Policies\ChallengeHintPolicy;
 use App\Policies\ChallengePolicy;
 use App\Policies\LessonPolicy;
-use App\Policies\ModulePolicy;
+use App\Policies\PathModulePolicy;
 use App\Policies\PathPolicy;
 use App\Policies\QuizAttemptPolicy;
 use App\Policies\QuizPolicy;
-use App\Policies\TagPolicy;
-use App\Policies\UserPolicy;
-use App\Services\FlagValidators\FlagValidatorRegistry;
-use App\Services\FlagValidators\StaticFlagValidator;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -40,61 +27,92 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * Register any application services.
+     */
     public function register(): void
     {
-        $this->app->singleton(FlagValidatorRegistry::class, function ($app): FlagValidatorRegistry {
-            $registry = new FlagValidatorRegistry;
-            $registry->register(FlagValidationType::Static, $app->make(StaticFlagValidator::class));
+        //
+    }
 
-            return $registry;
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        $this->defineRateLimiters();
+        $this->registerPolicies();
+
+        // Password reset links point at the Next.js frontend, never the API:
+        // the token travels in the URL once and is consumed server-side.
+        ResetPassword::createUrlUsing(static function (object $user, string $token): string {
+            $frontend = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+            return "{$frontend}/reset-password?token={$token}&email=".urlencode($user->getEmailForPasswordReset());
         });
     }
 
-    public function boot(): void
+    /**
+     * Content visibility policies (Phase 2: public learning content).
+     * Guests and learners see published/active records only;
+     * moderators and admins see everything.
+     */
+    protected function registerPolicies(): void
     {
-        Gate::policy(Path::class, PathPolicy::class);
-        Gate::policy(Lesson::class, LessonPolicy::class);
-        Gate::policy(PathModule::class, ModulePolicy::class);
+        Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Challenge::class, ChallengePolicy::class);
-        Gate::policy(ChallengeFile::class, ChallengeFilePolicy::class);
-        Gate::policy(ChallengeHint::class, ChallengeHintPolicy::class);
+        Gate::policy(Path::class, PathPolicy::class);
+        Gate::policy(PathModule::class, PathModulePolicy::class);
+        Gate::policy(Lesson::class, LessonPolicy::class);
         Gate::policy(Quiz::class, QuizPolicy::class);
         Gate::policy(QuizAttempt::class, QuizAttemptPolicy::class);
-        Gate::policy(User::class, UserPolicy::class);
-        Gate::policy(Achievement::class, AchievementPolicy::class);
-        Gate::policy(Category::class, CategoryPolicy::class);
-        Gate::policy(Tag::class, TagPolicy::class);
+    }
 
-        Gate::define('viewAdminDashboard', fn (User $user): bool => $user->isAtLeast(Role::Moderator));
-        Gate::define('viewAuditLogs', fn (User $user): bool => $user->isAtLeast(Role::Moderator));
+    /**
+     * Named rate limiters driven by config/ctf.php (docs/security.md §4).
+     * All resolve per-minute; authenticated limiters key on user id so one
+     * abuser cannot exhaust a shared bucket.
+     */
+    protected function defineRateLimiters(): void
+    {
+        $limits = config('ctf.rate_limits');
 
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute((int) config('ctf.rate_limits.api_per_minute', 300))
-                ->by($request->user()?->id ?: $request->ip());
-        });
+        RateLimiter::for('login', static fn (Request $request): Limit => Limit::perMinute(
+            $limits['auth_per_minute'],
+        )->by($request->ip()));
 
-        RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute((int) config('ctf.rate_limits.auth_per_minute', 5))
-                ->by($request->ip());
-        });
+        RateLimiter::for('register', static fn (Request $request): Limit => Limit::perHour(
+            3,
+        )->by($request->ip()));
 
-        // docs/api.md + security.md: 3 registrations / hour / IP
-        RateLimiter::for('register', function (Request $request) {
-            return Limit::perHour((int) config('ctf.rate_limits.register_per_hour', 3))
-                ->by($request->ip());
-        });
+        RateLimiter::for('submission-challenge', static fn (Request $request): Limit => Limit::perMinute(
+            $limits['submit_per_challenge_per_minute'],
+        )->by(
+            $request->user()?->getAuthIdentifier().'|'.$request->route('challenge')
+        ));
 
-        RateLimiter::for('submit-user', function (Request $request) {
-            return Limit::perMinute((int) config('ctf.rate_limits.submit_per_user_per_minute', 30))
-                ->by((string) $request->user()?->id);
-        });
+        RateLimiter::for('submission-user', static fn (Request $request): Limit => Limit::perMinute(
+            $limits['submit_per_user_per_minute'],
+        )->by(
+            $request->user()?->getAuthIdentifier() ?? $request->ip()
+        ));
 
-        RateLimiter::for('submit-challenge', function (Request $request) {
-            $challenge = $request->route('challenge');
-            $challengeId = is_object($challenge) ? (string) $challenge->getKey() : (string) $challenge;
+        RateLimiter::for('download', static fn (Request $request): Limit => Limit::perMinute(
+            $limits['download_per_minute'],
+        )->by(
+            $request->user()?->getAuthIdentifier() ?? $request->ip()
+        ));
 
-            return Limit::perMinute((int) config('ctf.rate_limits.submit_per_challenge_per_minute', 10))
-                ->by(($request->user()?->id ?? 'guest').'|'.$challengeId);
-        });
+        RateLimiter::for('admin', static fn (Request $request): Limit => Limit::perMinute(
+            $limits['admin_per_minute'],
+        )->by(
+            $request->user()?->getAuthIdentifier() ?? $request->ip()
+        ));
+
+        RateLimiter::for('api', static fn (Request $request): Limit => Limit::perMinute(
+            $limits['api_per_minute'],
+        )->by(
+            $request->user()?->getAuthIdentifier() ?? $request->ip()
+        ));
     }
 }

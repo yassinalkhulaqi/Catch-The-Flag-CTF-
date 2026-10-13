@@ -60,12 +60,13 @@ export function AdminUsersTable({
   }
 
   function banUser(userId: number, name: string) {
-    if (!window.confirm(`Ban ${name}? They will be unable to sign in.`)) return;
+    const reason = window.prompt(`Ban ${name}? Enter a reason (required).`);
+    if (reason === null || reason.trim() === "") return;
     setError(null);
     setMessage(null);
     startTransition(async () => {
       try {
-        await api.post(`/admin/users/${userId}/ban`);
+        await api.post(`/admin/users/${userId}/ban`, { reason: reason.trim() });
         setMessage("User banned.");
         router.refresh();
       } catch (err) {

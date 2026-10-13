@@ -6,16 +6,36 @@ namespace Database\Seeders;
 
 use App\Models\Tag;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
+/**
+ * Shared challenge tags. Keyed on slug so repeated runs converge.
+ */
 class TagSeeder extends Seeder
 {
+    /**
+     * @var list<array{slug: string, name: string}>
+     */
+    private const TAGS = [
+        ['slug' => 'sql-injection', 'name' => 'SQL Injection'],
+        ['slug' => 'xss', 'name' => 'XSS'],
+        ['slug' => 'rsa', 'name' => 'RSA'],
+        ['slug' => 'aes', 'name' => 'AES'],
+        ['slug' => 'steg', 'name' => 'Steganography'],
+        ['slug' => 'pcap', 'name' => 'PCAP Analysis'],
+        ['slug' => 'volatility', 'name' => 'Volatility'],
+        ['slug' => 'elf', 'name' => 'ELF'],
+        ['slug' => 'ghidra', 'name' => 'Ghidra'],
+        ['slug' => 'osint-usernames', 'name' => 'OSINT Usernames'],
+        ['slug' => 'wireshark', 'name' => 'Wireshark'],
+        ['slug' => 'misc-trivia', 'name' => 'Trivia'],
+    ];
+
     public function run(): void
     {
-        foreach (['beginner-friendly', 'pcap', 'memory-dump', 'windows', 'linux', 'encoding', 'metadata', 'logs'] as $name) {
-            Tag::query()->updateOrCreate(
-                ['slug' => Str::slug($name)],
-                ['name' => $name, 'slug' => Str::slug($name)],
+        foreach (self::TAGS as $tag) {
+            Tag::updateOrCreate(
+                ['slug' => $tag['slug']],
+                ['name' => $tag['name']],
             );
         }
     }

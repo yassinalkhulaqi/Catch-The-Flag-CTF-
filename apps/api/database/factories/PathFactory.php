@@ -4,38 +4,35 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContentStatus;
-use App\Enums\Difficulty;
-use App\Models\Category;
 use App\Models\Path;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
-/** @extends Factory<Path> */
+/**
+ * @extends Factory<Path>
+ */
 class PathFactory extends Factory
 {
     public function definition(): array
     {
-        $title = fake()->unique()->sentence(3);
+        $title = ucfirst(fake()->words(3, true));
 
         return [
-            'title' => rtrim($title, '.'),
-            'slug' => Str::slug($title).'-'.Str::random(5),
-            'summary' => fake()->sentence(12),
+            'title' => $title,
+            'slug' => strtolower((string) preg_replace('/[^a-z0-9]+/', '-', $title)).'-'.fake()->unique()->randomNumber(5),
+            'summary' => fake()->sentence(),
             'description' => fake()->paragraph(),
-            'category_id' => Category::factory(),
-            'difficulty' => Difficulty::Beginner->value,
+            'difficulty' => 'beginner',
             'estimated_minutes' => 60,
-            'status' => ContentStatus::Draft->value,
-            'published_at' => null,
+            'status' => 'published',
+            'published_at' => now(),
         ];
     }
 
-    public function published(): static
+    public function draft(): static
     {
-        return $this->state(fn () => [
-            'status' => ContentStatus::Published->value,
-            'published_at' => now(),
+        return $this->state(fn (array $attributes) => [
+            'status' => 'draft',
+            'published_at' => null,
         ]);
     }
 }

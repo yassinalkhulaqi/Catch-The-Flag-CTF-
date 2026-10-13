@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,8 +13,6 @@ class PathModule extends Model
 {
     use HasFactory;
 
-    protected $table = 'path_modules';
-
     protected $fillable = [
         'path_id',
         'title',
@@ -24,6 +21,9 @@ class PathModule extends Model
         'is_published',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -32,23 +32,21 @@ class PathModule extends Model
         ];
     }
 
+    /** @return BelongsTo<Path, $this> */
     public function path(): BelongsTo
     {
         return $this->belongsTo(Path::class);
     }
 
+    /** @return HasMany<Lesson, $this> */
     public function lessons(): HasMany
     {
-        return $this->hasMany(Lesson::class, 'module_id')->orderBy('position');
+        return $this->hasMany(Lesson::class, 'module_id')->orderBy('position')->orderBy('id');
     }
 
+    /** @return HasMany<Quiz, $this> */
     public function quizzes(): HasMany
     {
         return $this->hasMany(Quiz::class, 'module_id');
-    }
-
-    public function scopePublished(Builder $query): Builder
-    {
-        return $query->where('is_published', true);
     }
 }
