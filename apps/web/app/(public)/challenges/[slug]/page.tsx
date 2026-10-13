@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChallengeCard } from "@/components/challenge-card";
 import { DifficultyPill } from "@/components/difficulty-pill";
+import { FileDownloadButton } from "@/components/file-download-button";
+import { FlagSubmitBox } from "@/components/flag-submit-box";
+import { HintUnlockButton } from "@/components/hint-unlock-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -120,8 +123,14 @@ export default async function ChallengeDetailPage({
         </p>
       </section>
 
-      {/* Phase 3: mount FlagSubmitBox here */}
-      <div id="flag-submit" />
+      <section aria-labelledby="submit-flag" className="mt-10">
+        <h2 id="submit-flag" className="text-lg font-semibold text-foreground">
+          Submit flag
+        </h2>
+        <div className="mt-3">
+          <FlagSubmitBox challengeId={challenge.id} solved={challenge.solved} />
+        </div>
+      </section>
 
       <section aria-labelledby="attachments" className="mt-10">
         <h2 id="attachments" className="text-lg font-semibold text-foreground">
@@ -144,12 +153,7 @@ export default async function ChallengeDetailPage({
                       {formatBytes(f.size_bytes)} · sha256:{f.checksum_sha256}
                     </p>
                   </div>
-                  <a
-                    href={`/api/v1/challenges/${challenge.id}/files/${f.id}/download`}
-                    className={buttonVariants("outline", "sm")}
-                  >
-                    Download
-                  </a>
+                  <FileDownloadButton challengeId={challenge.id} file={f} />
                 </Card>
               </li>
             ))}
@@ -173,16 +177,7 @@ export default async function ChallengeDetailPage({
                   <p className="font-mono text-xs text-muted">
                     Hint {h.position} · costs {h.cost_points} pts
                   </p>
-                  {h.unlocked && h.content ? (
-                    <p className="mt-2 text-sm text-foreground">{h.content}</p>
-                  ) : (
-                    <p className="mt-2 text-sm text-faint">
-                      Locked — unlock this hint to reveal its content
-                      {h.cost_points > 0
-                        ? ` (${h.cost_points} pts will be deducted from the solve value).`
-                        : "."}
-                    </p>
-                  )}
+                  <HintUnlockButton challengeId={challenge.id} hint={h} />
                 </Card>
               </li>
             ))}

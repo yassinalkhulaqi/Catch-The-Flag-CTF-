@@ -1,24 +1,28 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { serverApi } from "@/lib/api/server";
-import type { LeaderboardEntry } from "@/lib/types";
+import { getLeaderboard } from "@/lib/api/leaderboard";
+import { formatXp } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Leaderboard" };
 
-async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-  try {
-    const res = await serverApi<{ data: LeaderboardEntry[] }>(
-      "GET",
-      "/leaderboard",
-    );
-    return res.data;
-  } catch {
-    return [];
-  }
-}
+const PER_PAGE = 20;
 
-export default async function LeaderboardPage() {
-  const entries = await getLeaderboard();
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const params = await searchParams;
+  const parsed = Number.parseInt(params.page ?? "1", 10);
+  const page = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+
+  const result = await getLeaderboard(page, PER_PAGE);
+  const entries = result?.data ?? [];
+  const meta = result?.meta ?? null;
+  const lastPage = meta?.last_page ?? 1;
+  const total = meta?.total ?? entries.length;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -41,28 +45,101 @@ export default async function LeaderboardPage() {
           </CardDescription>
         </Card>
       ) : (
-        <ol className="mt-8 space-y-2">
-          {entries.map((e) => (
-            <li key={e.id}>
-              <Card className="flex items-center gap-4">
-                <span
-                  className="w-8 shrink-0 font-mono text-sm text-faint"
-                  aria-hidden="true"
-                >
-                  {String(e.rank).padStart(2, "0")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {e.name}
-                  </p>
-                  <p className="font-mono text-xs text-faint">
-                    {e.xp} XP · {e.solved_count} solves
-                  </p>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ol>
+        <>
+          <div className="mt-8 overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <caption className="sr-only">
+                Leaderboard ranked by XP, then solves
+              </caption>
+              <thead>
+                <tr className="border-b border-border bg-surface-raised font-mono text-xs uppercase tracking-wide text-muted">
+                  <th scope="col" className="px-4 py-3 text-left font-medium">
+                    Rank
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium">
+                    Name
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-right font-medium"
+                  >
+                    XP
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-right font-medium"
+                  >
+                    Solves
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => (
+                  <tr
+                    key={e.id}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="px-4 py-3 font-mono text-faint">
+                      {String(e.rank).padStart(2, "0")}
+                    </td>
+                    <th
+                      scope="row"
+                      className="px-4 py-3 text-left font-semibold text-foreground"
+                    >
+                      {e.name}
+                    </th>
+                    <td className="px-4 py-3 text-right font-mono text-muted">
+                      {formatXp(e.xp)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-muted">
+                      {e.solved_count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <nav
+            aria-label="Leaderboard pages"
+            className="mt-4 flex items-center justify-between gap-3"
+          >
+            {page > 1 ? (
+              <Link
+                href={`/leaderboard?page=${page - 1}`}
+                className={buttonVariants("outline", "sm")}
+              >
+                ← Previous
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className={buttonVariants("outline", "sm", "opacity-50")}
+              >
+                ← Previous
+              </span>
+            )}
+            <p className="font-mono text-xs text-faint" aria-live="polite">
+              Page {page} of {lastPage} · {total}{" "}
+              {total === 1 ? "user" : "users"}
+            </p>
+            {page < lastPage ? (
+              <Link
+                href={`/leaderboard?page=${page + 1}`}
+                className={buttonVariants("outline", "sm")}
+              >
+                Next →
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className={buttonVariants("outline", "sm", "opacity-50")}
+              >
+                Next →
+              </span>
+            )}
+          </nav>
+        </>
       )}
     </div>
   );

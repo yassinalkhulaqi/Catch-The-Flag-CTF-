@@ -52,7 +52,7 @@ class ChallengeDetailResource extends JsonResource
                     'original_name' => $file->original_name,
                     'mime_type' => $file->mime_type,
                     'size_bytes' => (int) $file->size_bytes,
-                    'url' => "/api/v1/challenges/{$this->id}/files/{$file->id}",
+                    'url' => "/api/v1/challenges/{$this->id}/files/{$file->id}/download",
                 ])->values()->all();
             }),
             'hints' => $this->whenLoaded('hints', function () use ($unlockedHintIds) {
