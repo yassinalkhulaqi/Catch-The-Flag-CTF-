@@ -4,6 +4,7 @@ use App\Exceptions\AccountBannedException;
 use App\Http\Middleware\AuthenticateOptionally;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\RejectBannedUsers;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -33,6 +34,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
             'banned' => RejectBannedUsers::class,
             'optional-auth' => AuthenticateOptionally::class,
+        ]);
+
+        // Hardening headers on every /api/* response (docs/security.md §4).
+        // CORS stays separate via HandleCors + config/cors.php.
+        $middleware->api(append: [
+            SecurityHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

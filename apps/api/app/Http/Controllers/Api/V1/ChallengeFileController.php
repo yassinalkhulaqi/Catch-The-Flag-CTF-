@@ -21,7 +21,7 @@ class ChallengeFileController extends Controller
     public function download(
         Request $request,
         string $challenge,
-        int $file,
+        string $file,
         ChallengeFileService $files,
     ): StreamedResponse {
         $model = $this->resolve($challenge);
@@ -30,7 +30,13 @@ class ChallengeFileController extends Controller
             abort(404);
         }
 
-        $fileModel = $model->files()->where('id', $file)->firstOrFail();
+        // Numeric id lookup only — encoded traversal ("%2e%2e", "..",
+        // negative ids) is a 404, never a 500 (SecurityTest::g).
+        if (! ctype_digit($file)) {
+            abort(404);
+        }
+
+        $fileModel = $model->files()->where('id', (int) $file)->firstOrFail();
 
         return $files->downloadResponse($fileModel);
     }
