@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\AccountBannedException;
+use App\Http\Middleware\AuthenticateOptionally;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\RejectBannedUsers;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureRole::class,
             'banned' => RejectBannedUsers::class,
+            'optional-auth' => AuthenticateOptionally::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

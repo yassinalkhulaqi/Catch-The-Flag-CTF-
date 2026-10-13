@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Category;
+use App\Models\Challenge;
+use App\Models\Path;
+use App\Policies\CategoryPolicy;
+use App\Policies\ChallengePolicy;
+use App\Policies\PathPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->defineRateLimiters();
+        $this->registerPolicies();
 
         // Password reset links point at the Next.js frontend, never the API:
         // the token travels in the URL once and is consumed server-side.
@@ -34,6 +42,18 @@ class AppServiceProvider extends ServiceProvider
 
             return "{$frontend}/reset-password?token={$token}&email=".urlencode($user->getEmailForPasswordReset());
         });
+    }
+
+    /**
+     * Content visibility policies (Phase 2: public learning content).
+     * Guests and learners see published/active records only;
+     * moderators and admins see everything.
+     */
+    protected function registerPolicies(): void
+    {
+        Gate::policy(Category::class, CategoryPolicy::class);
+        Gate::policy(Challenge::class, ChallengePolicy::class);
+        Gate::policy(Path::class, PathPolicy::class);
     }
 
     /**

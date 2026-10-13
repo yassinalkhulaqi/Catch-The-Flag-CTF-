@@ -1,26 +1,54 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Suspense } from "react";
+import { ChallengeCard } from "@/components/challenge-card";
+import { SearchFilterBar } from "@/components/search-filter-bar";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { listChallenges } from "@/lib/api/challenges";
 import { serverApi } from "@/lib/api/server";
-import type { ChallengeSummary, Paginated } from "@/lib/types";
+import type { Category } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Challenges" };
 
-async function getChallenges(): Promise<ChallengeSummary[]> {
+async function getCategories(): Promise<
+  Array<Pick<Category, "id" | "name" | "slug">>
+> {
   try {
-    const res = await serverApi<Paginated<ChallengeSummary>>(
-      "GET",
-      "/challenges",
-    );
+    const res = await serverApi<{ data: Category[] }>("GET", "/categories");
     return res.data;
   } catch {
     return [];
   }
 }
 
-export default async function ChallengesPage() {
-  const challenges = await getChallenges();
+function hasActiveFilters(params: Record<string, string | undefined>): boolean {
+  return ["q", "category", "difficulty", "solved"].some(
+    (key) => params[key] !== undefined && params[key] !== "",
+  );
+}
+
+export default async function ChallengesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    difficulty?: string;
+    solved?: string;
+  }>;
+}) {
+  const params = await searchParams;
+  const [challenges, categories] = await Promise.all([
+    listChallenges({
+      q: params.q,
+      category: params.category,
+      difficulty: params.difficulty,
+      solved: params.solved,
+    }),
+    getCategories(),
+  ]);
+  const filtered = hasActiveFilters(params);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -35,35 +63,39 @@ export default async function ChallengesPage() {
         infrastructure in V1 — the artifact is the arena.
       </p>
 
+      <div className="mt-8">
+        <Suspense>
+          <SearchFilterBar categories={categories} />
+        </Suspense>
+      </div>
+
       {challenges.length === 0 ? (
         <Card className="mt-8">
-          <CardTitle>No challenges published yet</CardTitle>
+          <CardTitle>
+            {filtered
+              ? "No challenges match your filters"
+              : "No challenges published yet"}
+          </CardTitle>
           <CardDescription className="mt-2">
-            The first challenge set is being authored. Pick a learning path in
-            the meantime.
+            {filtered
+              ? "Try widening the search or clearing the active filters."
+              : "The first challenge set is being authored. Pick a learning path in the meantime."}
           </CardDescription>
-          <Link href="/paths" className={buttonVariants("outline", "sm")}>
-            Browse paths
-          </Link>
+          {filtered ? (
+            <Link href="/challenges" className={buttonVariants("outline", "sm")}>
+              Clear filters
+            </Link>
+          ) : (
+            <Link href="/paths" className={buttonVariants("outline", "sm")}>
+              Browse paths
+            </Link>
+          )}
         </Card>
       ) : (
         <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {challenges.map((c) => (
             <li key={c.id}>
-              <Card className="h-full">
-                <CardTitle>
-                  <Link
-                    href={`/challenges/${c.slug}`}
-                    className="hover:text-accent"
-                  >
-                    {c.title}
-                  </Link>
-                </CardTitle>
-                <CardDescription className="mt-2">
-                  {c.category.name} · {c.difficulty} · {c.points} pts ·{" "}
-                  {c.solve_count} solves
-                </CardDescription>
-              </Card>
+              <ChallengeCard challenge={c} />
             </li>
           ))}
         </ul>

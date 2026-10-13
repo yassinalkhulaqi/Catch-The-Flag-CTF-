@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\ChallengeController;
+use App\Http\Controllers\Api\V1\PathController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\TagController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +31,19 @@ Route::prefix('v1')->group(function (): void {
 
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+
+    // Public content catalog (Phase 2). `optional-auth` resolves a
+    // bearer token when present (per-viewer solved/progress fields)
+    // without ever rejecting guests; `banned` still locks out
+    // suspended accounts.
+    Route::middleware(['optional-auth', 'banned', 'throttle:api'])->group(function (): void {
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::get('/tags', [TagController::class, 'index']);
+        Route::get('/challenges', [ChallengeController::class, 'index']);
+        Route::get('/challenges/{challenge}', [ChallengeController::class, 'show']);
+        Route::get('/paths', [PathController::class, 'index']);
+        Route::get('/paths/{path}', [PathController::class, 'show']);
+    });
 
     Route::middleware(['auth:sanctum', 'banned'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
