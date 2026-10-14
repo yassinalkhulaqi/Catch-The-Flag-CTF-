@@ -5,6 +5,7 @@ import { useId, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { DIFFICULTIES, difficultyLabel } from "@/lib/format";
+import { TIERS, TIER_LABELS, normalizeTier, type Tier } from "@/lib/tracks";
 import type { Category, Tag } from "@/lib/types";
 
 export function ChallengeFilters({
@@ -20,6 +21,15 @@ export function ChallengeFilters({
   const [pending, startTransition] = useTransition();
 
   const view = params.get("view") === "grid" ? "grid" : "list";
+  const activeTier: Tier | null = normalizeTier(params.get("tier"));
+
+  function setTier(next: Tier | null) {
+    const query = new URLSearchParams(params.toString());
+    if (next === null) query.delete("tier");
+    else query.set("tier", next);
+    query.delete("page");
+    startTransition(() => router.push(`/challenges${query.toString() ? `?${query}` : ""}`));
+  }
 
   function setView(next: "list" | "grid") {
     const query = new URLSearchParams(params.toString());
@@ -35,13 +45,40 @@ export function ChallengeFilters({
       const v = String(data.get(key) ?? "").trim();
       if (v) next.set(key, v);
     }
+    // Preserve the presentation-only tier + layout params across submits.
+    if (activeTier) next.set("tier", activeTier);
+    if (view === "grid") next.set("view", view);
     startTransition(() => {
       router.push(`/challenges${next.toString() ? `?${next}` : ""}`);
     });
   }
 
   return (
-    <form
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Tier">
+        <Button
+          type="button"
+          size="sm"
+          variant={activeTier === null ? "primary" : "outline"}
+          aria-pressed={activeTier === null}
+          onClick={() => setTier(null)}
+        >
+          All
+        </Button>
+        {TIERS.map((tier) => (
+          <Button
+            key={tier}
+            type="button"
+            size="sm"
+            variant={activeTier === tier ? "primary" : "outline"}
+            aria-pressed={activeTier === tier}
+            onClick={() => setTier(tier)}
+          >
+            {TIER_LABELS[tier]}
+          </Button>
+        ))}
+      </div>
+      <form
       className="grid gap-3 border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-5"
       onSubmit={(e) => {
         e.preventDefault();
@@ -159,6 +196,7 @@ export function ChallengeFilters({
           </Button>
         </div>
       </div>
-    </form>
+      </form>
+    </div>
   );
 }
