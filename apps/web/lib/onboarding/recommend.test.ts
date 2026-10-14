@@ -7,6 +7,7 @@ function challenge(partial: Partial<ChallengeSummary> & Pick<ChallengeSummary, "
     title: partial.slug,
     category: { id: 1, name: "SOC", slug: "soc", color: null },
     difficulty: "beginner",
+    tier: "apprentice",
     points: 100,
     estimated_minutes: 20,
     tags: [],

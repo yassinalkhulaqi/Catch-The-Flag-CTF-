@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
+import { tierFor } from "@/lib/tracks";
 import { cn } from "@/lib/utils";
 import type {
   Category,
@@ -92,6 +93,7 @@ export default async function AdminChallengesPage({
           ? { id: cat.id, name: cat.name, slug: cat.slug, color: cat.color }
           : { id: 0, name: "Uncategorized", slug: "uncategorized", color: null },
         difficulty: row.difficulty,
+        tier: tierFor(row.difficulty),
         points: row.points,
         estimated_minutes: row.estimated_minutes ?? 0,
         tags: row.tags ?? [],
