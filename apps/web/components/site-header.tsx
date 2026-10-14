@@ -7,6 +7,7 @@ import { useCommandPalette } from "@/components/command-palette";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { NotificationsCenter } from "@/components/notifications-center";
 import { Logo } from "@/components/logo";
+import { SoundToggle } from "@/components/sound-toggle";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -75,6 +76,7 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
           </button>
           <LocaleSwitcher locale={locale} />
           <ThemeSwitcher initial={theme} signedIn={!!user} />
+          <SoundToggle />
           {user ? (
             <>
               <Link href="/dashboard" className={cn(linkClass("/dashboard"), "font-medium")}>
@@ -128,6 +130,7 @@ export function SiteHeader({ user }: { user: CurrentUser | null }) {
           ))}
           <LocaleSwitcher locale={locale} />
           <ThemeSwitcher initial={theme} signedIn={!!user} />
+          <SoundToggle />
           {user ? (
             <>
               <Link href="/dashboard" onClick={() => setOpen(false)} className={linkClass("/dashboard")}>

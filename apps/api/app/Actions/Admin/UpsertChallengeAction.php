@@ -23,9 +23,9 @@ class UpsertChallengeAction
 {
     /** @var list<string> */
     private const SNAPSHOT_KEYS = [
-        'title', 'slug', 'description', 'scenario', 'category_id',
-        'difficulty', 'points', 'estimated_minutes', 'flag_validation_type',
-        'max_attempts', 'status',
+        'title', 'slug', 'description', 'scenario', 'solution_walkthrough',
+        'category_id', 'difficulty', 'points', 'estimated_minutes',
+        'flag_validation_type', 'max_attempts', 'status',
     ];
 
     /**

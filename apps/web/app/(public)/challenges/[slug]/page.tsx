@@ -2,16 +2,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChallengeCard } from "@/components/challenge-card";
 import { ChallengeFiles } from "@/components/challenge-files";
-import { DifficultyBadge } from "@/components/difficulty-badge";
 import { ErrorState, PageHeader } from "@/components/empty-state";
-import { FlagSubmitBox } from "@/components/flag-submit-box";
 import { HintList } from "@/components/hint-list";
+import { LabActionHub } from "@/components/lab-action-hub";
+import { LabObjective } from "@/components/lab-objective";
+import { LabStatusBanner } from "@/components/lab-status-banner";
 import { Markdown } from "@/components/markdown";
-import { Badge } from "@/components/ui/badge";
+import { SolutionWalkthrough } from "@/components/solution-walkthrough";
+import { LabSolveSection } from "@/components/solve-celebration";
+import { ToolsDrawer } from "@/components/tools/tools-drawer";
 import { ApiError } from "@/lib/api/client";
 import { getCurrentUser, serverApi } from "@/lib/api/server";
-import { formatXp } from "@/lib/utils";
 import type { ChallengeDetail } from "@/lib/types";
+
+type ChallengeDetailWithWalkthrough = ChallengeDetail & {
+  solution_walkthrough?: string | null;
+};
 
 export async function generateMetadata({
   params,
@@ -35,9 +41,12 @@ export default async function ChallengeDetailPage({
   const { slug } = await params;
   const user = await getCurrentUser();
 
-  let challenge: ChallengeDetail | null = null;
+  let challenge: ChallengeDetailWithWalkthrough | null = null;
   try {
-    const res = await serverApi<{ data: ChallengeDetail }>("GET", `/challenges/${slug}`);
+    const res = await serverApi<{ data: ChallengeDetailWithWalkthrough }>(
+      "GET",
+      `/challenges/${slug}`,
+    );
     challenge = res.data;
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
@@ -50,45 +59,92 @@ export default async function ChallengeDetailPage({
 
   if (!challenge) notFound();
 
+  const objectiveText =
+    challenge.scenario ?? "Analyze the artifacts below and recover the flag.";
+  const targetText =
+    challenge.files.length > 0
+      ? challenge.files.map((f) => f.original_name).join(", ")
+      : `${challenge.category.name} static lab`;
+  const walkthrough = challenge.solution_walkthrough;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <PageHeader
         eyebrow={challenge.category.name}
         title={challenge.title}
         description={challenge.scenario ?? undefined}
-        actions={
-          <div className="flex flex-col items-end gap-2">
-            <DifficultyBadge difficulty={challenge.difficulty} />
-            <p className="font-mono text-sm text-accent">{formatXp(challenge.points)} pts</p>
-            {challenge.solved ? <Badge tone="success">Solved</Badge> : null}
-          </div>
-        }
       />
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-10">
-          <section aria-labelledby="desc-heading">
-            <h2 id="desc-heading" className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
-              Description
+      {/* 1 — status */}
+      <LabStatusBanner solved={challenge.solved} points={challenge.points} />
+
+      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-8">
+          {/* 2 — objective */}
+          <LabObjective
+            objective={challenge.scenario}
+            target={targetText}
+            difficulty={challenge.difficulty}
+            points={challenge.points}
+            categoryName={challenge.category.name}
+          />
+
+          <section aria-labelledby="briefing-heading">
+            <h2
+              id="briefing-heading"
+              className="font-mono text-xs uppercase tracking-[0.16em] text-accent"
+            >
+              Briefing
             </h2>
             <div className="mt-3">
               <Markdown content={challenge.description} />
             </div>
           </section>
 
-          <section aria-labelledby="files-heading">
-            <h2 id="files-heading" className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent">
-              Files
+          {/* 3 — access the lab (static artifacts, no live infra) */}
+          <LabActionHub
+            challengeId={challenge.id}
+            files={challenge.files}
+            targetText={targetText}
+            objectiveText={objectiveText}
+            authenticated={!!user}
+          />
+
+          {/* 4 — flag submit + celebration */}
+          <section aria-labelledby="submit-heading">
+            <h2
+              id="submit-heading"
+              className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
+            >
+              Submit
             </h2>
-            <ChallengeFiles
-              challengeId={challenge.id}
-              files={challenge.files}
-              authenticated={!!user}
-            />
+            {user ? (
+              <LabSolveSection
+                challengeId={challenge.id}
+                alreadySolved={challenge.solved}
+                pointsRemaining={challenge.points_remaining}
+              />
+            ) : (
+              <div className="border border-border bg-surface p-5">
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
+                  Submit flag
+                </p>
+                <p className="mt-3 text-sm text-muted">
+                  <Link href="/login" className="text-accent hover:underline">
+                    Sign in
+                  </Link>{" "}
+                  to submit flags and earn XP.
+                </p>
+              </div>
+            )}
           </section>
 
+          {/* 5 — hints */}
           <section aria-labelledby="hints-heading">
-            <h2 id="hints-heading" className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent">
+            <h2
+              id="hints-heading"
+              className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
+            >
               Hints
             </h2>
             {user ? (
@@ -102,24 +158,34 @@ export default async function ChallengeDetailPage({
               </p>
             )}
           </section>
+
+          {/* 6 — attachments */}
+          <section aria-labelledby="files-heading">
+            <h2
+              id="files-heading"
+              className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
+            >
+              Attachments
+            </h2>
+            <ChallengeFiles
+              challengeId={challenge.id}
+              files={challenge.files}
+              authenticated={!!user}
+            />
+          </section>
+
+          {/* 7 — official walkthrough (nullable until STEP 6 backend field lands) */}
+          {typeof walkthrough === "string" && walkthrough.trim() !== "" ? (
+            <section aria-labelledby="walkthrough-heading">
+              <h2 id="walkthrough-heading" className="sr-only">
+                Official solution walkthrough
+              </h2>
+              <SolutionWalkthrough walkthrough={walkthrough} />
+            </section>
+          ) : null}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          {user ? (
-            <FlagSubmitBox challengeId={challenge.id} alreadySolved={challenge.solved} />
-          ) : (
-            <div className="border border-border bg-surface p-5">
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
-                Submit flag
-              </p>
-              <p className="mt-3 text-sm text-muted">
-                <Link href="/login" className="text-accent hover:underline">
-                  Sign in
-                </Link>{" "}
-                to submit flags and earn XP.
-              </p>
-            </div>
-          )}
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start" aria-label="Lab details">
           <div className="border border-border bg-surface p-4 text-sm text-muted">
             <p>
               Points remaining:{" "}
@@ -153,6 +219,8 @@ export default async function ChallengeDetailPage({
           </div>
         </section>
       ) : null}
+
+      <ToolsDrawer />
     </div>
   );
 }

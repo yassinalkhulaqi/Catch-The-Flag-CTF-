@@ -29,6 +29,7 @@ const challenge: ChallengeSummary = {
     color: "#8B5CF6",
   },
   difficulty: "beginner",
+  tier: "apprentice",
   points: 50,
   estimated_minutes: 20,
   tags: [{ id: 1, name: "beginner-friendly", slug: "beginner-friendly" }],

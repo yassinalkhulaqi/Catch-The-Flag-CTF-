@@ -36,6 +36,7 @@ class ChallengeRequest extends FormRequest
             'slug' => ['sometimes', 'nullable', 'string', 'alpha_dash', 'max:160', Rule::unique('challenges', 'slug')->ignore($ignoreId)],
             'description' => [$required, 'string'],
             'scenario' => ['sometimes', 'nullable', 'string'],
+            'solution_walkthrough' => ['sometimes', 'nullable', 'string'],
             'category_id' => [$required, 'integer', 'exists:categories,id'],
             'difficulty' => [$required, 'string', Rule::in(['beginner', 'intermediate', 'advanced', 'expert'])],
             'points' => [$required, 'integer', 'min:1', 'max:10000'],

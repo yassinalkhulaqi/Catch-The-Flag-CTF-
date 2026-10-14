@@ -218,6 +218,7 @@ export interface ChallengeSummary {
   slug: string;
   category: Pick<Category, "id" | "name" | "slug" | "color">;
   difficulty: Difficulty;
+  tier: "apprentice" | "practitioner" | "expert";
   points: number;
   estimated_minutes: number;
   tags: Tag[];
@@ -229,6 +230,7 @@ export interface ChallengeSummary {
 export interface ChallengeDetail extends ChallengeSummary {
   description: string;
   scenario: string | null;
+  solution_walkthrough: string | null;
   files: ChallengeFile[];
   hints: ChallengeHint[];
   author: { id: number; name: string } | null;

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { DifficultyBadge } from "@/components/difficulty-badge";
+import { TierPill } from "@/components/tier-pill";
 import { Badge } from "@/components/ui/badge";
+import { tierFor } from "@/lib/tracks";
 import { cn, formatXp } from "@/lib/utils";
 import type { ChallengeSummary } from "@/lib/types";
 
@@ -31,6 +33,7 @@ export function ChallengeCard({
               {challenge.category.name}
             </span>
             <DifficultyBadge difficulty={challenge.difficulty} />
+            <TierPill tier={tierFor(challenge.difficulty)} />
             {challenge.solved ? (
               <Badge tone="success" data-testid="solved-badge">
                 Solved
@@ -41,14 +44,20 @@ export function ChallengeCard({
             {challenge.title}
           </h3>
           {challenge.tags.length > 0 ? (
-            <p className="font-mono text-xs text-faint">
-              {challenge.tags.map((t) => t.name).join(" · ")}
-            </p>
+            <ul aria-label="Vulnerability tags" className="flex flex-wrap gap-1">
+              {challenge.tags.map((t) => (
+                <li key={t.id}>
+                  <Badge tone="neutral">{t.name}</Badge>
+                </li>
+              ))}
+            </ul>
           ) : null}
         </div>
         <div className="shrink-0 text-right">
           <p className="font-mono text-sm text-accent">{formatXp(challenge.points)} pts</p>
-          <p className="text-xs text-faint">{challenge.solve_count} solves</p>
+          <p className="text-xs text-faint" data-testid="solve-count">
+            {challenge.solve_count} solve{challenge.solve_count === 1 ? "" : "s"}
+          </p>
         </div>
       </div>
     </Link>
