@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             TagSeeder::class,
             ChallengeSeeder::class,
+            WebSecuritySeeder::class,
             AchievementSeeder::class,
             PathSeeder::class,
         ]);

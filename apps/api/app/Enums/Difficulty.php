@@ -24,4 +24,14 @@ enum Difficulty: string
             self::Expert => 4,
         };
     }
+
+    /** Academy tier for PortSwigger-style tracks (presentation metadata). */
+    public function tier(): string
+    {
+        return match ($this) {
+            self::Beginner => 'apprentice',
+            self::Intermediate => 'practitioner',
+            self::Advanced, self::Expert => 'expert',
+        };
+    }
 }

@@ -31,6 +31,7 @@ class ChallengeSummaryResource extends JsonResource
             'slug' => $this->slug,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'difficulty' => $this->difficulty->value,
+            'tier' => $this->difficulty->tier(),
             'points' => (int) $this->points,
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'solve_count' => (int) $this->solve_count,

@@ -24,6 +24,7 @@ class Challenge extends Model
         'slug',
         'description',
         'scenario',
+        'solution_walkthrough',
         'category_id',
         'difficulty',
         'points',

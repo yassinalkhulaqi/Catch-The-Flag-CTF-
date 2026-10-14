@@ -28,6 +28,7 @@ class AdminChallengeResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'scenario' => $this->scenario,
+            'solution_walkthrough' => $this->solution_walkthrough,
             'category_id' => $this->category_id,
             'difficulty' => $this->difficulty->value,
             'points' => (int) $this->points,
