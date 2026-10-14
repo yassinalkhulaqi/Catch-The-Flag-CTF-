@@ -15,10 +15,12 @@ export function FlagSubmitBox({
   challengeId,
   alreadySolved = false,
   pointsRemaining,
+  onSolved,
 }: {
   challengeId: number;
   alreadySolved?: boolean;
   pointsRemaining?: number;
+  onSolved?: (outcome: SubmissionOutcome) => void;
 }) {
   const id = useId();
   const router = useRouter();
@@ -61,6 +63,7 @@ export function FlagSubmitBox({
         setAttempts((count) => count + 1);
         if (res.data.result === "correct") {
           setFlag("");
+          onSolved?.(res.data);
           if (!res.data.already_solved && !prefersReducedMotion() && panelRef.current) {
             const rect = panelRef.current.getBoundingClientRect();
             const { burstConfetti } = await import("@/lib/motion/confetti");
