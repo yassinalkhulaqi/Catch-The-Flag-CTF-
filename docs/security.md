@@ -261,3 +261,29 @@ Manual/operational checklist lives in [development.md](development.md) §8.
   undecryptable and `flag_hash` unverifiable → must re-seed flags (documented
   runbook in deployment.md).
 - Compromised admin → ban, revoke all tokens, export audit trail.
+
+---
+
+## 13. CI security scanning & quality gates
+
+P0 — Foundations adds automated scanning that runs on every push/PR:
+
+| Scanner | Target | Fails CI on |
+|---|---|---|
+| gitleaks | whole repo (`.gitleaks.toml`) | any matched secret |
+| Semgrep SAST | `apps/api` (PHP/Laravel rulesets) | high/critical findings |
+| Semgrep SAST | `apps/web` (Next.js/TS rulesets) | high/critical findings |
+| `composer audit` | `apps/api` | high/critical advisories |
+| `npm audit` | `apps/web` | high/critical advisories |
+
+Scanner artifacts (gitleaks JSON report, Semgrep SARIF) are uploaded as
+workflow artifacts for review. Sentry is wired into both apps (`SENTRY_DSN` /
+`SENTRY_LARAVEL_DSN`) behind env vars with PII scrubbing on and release tagging
+from `SENTRY_RELEASE` (git SHA).
+
+Playwright smoke tests (home loads, login works) run against the dockerized
+stack on every push; Lighthouse CI enforces LCP < 2.5s, INP < 200ms, CLS < 0.1
+on `/`, `/challenges`, `/paths`.
+
+N+1 detection (`nunomaduro/laravel-query-detector`, strict mode) is active in
+the test environment so any N+1 query fails the test suite.

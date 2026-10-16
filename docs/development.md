@@ -56,11 +56,12 @@ Default seeded admin: see `.env.example` → `SEED_ADMIN_EMAIL` /
 ```bash
 php artisan migrate                 # migrate
 php artisan migrate:fresh --seed    # reset + seed
-php artisan test                    # all tests
+php artisan test                    # all tests (N+1 detection active in testing env)
 php artisan test --filter=Flag      # subset
 php artisan pints                   # style fixer (Laravel Pint)
 php artisan route:list --path=api   # route inventory
 php artisan config:clear            # after .env edits (native only)
+composer audit                      # dependency advisory audit (fail on high/critical)
 ```
 
 ### Frontend (`apps/web`)
@@ -71,6 +72,9 @@ npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
 npm run test         # Vitest unit/component
 npm run test:watch   # watch mode
+npm audit            # dependency advisory audit (fail on high/critical)
+npx playwright test  # E2E smoke tests
+npx lhci autorun     # Lighthouse CI budgets (LCP<2.5s, INP<200ms, CLS<0.1)
 ```
 
 ### Root helpers
@@ -79,6 +83,27 @@ npm run test:watch   # watch mode
 ./scripts/dev.sh test    # backend + frontend test suites
 ./scripts/dev.sh lint    # pint + eslint + tsc
 ```
+
+### CI (`.github/workflows/ci.yml`)
+Jobs: `api` (PHPUnit + Pint + composer audit + Semgrep), `web` (lint · typecheck ·
+test · build + npm audit + Semgrep), `security-scan` (gitleaks secret scan),
+`playwright` (E2E smoke against docker stack), `lighthouse` (perf budgets).
+Artifacts: gitleaks JSON report, Semgrep SARIF, Playwright report.
+
+### Sentry (error tracking)
+
+Both apps report to Sentry behind env vars; PII scrubbing is on (no passwords,
+flags, tokens, cookies, headers, or bodies are sent). Release is tagged from
+`SENTRY_RELEASE` (git SHA).
+
+| App | Package | DSN env var | Notes |
+|---|---|---|---|
+| Web (Next.js) | `@sentry/nextjs` | `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | `sentry.server.config.ts`, `sentry.client.config.ts`, `sentry.edge.config.ts` |
+| API (Laravel) | `sentry/sentry-laravel` | `SENTRY_LARAVEL_DSN` | `config/sentry.php`, `beforeSend` scrubs request data |
+
+Enable by setting the DSN in `.env` / CI secrets. Without a DSN, Sentry is a
+no-op (safe for local/dev).
+
 
 ---
 
@@ -149,6 +174,7 @@ npm run test:watch   # watch mode
 | Backend security | PHPUnit | IDOR, admin 403s, flag absence in responses, upload/path-traversal, rate limits, mass assignment |
 | Frontend component | Vitest + RTL | cards, flag box, nav, forms |
 | Frontend integration | Vitest + MSW | login flow, solve flow, progress display |
+| Frontend E2E (smoke) | Playwright | home loads, login works (CI against docker stack) |
 
 Rules:
 - Tests assert **behavior**, not implementation (status + payload shape).

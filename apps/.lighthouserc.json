@@ -1,0 +1,56 @@
+{
+  "ci": {
+    "collect": {
+      "url": ["http://localhost:3000", "http://localhost:3000/challenges", "http://localhost:3000/paths"],
+      "numberOfRuns": 3,
+      "startServerCommand": "npm run start --prefix apps/web",
+      "startServerReadyPattern": "ready",
+      "startServerMaxStartupTime": 60,
+      "port": 9001
+    },
+    "assert": {
+      "assertions": "lighthouse:assertions"
+    },
+    "uploadArtifacts": true,
+    "temporaryPublicStorage": true
+  },
+  "assert": {
+    "assertions": [
+      {
+        "assertion": "categories:performance",
+        "minScore": 0.9,
+        "aggregate": true
+      },
+      {
+        "assertion": "categories:accessibility",
+        "minScore": 1.0,
+        "aggregate": true
+      },
+      {
+        "assertion": "categories:best-practices",
+        "minScore": 0.9,
+        "aggregate": true
+      },
+      {
+        "assertion": "categories:seo",
+        "minScore": 0.9,
+        "aggregate": true
+      },
+      {
+        "assertion": "largest-contentful-paint",
+        "minScore": 1,
+        "critical": true
+      },
+      {
+        "assertion": "interaction-to-next-paint",
+        "minScore": 1,
+        "critical": true
+      },
+      {
+        "assertion": "cumulative-layout-shift",
+        "minScore": 1,
+        "critical": true
+      }
+    ]
+  }
+}

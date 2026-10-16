@@ -2,6 +2,9 @@
 
 use App\Providers\AppServiceProvider;
 
-return [
+return array_filter([
     AppServiceProvider::class,
-];
+    app()->environment('testing')
+        ? \NunoMaduro\LaravelQueryDetector\LaravelQueryDetectorServiceProvider::class
+        : null,
+]);
