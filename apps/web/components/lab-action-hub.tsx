@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { FolderOpen, Terminal } from "lucide-react";
 import { CopyCode } from "@/components/copy-code";
 import { FileDownloadButton } from "@/components/file-download-button";
+import { Badge } from "@/components/ui/badge";
 import { formatBytes } from "@/lib/format";
 import type { ChallengeFile } from "@/lib/types";
 
@@ -30,9 +32,15 @@ export function LabActionHub({
       data-testid="lab-action-hub"
       className="rounded-xl border border-border bg-surface p-5 shadow-sm"
     >
-      <h2 id="lab-access-heading" className="type-eyebrow text-accent">
-        Access the lab
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="lab-access-heading" className="type-eyebrow inline-flex items-center gap-2 text-accent">
+          <FolderOpen aria-hidden="true" className="size-3.5" />
+          Access the lab
+        </h2>
+        <Badge tone="info" className="normal-case">
+          Static lab
+        </Badge>
+      </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         Static artifact lab — no live infrastructure. Download the files below and work
         locally.
@@ -72,8 +80,9 @@ export function LabActionHub({
         </ul>
       )}
 
-      <div className="relative mt-4 rounded-lg border border-border bg-surface-raised p-3 pe-16">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">
+      <div className="relative mt-4 rounded-lg border border-border bg-background/60 p-3 pe-16">
+        <h3 className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-faint">
+          <Terminal aria-hidden="true" className="size-3 text-accent" />
           Lab briefing (copy)
         </h3>
         <pre
