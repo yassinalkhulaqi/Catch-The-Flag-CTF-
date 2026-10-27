@@ -1,18 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Clock3, Flag, Trophy } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Badge } from "@/components/ui/badge";
 import { ChallengeCard } from "@/components/challenge-card";
 import { ChallengeFiles } from "@/components/challenge-files";
-import { ErrorState, PageHeader } from "@/components/empty-state";
+import { DifficultyBadge } from "@/components/difficulty-badge";
+import { ErrorState } from "@/components/empty-state";
 import { HintList } from "@/components/hint-list";
 import { LabActionHub } from "@/components/lab-action-hub";
 import { LabObjective } from "@/components/lab-objective";
+import { LabSidebar } from "@/components/lab-sidebar";
 import { LabStatusBanner } from "@/components/lab-status-banner";
 import { Markdown } from "@/components/markdown";
 import { SolutionWalkthrough } from "@/components/solution-walkthrough";
 import { LabSolveSection } from "@/components/solve-celebration";
+import { TierPill } from "@/components/tier-pill";
 import { ToolsDrawer } from "@/components/tools/tools-drawer";
 import { ApiError } from "@/lib/api/client";
 import { getCurrentUser, serverApi } from "@/lib/api/server";
+import { formatXp } from "@/lib/utils";
 import type { ChallengeDetail } from "@/lib/types";
 
 type ChallengeDetailWithWalkthrough = ChallengeDetail & {
@@ -69,14 +76,55 @@ export default async function ChallengeDetailPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <PageHeader
-        eyebrow={challenge.category.name}
-        title={challenge.title}
-        description={challenge.scenario ?? undefined}
+      <Breadcrumb
+        className="mb-5"
+        items={[
+          { href: "/challenges", label: "Challenges" },
+          { href: `/challenges?category=${challenge.category.slug}`, label: challenge.category.name },
+          { label: challenge.title },
+        ]}
       />
 
+      <section className="relative overflow-hidden rounded-2xl border border-border bg-surface/60 p-6 sm:p-8">
+        <div aria-hidden="true" className="aurora pointer-events-none absolute inset-0 opacity-60" />
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <DifficultyBadge difficulty={challenge.difficulty} />
+            <TierPill tier={challenge.tier} />
+            <Badge tone="accent">{formatXp(challenge.points)} pts</Badge>
+            {challenge.solved ? (
+              <Badge tone="success" dot>
+                Solved
+              </Badge>
+            ) : null}
+          </div>
+          <h1 className="type-title mt-3 max-w-3xl text-balance">{challenge.title}</h1>
+          {challenge.scenario ? (
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+              {challenge.scenario}
+            </p>
+          ) : null}
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 font-mono text-xs text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <Flag aria-hidden="true" className="size-3.5 text-accent" />
+              {challenge.category.name}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Trophy aria-hidden="true" className="size-3.5 text-accent" />
+              {challenge.solve_count} solve{challenge.solve_count === 1 ? "" : "s"}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 aria-hidden="true" className="size-3.5 text-accent" />
+              ~{challenge.estimated_minutes} min
+            </span>
+          </div>
+        </div>
+      </section>
+
       {/* 1 — status */}
-      <LabStatusBanner solved={challenge.solved} points={challenge.points} />
+      <div className="mt-4">
+        <LabStatusBanner solved={challenge.solved} points={challenge.points} />
+      </div>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="space-y-8">
@@ -185,23 +233,7 @@ export default async function ChallengeDetailPage({
           ) : null}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start" aria-label="Lab details">
-          <div className="border border-border bg-surface p-4 text-sm text-muted">
-            <p>
-              Points remaining:{" "}
-              <span className="font-mono text-foreground">{challenge.points_remaining}</span>
-            </p>
-            <p className="mt-1">
-              Solves:{" "}
-              <span className="font-mono text-foreground">{challenge.solve_count}</span>
-            </p>
-            {challenge.tags.length > 0 ? (
-              <p className="mt-3 font-mono text-xs text-faint">
-                {challenge.tags.map((t) => t.name).join(" · ")}
-              </p>
-            ) : null}
-          </div>
-        </aside>
+        <LabSidebar challenge={challenge} authenticated={!!user} />
       </div>
 
       {(challenge.related?.length ?? 0) > 0 ? (
