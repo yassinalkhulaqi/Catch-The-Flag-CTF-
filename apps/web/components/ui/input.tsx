@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const control =
-  "flex w-full rounded-md border border-border bg-background px-3 text-sm text-foreground shadow-sm transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus-visible:outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-danger/30";
+  "flex w-full rounded-md border border-border bg-background/70 px-3 text-sm text-foreground shadow-sm transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-faint hover:border-border-strong focus-visible:outline-none focus-visible:border-accent focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-danger/30";
 
 export function Input({
   className,
