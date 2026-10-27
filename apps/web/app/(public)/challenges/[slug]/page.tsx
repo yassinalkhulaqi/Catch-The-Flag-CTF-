@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock3, Flag, Trophy } from "lucide-react";
+import { ArrowRight, Clock3, Flag, Trophy } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { ChallengeCard } from "@/components/challenge-card";
@@ -140,7 +140,7 @@ export default async function ChallengeDetailPage({
           <section aria-labelledby="briefing-heading">
             <h2
               id="briefing-heading"
-              className="font-mono text-xs uppercase tracking-[0.16em] text-accent"
+              className="scroll-mt-24 font-mono text-xs uppercase tracking-[0.16em] text-accent"
             >
               Briefing
             </h2>
@@ -162,7 +162,7 @@ export default async function ChallengeDetailPage({
           <section aria-labelledby="submit-heading">
             <h2
               id="submit-heading"
-              className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
+              className="mb-3 scroll-mt-24 font-mono text-xs uppercase tracking-[0.16em] text-accent"
             >
               Submit
             </h2>
@@ -191,7 +191,7 @@ export default async function ChallengeDetailPage({
           <section aria-labelledby="hints-heading">
             <h2
               id="hints-heading"
-              className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
+              className="mb-3 scroll-mt-24 font-mono text-xs uppercase tracking-[0.16em] text-accent"
             >
               Hints
             </h2>
@@ -238,15 +238,24 @@ export default async function ChallengeDetailPage({
 
       {(challenge.related?.length ?? 0) > 0 ? (
         <section className="mt-14" aria-labelledby="related-heading">
-          <h2
-            id="related-heading"
-            className="font-mono text-xs uppercase tracking-[0.16em] text-accent"
-          >
-            Related challenges
-          </h2>
-          <div className="mt-3 border-t border-border">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="type-eyebrow text-accent">Keep going</p>
+              <h2 id="related-heading" className="type-heading mt-1">
+                Related challenges
+              </h2>
+            </div>
+            <Link
+              href={`/challenges?category=${challenge.category.slug}`}
+              className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-accent"
+            >
+              Browse {challenge.category.name}
+              <ArrowRight aria-hidden="true" className="size-3.5" />
+            </Link>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {(challenge.related ?? []).map((c) => (
-              <ChallengeCard key={c.id} challenge={c} />
+              <ChallengeCard key={c.id} challenge={c} variant="tile" />
             ))}
           </div>
         </section>
