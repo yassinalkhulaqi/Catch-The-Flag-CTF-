@@ -413,6 +413,16 @@ body {
   100% { opacity: 1; transform: scale(1); }
 }
 
+@keyframes ctf-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ctf-sheet-in {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes ctf-caret {
   0%, 40% { opacity: 1; }
   50%, 100% { opacity: 0; }
@@ -441,6 +451,27 @@ body {
 
 .animate-pop {
   animation: ctf-pop var(--duration-base) var(--ease-spring) both;
+}
+
+.animate-fade-in {
+  animation: ctf-fade-in var(--duration-base) var(--ease-out) both;
+}
+
+.animate-sheet-in {
+  animation: ctf-sheet-in var(--duration-slow) var(--ease-out) both;
+}
+
+html[dir="rtl"] .animate-sheet-in {
+  animation-name: ctf-sheet-in-rtl;
+}
+
+@keyframes ctf-sheet-in-rtl {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-toast-in {
+  animation: ctf-toast-in var(--duration-base) var(--ease-spring) both;
 }
 
 .skeleton-shimmer {
