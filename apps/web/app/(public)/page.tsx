@@ -1,16 +1,12 @@
-import Link from "next/link";
+import { CategoryShowcase } from "@/components/landing/categories";
+import { FeaturedChallenges, FeaturedPaths } from "@/components/landing/featured";
+import { FinalCTA } from "@/components/landing/final-cta";
+import { Guarantees } from "@/components/landing/guarantees";
 import { LandingHero } from "@/components/landing/hero";
-import {
-  CatalogStats,
-  CategoryShowcase,
-  FeaturedChallenges,
-  FeaturedPaths,
-  HowItWorks,
-  LeaderboardPreview,
-} from "@/components/landing/sections";
-import { buttonVariants } from "@/components/ui/button";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { LeaderboardPreview } from "@/components/landing/leaderboard-preview";
+import { CatalogStats } from "@/components/landing/stats";
 import { getCurrentUser, serverApi } from "@/lib/api/server";
-import { cn } from "@/lib/utils";
 import type {
   Category,
   ChallengeSummary,
@@ -61,17 +57,8 @@ export default async function LandingPage() {
       <FeaturedPaths paths={paths} />
       <FeaturedChallenges challenges={challenges} />
       <LeaderboardPreview entries={leaders} />
-      <section className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-16">
-          <h2 className="type-title">Start with a path, or go straight to a challenge.</h2>
-          <p className="max-w-xl text-muted">
-            Files stay attachments. Flags stay on the server. Your rank moves only when a solve is recorded.
-          </p>
-          <Link href={user ? "/dashboard" : "/register"} className={cn(buttonVariants("primary", "lg"))}>
-            {user ? "Open dashboard" : "Create an account"}
-          </Link>
-        </div>
-      </section>
+      <Guarantees />
+      <FinalCTA signedIn={!!user} />
     </div>
   );
 }
