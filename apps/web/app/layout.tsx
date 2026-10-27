@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans_Arabic, Source_Sans_3 } from "next/font/google";
 import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
+import { ScrollProgress } from "@/lib/motion/scroll-progress";
 import { getCurrentUser } from "@/lib/api/server";
 import type { ThemeName } from "@/lib/design/tokens";
 import { THEME_BOOT_SCRIPT, THEME_COOKIE } from "@/lib/theme/boot";
@@ -83,6 +84,7 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col font-sans">
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <ScrollProgress />
         <Providers locale={locale}>{children}</Providers>
       </body>
     </html>

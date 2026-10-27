@@ -1,15 +1,16 @@
 import { Suspense } from "react";
+import { ActiveFilters, type ActiveFilter } from "@/components/active-filters";
 import { ChallengeCard } from "@/components/challenge-card";
 import { ChallengeFilters } from "@/components/challenge-filters";
+import { ChallengeTracks } from "@/components/challenge-tracks";
 import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
 import { PaginationNav } from "@/components/pagination-nav";
 import { Skeleton } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { serverApi } from "@/lib/api/server";
 import { dictionaryFor } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/theme/locale";
-import { toQuery } from "@/lib/format";
-import { TRACKS, normalizeTier, tierFor, trackForChallenge } from "@/lib/tracks";
+import { difficultyLabel, toQuery } from "@/lib/format";
+import { TIER_LABELS, normalizeTier, tierFor } from "@/lib/tracks";
 import type { Category, ChallengeSummary, Paginated, Tag } from "@/lib/types";
 
 export const metadata = {
@@ -78,30 +79,79 @@ export default async function ChallengesPage({
 
   const visible = challenges && tier ? challenges.data.filter((c) => tierFor(c.difficulty) === tier) : (challenges?.data ?? []);
 
-  const trackStats = new Map<string, { total: number; solved: number }>();
-  for (const track of TRACKS) trackStats.set(track.slug, { total: 0, solved: 0 });
-  for (const c of visible) {
-    const track = trackForChallenge(
-      c.category.slug,
-      c.tags.map((t) => t.slug),
-    );
-    const stat = trackStats.get(track.slug);
-    if (!stat) continue;
-    stat.total += 1;
-    if (c.solved) stat.solved += 1;
+  const currentParams: Record<string, string | undefined> = {
+    q,
+    category,
+    difficulty,
+    tags,
+    solved,
+    sort,
+    min_points: minPoints,
+    max_points: maxPoints,
+    tier: tier ?? undefined,
+    view: view === "grid" ? "grid" : undefined,
+  };
+
+  function removeFilter(key: string): string {
+    const next = { ...currentParams };
+    delete next[key];
+    return `/challenges${toQuery(next)}`;
   }
+
+  const sortLabels: Record<string, string> = {
+    "-points": "points, high to low",
+    points: "points, low to high",
+    "-created_at": "newest first",
+  };
+
+  const activeFilters: ActiveFilter[] = [];
+  if (q) activeFilters.push({ key: "q", label: `Search: ${q}`, href: removeFilter("q") });
+  if (category) {
+    const name = categories.find((item) => item.slug === category)?.name ?? category;
+    activeFilters.push({ key: "category", label: `Category: ${name}`, href: removeFilter("category") });
+  }
+  if (difficulty) {
+    activeFilters.push({
+      key: "difficulty",
+      label: `Difficulty: ${difficultyLabel(difficulty)}`,
+      href: removeFilter("difficulty"),
+    });
+  }
+  if (tags) {
+    const name = allTags.find((item) => item.slug === tags)?.name ?? tags;
+    activeFilters.push({ key: "tags", label: `Tag: ${name}`, href: removeFilter("tags") });
+  }
+  if (tier) {
+    activeFilters.push({ key: "tier", label: `Tier: ${TIER_LABELS[tier]}`, href: removeFilter("tier") });
+  }
+  if (solved) activeFilters.push({ key: "solved", label: "Solved only", href: removeFilter("solved") });
+  if (minPoints) activeFilters.push({ key: "min_points", label: `Min ${minPoints} pts`, href: removeFilter("min_points") });
+  if (maxPoints) activeFilters.push({ key: "max_points", label: `Max ${maxPoints} pts`, href: removeFilter("max_points") });
+  if (sort) activeFilters.push({ key: "sort", label: `Sort: ${sortLabels[sort] ?? sort}`, href: removeFilter("sort") });
+
+  const clearHref = `/challenges${toQuery({
+    view: view === "grid" ? "grid" : undefined,
+  })}`;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <PageHeader
-        eyebrow="CTF"
+        eyebrow="Catalog // CTF"
         title={copy.pages.challengesTitle}
         description={copy.pages.challengesBody}
+        actions={
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-raised/60 px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide text-muted">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
+            {challenges?.meta.total ?? 0} published
+          </span>
+        }
       />
 
-      <Suspense fallback={<Skeleton className="mb-6 h-40 w-full" />}>
+      <Suspense fallback={<Skeleton className="mb-6 h-44 w-full" />}>
         <ChallengeFilters categories={categories} tags={allTags} />
       </Suspense>
+
+      <ActiveFilters filters={activeFilters} clearHref={clearHref} />
 
       <div className="mt-8">
         {loadError ? (
@@ -113,45 +163,35 @@ export default async function ChallengesPage({
           />
         ) : (
           <div>
-            <section aria-label="Browse by vulnerability track" className="mb-8">
-              <h2 className="mb-1 text-lg font-semibold text-foreground">
-                Browse by track
-              </h2>
-              <p className="mb-4 text-sm text-muted">
-                Vulnerability topics grouped from the listed challenges.
+            <ChallengeTracks challenges={visible} />
+
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <p className="font-mono text-xs text-faint">
+                <span className="text-sm font-semibold text-foreground">
+                  {tier ? visible.length : challenges.meta.total}
+                </span>{" "}
+                challenge{(tier ? visible.length : challenges.meta.total) === 1 ? "" : "s"}
+                {tier ? " in this tier" : " in the catalog"}
               </p>
-              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {TRACKS.map((track) => {
-                  const stat = trackStats.get(track.slug) ?? { total: 0, solved: 0 };
-                  return (
-                    <li
-                      key={track.slug}
-                      className="rounded-xl border border-border bg-surface p-4"
-                    >
-                      <h3 className="text-sm font-semibold text-foreground">
-                        {track.title}
-                      </h3>
-                      <p className="mt-1 min-h-10 text-xs text-muted">{track.blurb}</p>
-                      <p className="mt-3 font-mono text-xs text-faint">
-                        {stat.solved}/{stat.total} Solved
-                      </p>
-                      <Progress
-                        value={stat.solved}
-                        max={Math.max(1, stat.total)}
-                        label={`${track.title} progress: ${stat.solved} of ${stat.total} solved`}
-                        className="mt-2"
-                      />
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-            <p className="mb-2 font-mono text-xs text-faint">
-              {tier ? visible.length : challenges.meta.total} challenge{(tier ? visible.length : challenges.meta.total) === 1 ? "" : "s"}
-            </p>
-            <div key={view} className={view === "grid" ? "grid animate-fade-up gap-3 sm:grid-cols-2" : "animate-fade-up border-t border-border"}>
+              <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
+                {sort ? `Sorted by ${sortLabels[sort] ?? sort}` : "Default order"}
+              </p>
+            </div>
+
+            <div
+              key={view}
+              className={
+                view === "grid"
+                  ? "grid animate-fade-up gap-3 sm:grid-cols-2"
+                  : "animate-fade-up border-t border-border"
+              }
+            >
               {visible.map((c) => (
-                <ChallengeCard key={c.id} challenge={c} className={view === "grid" ? "rounded-xl border border-border px-4" : undefined} />
+                <ChallengeCard
+                  key={c.id}
+                  challenge={c}
+                  variant={view === "grid" ? "tile" : "row"}
+                />
               ))}
             </div>
             <PaginationNav meta={challenges.meta} hrefForPage={hrefForPage} />

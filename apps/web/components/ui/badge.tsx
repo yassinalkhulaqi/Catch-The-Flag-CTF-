@@ -14,18 +14,29 @@ const tones: Record<Tone, string> = {
 
 export function Badge({
   tone = "neutral",
+  size = "sm",
+  dot = false,
   className,
+  children,
   ...props
-}: React.HTMLAttributes<HTMLSpanElement> & { tone?: Tone }) {
+}: React.HTMLAttributes<HTMLSpanElement> & {
+  tone?: Tone;
+  size?: "sm" | "md";
+  dot?: boolean;
+}) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide",
+        "inline-flex items-center gap-1.5 rounded-md border font-mono uppercase tracking-wide",
+        size === "sm" ? "px-1.5 py-0.5 text-[11px]" : "px-2 py-1 text-xs",
         tones[tone],
         className,
       )}
       {...props}
-    />
+    >
+      {dot ? <span aria-hidden="true" className="size-1.5 rounded-full bg-current" /> : null}
+      {children}
+    </span>
   );
 }
 

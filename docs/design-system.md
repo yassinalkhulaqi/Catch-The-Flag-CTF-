@@ -65,6 +65,9 @@ Rules:
    concurrency, pauses off-screen, and pauses when the tab is hidden.
 4. Confetti is dynamic-imported from the flag box and only runs after the
    server says `correct`.
+5. Route changes ease in through `app/**/template.tsx` (`animate-page-in`), and
+   `ScrollProgress` reads a single rAF-throttled scroll listener. Both are
+   static CSS or transform-only and disappear under reduced motion.
 
 ## 5. Components
 
@@ -73,6 +76,18 @@ product (`FlagSubmitBox`, `ChallengeCard`).
 
 Dialogs and sheets trap focus, close on Escape, and restore focus. Toasts
 use `aria-live`. The command palette is `Ctrl` or `Cmd` + `K`.
+
+### 5.1 Composites added in the polish pass
+
+- `SegmentedControl<T>` — labelled radio-group styling for filters. The group
+  carries `aria-label`; each option is a button with `aria-pressed`.
+- `ScrollProgress` — fixed 2px reading indicator; no layout shift.
+- `LabSidebar` — sticky mission control for a challenge: remaining points,
+  solves, time, hints, anchor navigation, tags and author.
+- `PathCard` and `ChallengeCard` support `variant="tile"`; `row` stays the
+  default for dense lists.
+- Marketing sections live in `components/landing/*`; there is no monolithic
+  `sections.tsx` to extend.
 
 ## 6. Theme and locale
 

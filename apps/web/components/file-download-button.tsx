@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import type { ChallengeFile } from "@/lib/types";
 
@@ -21,6 +22,7 @@ export function FileDownloadButton({
       aria-label={`Download ${file.original_name}`}
       className={buttonVariants("outline", "sm")}
     >
+      <Download aria-hidden="true" className="size-3.5" />
       Download
     </a>
   );

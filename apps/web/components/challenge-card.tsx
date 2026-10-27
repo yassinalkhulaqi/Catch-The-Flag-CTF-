@@ -9,20 +9,34 @@ import type { ChallengeSummary } from "@/lib/types";
 export function ChallengeCard({
   challenge,
   className,
+  variant = "row",
 }: {
   challenge: ChallengeSummary;
   className?: string;
+  variant?: "row" | "tile";
 }) {
+  const isTile = variant === "tile";
+
   return (
     <Link
       href={`/challenges/${challenge.slug}`}
       className={cn(
-        "group block border-b border-border py-4 transition-colors hover:bg-surface/60",
+        "group relative block transition-colors",
+        isTile
+          ? "card-lift h-full overflow-hidden rounded-2xl border border-border bg-surface p-5 hover:border-border-strong"
+          : "border-b border-border py-4 hover:bg-surface/60",
         className,
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1.5">
+      {isTile ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-0.5 opacity-70 transition-opacity group-hover:opacity-100"
+          style={{ background: challenge.category.color ?? "var(--accent)" }}
+        />
+      ) : null}
+      <div className={cn("flex h-full gap-3", isTile ? "flex-col" : "flex-wrap items-start justify-between")}>
+        <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <span
               className="inline-block size-2 rounded-full"
@@ -53,7 +67,14 @@ export function ChallengeCard({
             </ul>
           ) : null}
         </div>
-        <div className="shrink-0 text-right">
+        <div
+          className={cn(
+            "shrink-0",
+            isTile
+              ? "mt-auto flex w-full items-center justify-between border-t border-border pt-3 text-left"
+              : "text-right",
+          )}
+        >
           <p className="font-mono text-sm text-accent">{formatXp(challenge.points)} pts</p>
           <p className="text-xs text-faint" data-testid="solve-count">
             {challenge.solve_count} solve{challenge.solve_count === 1 ? "" : "s"}

@@ -1,8 +1,18 @@
 import Link from "next/link";
+import {
+  ArrowRight,
+  Flame,
+  PlayCircle,
+  Route,
+  Sparkles,
+  Target,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { ActivityHeatmap, heatmapFromTimestamps } from "@/components/charts/activity-heatmap";
 import { OnboardingTour } from "@/components/onboarding/tour";
 import { SkillRadar } from "@/components/charts/skill-radar";
-import { PageHeader } from "@/components/empty-state";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
@@ -149,42 +159,71 @@ export default async function DashboardPage() {
       : nextAction.kind === "challenge"
         ? "Solve challenge"
         : "Browse paths";
+  const NextIcon =
+    nextAction.kind === "lesson" ? PlayCircle : nextAction.kind === "challenge" ? Target : Route;
 
   return (
     <div>
       <OnboardingTour userId={user.id} categories={categories} challenges={challenges} />
-      <PageHeader
-        eyebrow="Dashboard"
-        title={`Welcome, ${user.name}`}
-        description={copy.pages.dashboardBody}
-      />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="type-eyebrow text-accent">Dashboard</p>
+          <h1 className="type-title mt-2">Welcome back, {user.name}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted">{copy.pages.dashboardBody}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone="warning">
+            <Flame aria-hidden="true" className="size-3" />
+            {progress?.streak_days ?? 0} day streak
+          </Badge>
+          <Badge tone="accent">
+            <Sparkles aria-hidden="true" className="size-3" />
+            Level {level.level}
+          </Badge>
+        </div>
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-4">
-          <ProgressRing
-            ratio={level.ratio}
-            label={`Level ${level.level}, ${level.into} of ${level.span} XP toward the next level`}
-            center={
-              <span>
-                <span className="block font-display text-2xl font-semibold">{level.level}</span>
-                <span className="block font-mono text-[10px] uppercase text-muted">level</span>
-              </span>
-            }
-          />
-          <div>
-            <p className="type-eyebrow text-accent">XP</p>
+      <div className="mt-6 grid gap-4 lg:grid-cols-[auto_1fr]">
+        <div className="relative flex items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5">
+          <div aria-hidden="true" className="aurora pointer-events-none absolute inset-0 opacity-50" />
+          <div className="relative">
+            <ProgressRing
+              ratio={level.ratio}
+              label={`Level ${level.level}, ${level.into} of ${level.span} XP toward the next level`}
+              center={
+                <span>
+                  <span className="block font-display text-2xl font-semibold">{level.level}</span>
+                  <span className="block font-mono text-[10px] uppercase text-muted">level</span>
+                </span>
+              }
+            />
+          </div>
+          <div className="relative">
+            <p className="type-eyebrow text-accent">Total XP</p>
             <p className="font-display text-3xl font-semibold">
               <CountUp value={xp} />
             </p>
-            <p className="text-sm text-muted">
-              {formatXp(level.span - level.into)} XP to level {level.level + 1}. Streak {progress?.streak_days ?? 0} days.
+            <p className="max-w-[220px] text-sm text-muted">
+              {formatXp(level.span - level.into)} XP to level {level.level + 1}.
             </p>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Stat label="Solves" value={String(progress?.challenges_solved ?? user.solved_count)} />
-          <Stat label="Paths started" value={String(progress?.paths_started ?? 0)} />
-          <Stat label="Rank" value={progress?.rank != null ? `#${progress.rank}` : "—"} />
+          <Stat
+            icon={Target}
+            label="Solves"
+            value={String(progress?.challenges_solved ?? user.solved_count)}
+          />
+          <Stat
+            icon={Route}
+            label="Paths started"
+            value={String(progress?.paths_started ?? 0)}
+          />
+          <Stat
+            icon={Trophy}
+            label="Rank"
+            value={progress?.rank != null ? `#${progress.rank}` : "—"}
+          />
         </div>
       </div>
 
@@ -209,37 +248,61 @@ export default async function DashboardPage() {
       </div>
 
       <section className="mt-10" aria-labelledby="next-heading">
-        <h2 id="next-heading" className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
+        <h2 id="next-heading" className="type-eyebrow text-accent">
           Next up
         </h2>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4 border border-border bg-surface p-5">
-          <div>
-            <p className="text-base font-semibold text-foreground">{nextAction.title}</p>
-            <p className="mt-1 text-sm text-muted">{nextAction.subtitle}</p>
+        <div className="relative mt-3 flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-2xl border border-accent/30 bg-surface p-5">
+          <div aria-hidden="true" className="aurora pointer-events-none absolute inset-0 opacity-40" />
+          <div className="relative flex items-center gap-4">
+            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-accent/30 bg-accent/10 text-accent">
+              <NextIcon aria-hidden="true" className="size-5" />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-foreground">{nextAction.title}</p>
+              <p className="mt-1 text-sm text-muted">{nextAction.subtitle}</p>
+            </div>
           </div>
-          <Link href={nextAction.href} className={cn(buttonVariants("primary", "sm"))}>
+          <Link
+            href={nextAction.href}
+            className={cn(buttonVariants("primary", "sm"), "relative")}
+          >
             {ctaLabel}
+            <ArrowRight aria-hidden="true" className="size-3.5" />
           </Link>
         </div>
       </section>
 
       <section className="mt-10" aria-labelledby="ach-heading">
         <div className="mb-3 flex items-center justify-between">
-          <h2 id="ach-heading" className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
+          <h2 id="ach-heading" className="type-eyebrow text-accent">
             Recent achievements
           </h2>
-          <Link href="/achievements" className="text-sm text-muted hover:text-foreground">
+          <Link
+            href="/achievements"
+            className="inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-foreground"
+          >
             View all
+            <ArrowRight aria-hidden="true" className="size-3.5" />
           </Link>
         </div>
         {achievements.length === 0 ? (
-          <p className="text-sm text-muted">No achievements unlocked yet — keep hunting.</p>
+          <p className="rounded-xl border border-dashed border-border bg-surface/50 p-5 text-sm text-muted">
+            No achievements unlocked yet — keep hunting.
+          </p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {achievements.map((a) => (
-              <li key={a.id} className="border border-border bg-surface p-4">
-                <p className="font-semibold text-foreground">{a.title}</p>
-                <p className="mt-1 text-sm text-muted">{a.description}</p>
+              <li
+                key={a.id}
+                className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-accent/30"
+              >
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-warning/30 bg-warning/10 text-warning">
+                  <Trophy aria-hidden="true" className="size-4" />
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">{a.title}</p>
+                  <p className="mt-1 text-sm text-muted">{a.description}</p>
+                </div>
               </li>
             ))}
           </ul>
@@ -271,10 +334,21 @@ function radarFromSolves(challenges: ChallengeSummary[]) {
   return [...counts.entries()].map(([label, value]) => ({ label, value, max }));
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="border border-border bg-surface p-4">
-      <p className="font-mono text-[11px] uppercase tracking-wide text-muted">{label}</p>
+    <div className="rounded-xl border border-border bg-surface p-4 transition-colors hover:border-border-strong">
+      <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-muted">
+        <Icon aria-hidden="true" className="size-3.5 text-accent" />
+        {label}
+      </p>
       <p className="mt-2 font-display text-2xl font-semibold text-foreground">{value}</p>
     </div>
   );

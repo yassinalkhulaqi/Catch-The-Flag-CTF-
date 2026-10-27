@@ -57,7 +57,7 @@ export function Dialog({
       <button
         type="button"
         aria-label="Close dialog"
-        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+        className="absolute inset-0 animate-fade-in bg-background/70 backdrop-blur-sm"
         onClick={onClose}
       />
       <div

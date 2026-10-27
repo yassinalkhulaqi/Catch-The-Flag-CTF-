@@ -1,7 +1,9 @@
 "use client";
 
+import { CheckCircle2, Clock3, ShieldCheck, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { api, ApiError } from "@/lib/api/client";
@@ -105,16 +107,24 @@ export function FlagSubmitBox({
 
       <div aria-live="polite">
         {solved ? (
-          <p className="mt-3 text-sm text-success" role="status" data-testid="flag-success">
-            {result?.already_solved ? (
-              "Already solved — nice work."
-            ) : (
-              <>
-                Correct! +
-                <CountUp value={result?.points_awarded ?? 0} /> points awarded.
-              </>
-            )}
-          </p>
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 p-4">
+            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-success" />
+            <div>
+              <p className="text-sm font-semibold text-success" role="status" data-testid="flag-success">
+                {result?.already_solved ? (
+                  "Already solved — nice work."
+                ) : (
+                  <>
+                    Correct! +
+                    <CountUp value={result?.points_awarded ?? 0} /> points awarded.
+                  </>
+                )}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                The solve is recorded server-side and reflected on your dashboard.
+              </p>
+            </div>
+          </div>
         ) : null}
       </div>
 
@@ -146,15 +156,32 @@ export function FlagSubmitBox({
       )}
 
       {result?.result === "incorrect" ? (
-        <p className="mt-3 text-sm text-danger" role="alert" data-testid="flag-incorrect">
+        <p
+          className="mt-3 inline-flex items-center gap-1.5 text-sm text-danger"
+          role="alert"
+          data-testid="flag-incorrect"
+        >
+          <XCircle aria-hidden="true" className="size-4" />
           Incorrect flag. Try again.
         </p>
       ) : null}
 
-      <p className="mt-3 font-mono text-[11px] text-faint">
-        Attempts this session: {attempts}
-        {retryIn !== null && retryIn > 0 ? ` · retry in ${retryIn}s` : ""}
-      </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+        <p className="font-mono text-[11px] text-faint">
+          Attempts this session: {attempts}
+        </p>
+        {retryIn !== null && retryIn > 0 ? (
+          <Badge tone="warning" className="normal-case">
+            <Clock3 aria-hidden="true" className="size-3" />
+            Retry in {retryIn}s
+          </Badge>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-faint">
+            <ShieldCheck aria-hidden="true" className="size-3 text-success" />
+            Server-checked
+          </span>
+        )}
+      </div>
     </section>
   );
 }

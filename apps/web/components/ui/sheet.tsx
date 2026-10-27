@@ -48,14 +48,19 @@ export function Sheet({
 
   return createPortal(
     <div className="fixed inset-0 z-[60]">
-      <button type="button" aria-label="Close panel" className="absolute inset-0 bg-background/70" onClick={onClose} />
+      <button
+        type="button"
+        aria-label="Close panel"
+        className="absolute inset-0 animate-fade-in bg-background/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "absolute inset-y-0 end-0 flex w-full max-w-md flex-col border-s border-border bg-surface p-5 shadow-lg",
+          "absolute inset-y-0 end-0 flex w-full max-w-md animate-sheet-in flex-col border-s border-border bg-surface p-5 shadow-lg",
           className,
         )}
       >
