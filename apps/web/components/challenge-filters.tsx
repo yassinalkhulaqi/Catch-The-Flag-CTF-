@@ -1,12 +1,23 @@
 "use client";
 
+import { LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { DIFFICULTIES, difficultyLabel } from "@/lib/format";
 import { TIERS, TIER_LABELS, normalizeTier, type Tier } from "@/lib/tracks";
+import { cn } from "@/lib/utils";
 import type { Category, Tag } from "@/lib/types";
+
+type TierFilter = Tier | "all";
+
+const selectClass = cn(
+  "flex h-10 w-full rounded-md border border-border bg-background/70 px-3 text-sm text-foreground shadow-sm",
+  "transition-[border-color,box-shadow,background-color] duration-200 hover:border-border-strong",
+  "focus-visible:border-accent focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+);
 
 export function ChallengeFilters({
   categories,
@@ -53,39 +64,34 @@ export function ChallengeFilters({
     });
   }
 
+  const tierOptions: { value: TierFilter; label: string }[] = [
+    { value: "all", label: "All" },
+    ...TIERS.map((tier) => ({ value: tier, label: TIER_LABELS[tier] })),
+  ];
+
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Tier">
-        <Button
-          type="button"
-          size="sm"
-          variant={activeTier === null ? "primary" : "outline"}
-          aria-pressed={activeTier === null}
-          onClick={() => setTier(null)}
-        >
-          All
-        </Button>
-        {TIERS.map((tier) => (
-          <Button
-            key={tier}
-            type="button"
-            size="sm"
-            variant={activeTier === tier ? "primary" : "outline"}
-            aria-pressed={activeTier === tier}
-            onClick={() => setTier(tier)}
-          >
-            {TIER_LABELS[tier]}
-          </Button>
-        ))}
+    <div className="space-y-3 rounded-2xl border border-border bg-surface/60 p-3 shadow-sm sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
+          <SlidersHorizontal aria-hidden="true" className="size-3.5 text-accent" />
+          Refine the catalog
+        </p>
+        <SegmentedControl<TierFilter>
+          label="Tier"
+          options={tierOptions}
+          value={activeTier ?? "all"}
+          onChange={(next) => setTier(next === "all" ? null : next)}
+        />
       </div>
       <form
-      className="grid gap-3 border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        apply(e.currentTarget);
-      }}
-      aria-label="Filter challenges"
-    >
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          apply(e.currentTarget);
+        }}
+        aria-label="Filter challenges"
+        aria-busy={pending}
+      >
       <Field label="Search" htmlFor={`${id}-q`} className="lg:col-span-2">
         <Input
           id={`${id}-q`}
@@ -100,7 +106,7 @@ export function ChallengeFilters({
           id={`${id}-category`}
           name="category"
           defaultValue={params.get("category") ?? ""}
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+          className={selectClass}
         >
           <option value="">All</option>
           {categories.map((c) => (
@@ -116,7 +122,7 @@ export function ChallengeFilters({
           id={`${id}-difficulty`}
           name="difficulty"
           defaultValue={params.get("difficulty") ?? ""}
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+          className={selectClass}
         >
           <option value="">All</option>
           {DIFFICULTIES.map((d) => (
@@ -132,7 +138,7 @@ export function ChallengeFilters({
           id={`${id}-tags`}
           name="tags"
           defaultValue={params.get("tags") ?? ""}
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+          className={selectClass}
         >
           <option value="">All</option>
           {tags.map((t) => (
@@ -148,7 +154,7 @@ export function ChallengeFilters({
           id={`${id}-solved`}
           name="solved"
           defaultValue={params.get("solved") ?? ""}
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+          className={selectClass}
         >
           <option value="">Any</option>
           <option value="true">Solved</option>
@@ -167,7 +173,7 @@ export function ChallengeFilters({
           id={`${id}-sort`}
           name="sort"
           defaultValue={params.get("sort") ?? ""}
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+          className={selectClass}
         >
           <option value="">Default</option>
           <option value="-points">Points, high to low</option>
@@ -176,26 +182,44 @@ export function ChallengeFilters({
         </select>
       </Field>
 
-      <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Filtering…" : "Apply filters"}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => startTransition(() => router.push("/challenges"))}
-        >
-          Clear
-        </Button>
-        <div className="ms-auto flex gap-1" role="group" aria-label="Layout">
-          <Button type="button" size="sm" variant={view === "list" ? "primary" : "outline"} onClick={() => setView("list")}>
-            List
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
+          <Button type="submit" disabled={pending}>
+            {pending ? "Filtering…" : "Apply filters"}
           </Button>
-          <Button type="button" size="sm" variant={view === "grid" ? "primary" : "outline"} onClick={() => setView("grid")}>
-            Grid
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => startTransition(() => router.push("/challenges"))}
+          >
+            Clear
           </Button>
+          <SegmentedControl<"list" | "grid">
+            label="Layout"
+            className="ms-auto"
+            options={[
+              {
+                value: "list",
+                label: (
+                  <>
+                    <List aria-hidden="true" className="size-3.5" />
+                    List
+                  </>
+                ),
+              },
+              {
+                value: "grid",
+                label: (
+                  <>
+                    <LayoutGrid aria-hidden="true" className="size-3.5" />
+                    Grid
+                  </>
+                ),
+              },
+            ]}
+            value={view}
+            onChange={(next) => setView(next)}
+          />
         </div>
-      </div>
       </form>
     </div>
   );
