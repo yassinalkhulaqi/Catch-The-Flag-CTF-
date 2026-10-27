@@ -5,11 +5,12 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-foreground hover:bg-accent-hover font-medium shadow-sm",
+  primary:
+    "surface-sheen bg-accent text-accent-foreground hover:bg-accent-hover font-medium shadow-sm hover:shadow-md",
   secondary: "bg-surface-raised text-foreground hover:bg-border border border-border",
   ghost: "text-muted hover:text-foreground hover:bg-surface-raised",
-  danger: "bg-danger text-danger-foreground hover:opacity-90",
-  outline: "border border-border-strong text-foreground hover:bg-surface-raised",
+  danger: "bg-danger text-danger-foreground hover:opacity-90 shadow-sm",
+  outline: "border border-border-strong text-foreground hover:border-accent/50 hover:bg-surface-raised",
 };
 
 const sizes: Record<Size, string> = {
@@ -31,10 +32,12 @@ export function buttonVariants(
   className?: string,
 ): string {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-md transition-colors",
+    "inline-flex items-center justify-center gap-2 rounded-md",
+    "transition-[background-color,color,border-color,box-shadow,transform,opacity] duration-200",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
     "whitespace-nowrap select-none",
-    "active:translate-y-px motion-reduce:active:translate-y-0",
+    "active:translate-y-px active:scale-[0.99] motion-reduce:active:translate-y-0 motion-reduce:active:scale-100",
     variants[variant],
     sizes[size],
     className,
