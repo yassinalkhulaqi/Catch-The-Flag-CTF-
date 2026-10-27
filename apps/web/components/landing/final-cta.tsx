@@ -9,7 +9,7 @@ export function FinalCTA({ signedIn }: { signedIn: boolean }) {
       <div className="relative mx-auto max-w-6xl px-4 py-20">
         <div className="rounded-3xl border border-border bg-surface/80 p-8 shadow-[var(--shadow-float)] backdrop-blur sm:p-12 lg:flex lg:items-center lg:justify-between lg:gap-10">
           <div className="max-w-xl">
-            <p className="type-eyebrow text-accent">// Next move</p>
+            <p className="type-eyebrow text-accent">{"// Next move"}</p>
             <h2 className="type-title mt-3 text-balance">
               Start with a path, or go straight to a challenge.
             </h2>

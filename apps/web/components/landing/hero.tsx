@@ -164,7 +164,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
                 {discipline}
               </span>
               <span aria-hidden="true" className="text-accent/50">
-                //
+                {"//"}
               </span>
             </span>
           ))}

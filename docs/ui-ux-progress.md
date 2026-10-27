@@ -1,6 +1,7 @@
 # UI / UX overhaul — progress
 
-Branch: `feat/ui-ux-overhaul-premium`
+Branch: `feat/uiux-motion-polish` (premium polish pass; follows
+`feat/ui-ux-overhaul-premium`)
 
 Identity decision (see ADR-0011 when written): keep the calm flag-marker
 system from `docs/product.md` §7. Motion is cinematic on the marketing hero
@@ -30,6 +31,27 @@ server state.
 - [x] Command palette, toasts, EN + AR chrome, skip link
 - [x] Tests, lint, typecheck, build
 - [x] `docs/design-system.md`, ADR-0011, development.md commands
+
+## Premium polish pass (50 commits)
+
+`feat/uiux-motion-polish` keeps the same identity and extends the system
+without adding dependencies. Every commit was typechecked; the full Vitest
+suite (36 files, 138 tests) passed before the docs commit.
+
+| Area | Change |
+|---|---|
+| Motion | Scroll progress bar, route-level page transition templates, scroll-aware header, reveal stagger, marquee discipline strip, guarded by `prefers-reduced-motion` |
+| Primitives | `SegmentedControl`, richer `Button`/`Badge`/`Card`/`Progress`/`Input`/`Toast`/`Skeleton`, animated dialog and sheet entry |
+| Chrome | Redesigned header/footer, grouped mobile sheet, active-nav underline, XP chip, dynamic year and status pill |
+| Landing | Hero terminal preview plus floating cards, stats, connected how-it-works, category and featured grids, mini podium, guarantees, final CTA |
+| Challenges | Segmented tier/layout filters, track progress cards, removable active-filter chips, tile/row cards |
+| Lab detail | Breadcrumbs, mission hero, state-rich status banner, sticky mission-control sidebar with anchors, polished hints, artifacts, flag feedback and related grid |
+| Learn | Path catalog hero stats, tile path cards, path detail stats and module progress timeline |
+| Account | Podium leaderboard, dashboard welcome/hero, split auth trust panel, anchored settings cards, offline tools hub |
+| Verification | `npm run typecheck --prefix apps/web` and `npm run test --prefix apps/web` pass (36 files, 138 tests). `next build` stops at Google Fonts fetching in this offline environment, before app compilation |
+
+No server behaviour changed: flags, XP, points, solves, rank and progress remain
+server-derived. The pass adds no lint exceptions and no runtime dependencies.
 
 ## Follow-up pass
 
