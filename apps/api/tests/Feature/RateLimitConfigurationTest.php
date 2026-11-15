@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Tests\TestCase;
 
 /**
@@ -63,5 +64,38 @@ class RateLimitConfigurationTest extends TestCase
         foreach ($expected as $key) {
             $this->assertArrayHasKey($key, config('ctf.rate_limits'));
         }
+    }
+
+    public function test_catalog_routes_are_throttled_by_config(): void
+    {
+        config(['ctf.rate_limits.api_per_minute' => 2]);
+
+        $this->getJson('/api/v1/categories')->assertOk();
+        $this->getJson('/api/v1/categories')->assertOk();
+        $this->getJson('/api/v1/categories')->assertTooManyRequests();
+    }
+
+    public function test_admin_throttle_keys_per_user_not_per_ip(): void
+    {
+        config(['ctf.rate_limits.admin_per_minute' => 2]);
+
+        $a = User::factory()->admin()->create();
+        $b = User::factory()->moderator()->create();
+
+        $this->getJson('/api/v1/admin/challenges', $this->headersFor($a))->assertOk();
+        $this->getJson('/api/v1/admin/challenges', $this->headersFor($a))->assertOk();
+        // A's bucket is full; B has its own bucket.
+        $this->getJson('/api/v1/admin/challenges', $this->headersFor($a))->assertTooManyRequests();
+        $this->getJson('/api/v1/admin/challenges', $this->headersFor($b))->assertOk();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function headersFor(User $user): array
+    {
+        $token = $user->createToken('test', ['*'], now()->addDay())->plainTextToken;
+
+        return ['Authorization' => "Bearer {$token}"];
     }
 }

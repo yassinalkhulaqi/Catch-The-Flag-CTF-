@@ -217,6 +217,40 @@ class SecurityHardeningTest extends TestCase
         $this->assertLessThanOrEqual(80, mb_strlen($name));
     }
 
+    public function test_role_change_revokes_active_sessions(): void
+    {
+        $user = $this->makeLockoutTarget();
+
+        $session = $this->postJson('/api/v1/auth/login', $this->credentials())->assertOk()->json('data.token');
+        $admin = User::factory()->admin()->create();
+
+        $this->putJson(
+            "/api/v1/admin/users/{$user->id}/role",
+            ['role' => 'moderator'],
+            $this->tokenHeaders($admin),
+        )->assertOk();
+
+        $this->getJson('/api/v1/auth/me', ['Authorization' => "Bearer {$session}"])->assertStatus(401);
+    }
+
+    public function test_password_change_revokes_other_sessions(): void
+    {
+        $user = $this->makeLockoutTarget();
+
+        $token = $this->postJson('/api/v1/auth/login', $this->credentials())->assertOk()->json('data.token');
+        $other = $user->createToken('web', ['*'], now()->addDay())->plainTextToken;
+
+        $this->putJson('/api/v1/profile/password', [
+            'current_password' => 'sup3r-secret-passw0rd',
+            'password' => 'brand-new-password-99',
+            'password_confirmation' => 'brand-new-password-99',
+        ], ['Authorization' => "Bearer {$token}"])->assertOk();
+
+        // The other session is dead; the current one survives.
+        $this->getJson('/api/v1/auth/me', ['Authorization' => "Bearer {$other}"])->assertStatus(401);
+        $this->getJson('/api/v1/auth/me', ['Authorization' => "Bearer {$token}"])->assertOk();
+    }
+
     /**
      * @param  User  $user
      * @return array<string, string>
