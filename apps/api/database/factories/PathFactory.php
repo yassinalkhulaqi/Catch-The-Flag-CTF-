@@ -35,4 +35,12 @@ class PathFactory extends Factory
             'published_at' => null,
         ]);
     }
+
+    public function review(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'review',
+            'published_at' => null,
+        ]);
+    }
 }

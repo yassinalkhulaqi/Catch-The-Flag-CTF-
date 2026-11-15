@@ -38,4 +38,20 @@ class ChallengeFactory extends Factory
             'published_at' => null,
         ]);
     }
+
+    public function review(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'review',
+            'published_at' => null,
+        ]);
+    }
+
+    public function archived(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'archived',
+            'published_at' => now()->subMonth(),
+        ]);
+    }
 }

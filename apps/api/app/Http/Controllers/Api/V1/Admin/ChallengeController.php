@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Admin\DuplicateChallengeAction;
 use App\Actions\Admin\TransitionChallengeAction;
 use App\Actions\Admin\UpsertChallengeAction;
 use App\Enums\ContentStatus;
@@ -93,6 +94,21 @@ class ChallengeController extends Controller
     public function review(Request $request, Challenge $challenge, TransitionChallengeAction $action): AdminChallengeResource
     {
         return $this->transition($request, $challenge, $action, ContentStatus::Review);
+    }
+
+    /**
+     * Clone this challenge as a draft (hints and tags included; files/flags are not).
+     */
+    public function duplicate(Request $request, Challenge $challenge, DuplicateChallengeAction $action): JsonResponse
+    {
+        $copy = $action->execute($request->user(), $challenge, $request);
+
+        return response()->json(['data' => [
+            'id' => $copy->id,
+            'slug' => $copy->slug,
+            'title' => $copy->title,
+            'status' => $copy->status instanceof ContentStatus ? $copy->status->value : $copy->status,
+        ]], 201);
     }
 
     private function transition(

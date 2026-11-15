@@ -383,3 +383,98 @@ export interface SessionsResponse {
   sessions: ActiveSession[];
 }
 
+/* ---------- moderation ---------- */
+
+export interface ReviewQueueChallenge {
+  id: number;
+  title: string;
+  slug: string;
+  difficulty: string;
+  points: number;
+  author: string | null;
+  updated_at: string | null;
+}
+
+export interface ReviewQueuePath {
+  id: number;
+  title: string;
+  slug: string;
+  difficulty: string;
+  estimated_minutes: number | null;
+  updated_at: string | null;
+}
+
+export interface ReviewQueue {
+  challenges: ReviewQueueChallenge[];
+  paths: ReviewQueuePath[];
+}
+
+/* ---------- curriculum authoring (admin) ---------- */
+
+export interface AdminLinkedChallenge {
+  id: number;
+  title: string;
+  slug: string;
+  status: string;
+}
+
+export interface AdminLesson {
+  id: number;
+  module_id: number;
+  title: string;
+  slug: string;
+  summary: string | null;
+  content: string;
+  position: number;
+  estimated_minutes: number;
+  is_published: boolean;
+  challenges?: AdminLinkedChallenge[] | null;
+  quiz?: AdminQuiz | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AdminModule {
+  id: number;
+  path_id: number;
+  title: string;
+  description: string | null;
+  position: number;
+  is_published: boolean;
+  lessons?: AdminLesson[] | null;
+}
+
+export type AdminQuizQuestionType = "single" | "multiple" | "true_false";
+
+export interface AdminQuizOption {
+  id: number;
+  question_id: number;
+  option_text: string;
+  is_correct: boolean;
+  position: number;
+}
+
+export interface AdminQuizQuestion {
+  id: number;
+  quiz_id: number;
+  question: string;
+  type: AdminQuizQuestionType;
+  explanation: string | null;
+  points: number;
+  position: number;
+  is_published: boolean;
+  options?: AdminQuizOption[] | null;
+}
+
+export interface AdminQuiz {
+  id: number;
+  title: string;
+  description: string | null;
+  pass_score: number;
+  position: number;
+  is_published: boolean;
+  module_id: number | null;
+  lesson_id: number | null;
+  questions?: AdminQuizQuestion[] | null;
+}
+

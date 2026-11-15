@@ -1,5 +1,12 @@
 import { ApiError, api } from "@/lib/api/client";
 import type {
+  AdminLesson,
+  AdminModule,
+  AdminQuiz,
+  AdminQuizOption,
+  AdminQuizQuestion,
+  AdminQuizQuestionType,
+  AdminLinkedChallenge,
   Category,
   ContentStatus,
   Difficulty,
@@ -462,3 +469,220 @@ export async function listCategoriesAdmin(): Promise<Category[]> {
     return [];
   }
 }
+
+/* ---------- duplication ---------- */
+
+export interface AdminDuplicateRef {
+  id: number;
+  slug: string;
+  title: string;
+  status: ContentStatus;
+}
+
+export function duplicateAdminChallenge(id: number): Promise<AdminResult<AdminDuplicateRef>> {
+  return mutate<AdminDuplicateRef>(
+    () => api.post<unknown>(`/admin/challenges/${id}/duplicate`),
+    "Could not duplicate the challenge.",
+  );
+}
+
+export function duplicateAdminPath(id: number): Promise<AdminResult<AdminDuplicateRef>> {
+  return mutate<AdminDuplicateRef>(
+    () => api.post<unknown>(`/admin/paths/${id}/duplicate`),
+    "Could not duplicate the path.",
+  );
+}
+
+
+/* ---------- curriculum: modules / lessons / quizzes ---------- */
+/* ---------- curriculum authoring: lessons, challenges, quizzes ---------- */
+
+export async function getAdminModule(moduleId: number): Promise<AdminModule | null> {
+  try {
+    const res = await api.get<{ data: AdminModule }>(`/admin/modules/${moduleId}`);
+    return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function listAdminLessons(moduleId: number): Promise<AdminLesson[]> {
+  try {
+    const res = await api.get<{ data: AdminLesson[] }>(`/admin/modules/${moduleId}/lessons`);
+    return unwrapList<AdminLesson>(res);
+  } catch {
+    return [];
+  }
+}
+
+export function createAdminLesson(
+  moduleId: number,
+  input: { title: string; summary?: string | null; content: string; position?: number; estimated_minutes?: number; is_published?: boolean },
+): Promise<AdminResult<AdminLesson>> {
+  return mutate<AdminLesson>(
+    () => api.post<unknown>(`/admin/modules/${moduleId}/lessons`, input),
+    "Could not create the lesson.",
+  );
+}
+
+export function updateAdminLesson(
+  id: number,
+  input: Partial<{ title: string; summary: string | null; content: string; position: number; estimated_minutes: number; is_published: boolean }>,
+): Promise<AdminResult<AdminLesson>> {
+  return mutate<AdminLesson>(
+    () => api.put<unknown>(`/admin/lessons/${id}`, input),
+    "Could not save the lesson.",
+  );
+}
+
+export function deleteAdminLesson(id: number): Promise<AdminResult<null>> {
+  return mutateVoid(
+    () => api.delete<unknown>(`/admin/lessons/${id}`),
+    "Could not delete the lesson.",
+  );
+}
+
+/* ---------- lesson <-> challenge linking ---------- */
+
+export async function listAdminLessonChallenges(lessonId: number): Promise<AdminLinkedChallenge[]> {
+  try {
+    const res = await api.get<{ data: AdminLinkedChallenge[] }>(`/admin/lessons/${lessonId}/challenges`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export function linkAdminLessonChallenge(
+  lessonId: number,
+  challengeId: number,
+): Promise<AdminResult<null>> {
+  return mutateVoid(
+    () => api.post<unknown>(`/admin/lessons/${lessonId}/challenges`, { challenge_id: challengeId }),
+    "Could not link the challenge.",
+  );
+}
+
+export function unlinkAdminLessonChallenge(
+  lessonId: number,
+  challengeId: number,
+): Promise<AdminResult<null>> {
+  return mutateVoid(
+    () => api.delete<unknown>(`/admin/lessons/${lessonId}/challenges/${challengeId}`),
+    "Could not unlink the challenge.",
+  );
+}
+
+/* ---------- lessons (full detail incl. quiz) ---------- */
+
+export async function getAdminLesson(lessonId: number): Promise<AdminLesson | null> {
+  try {
+    const res = await api.get<{ data: AdminLesson }>(`/admin/lessons/${lessonId}`);
+    return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function createLessonQuiz(
+  lessonId: number,
+  input: { title: string; description?: string | null; pass_score?: number; position?: number; is_published?: boolean },
+): Promise<AdminResult<AdminQuiz>> {
+  return mutate<AdminQuiz>(
+    () => api.post<unknown>(`/admin/lessons/${lessonId}/quizzes`, input),
+    "Could not create the quiz.",
+  );
+}
+
+export async function getAdminQuiz(quizId: number): Promise<AdminQuiz | null> {
+  try {
+    const res = await api.get<{ data: AdminQuiz }>(`/admin/quizzes/${quizId}`);
+    return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function updateAdminQuiz(
+  quizId: number,
+  input: Partial<{ title: string; description: string | null; pass_score: number; position: number; is_published: boolean }>,
+): Promise<AdminResult<AdminQuiz>> {
+  return mutate<AdminQuiz>(
+    () => api.put<unknown>(`/admin/quizzes/${quizId}`, input),
+    "Could not save the quiz.",
+  );
+}
+
+export function deleteAdminQuiz(quizId: number): Promise<AdminResult<null>> {
+  return mutateVoid(
+    () => api.delete<unknown>(`/admin/quizzes/${quizId}`),
+    "Could not delete the quiz.",
+  );
+}
+
+/* ---------- quiz questions ---------- */
+
+export function createQuizQuestion(
+  quizId: number,
+  input: { question: string; type: AdminQuizQuestionType; explanation?: string | null; points?: number; position?: number; is_published?: boolean },
+): Promise<AdminResult<AdminQuizQuestion>> {
+  return mutate<AdminQuizQuestion>(
+    () => api.post<unknown>(`/admin/quizzes/${quizId}/questions`, input),
+    "Could not create the question.",
+  );
+}
+
+export function updateQuizQuestion(
+  quizId: number,
+  questionId: number,
+  input: Partial<{ question: string; type: AdminQuizQuestionType; explanation: string | null; points: number; position: number; is_published: boolean }>,
+): Promise<AdminResult<AdminQuizQuestion>> {
+  return mutate<AdminQuizQuestion>(
+    () => api.put<unknown>(`/admin/quizzes/${quizId}/questions/${questionId}`, input),
+    "Could not save the question.",
+  );
+}
+
+export function deleteQuizQuestion(
+  quizId: number,
+  questionId: number,
+): Promise<AdminResult<null>> {
+  return mutateVoid(
+    () => api.delete<unknown>(`/admin/quizzes/${quizId}/questions/${questionId}`),
+    "Could not delete the question.",
+  );
+}
+
+/* ---------- quiz options ---------- */
+
+export function createQuizOption(
+  questionId: number,
+  input: { option_text: string; is_correct?: boolean; position?: number },
+): Promise<AdminResult<AdminQuizOption>> {
+  return mutate<AdminQuizOption>(
+    () => api.post<unknown>(`/admin/questions/${questionId}/options`, input),
+    "Could not create the option.",
+  );
+}
+
+export function updateQuizOption(
+  questionId: number,
+  optionId: number,
+  input: Partial<{ option_text: string; is_correct: boolean; position: number }>,
+): Promise<AdminResult<AdminQuizOption>> {
+  return mutate<AdminQuizOption>(
+    () => api.put<unknown>(`/admin/questions/${questionId}/options/${optionId}`, input),
+    "Could not save the option.",
+  );
+}
+
+export function deleteQuizOption(
+  questionId: number,
+  optionId: number,
+): Promise<AdminResult<null>> {
+  return mutateVoid(
+    () => api.delete<unknown>(`/admin/questions/${questionId}/options/${optionId}`),
+    "Could not delete the option.",
+  );
+}
+

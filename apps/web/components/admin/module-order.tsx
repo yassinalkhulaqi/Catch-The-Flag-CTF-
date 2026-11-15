@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/errors";
@@ -141,7 +142,13 @@ function SortableModule({
       >
         {module.position}. {module.title}
       </button>
-      <div className="flex gap-1">
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/admin/modules/${module.id}`}
+          className="rounded-md px-2 py-1 text-xs text-accent hover:bg-surface-raised"
+        >
+          Lessons →
+        </Link>
         <Button type="button" size="sm" variant="outline" disabled={pending || index === 0} onClick={() => onMove(index, -1)}>
           Move up
         </Button>
