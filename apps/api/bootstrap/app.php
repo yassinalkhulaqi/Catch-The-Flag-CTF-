@@ -167,6 +167,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             Log::error('Unhandled API exception', [
                 'request_id' => $requestId($request),
+                'method' => $request->getMethod(),
+                'path' => $request->path(),
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
             ]);

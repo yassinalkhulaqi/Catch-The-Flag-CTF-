@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Context;
 use Tests\TestCase;
 
 /**
@@ -88,16 +88,12 @@ class RequestCorrelationTest extends TestCase
 
     public function test_the_request_id_is_bound_to_the_log_context(): void
     {
-        Log::spy();
+        $this->withHeader('X-Request-Id', 'log-ctx-1')
+            ->getJson('/api/v1/health')
+            ->assertOk();
 
-        $response = $this->withHeader('X-Request-Id', 'log-ctx-1')
-            ->getJson('/api/v1/health');
-
-        $response->assertOk();
-
-        Log::shouldHaveReceived('withContext')
-            ->once()
-            ->with(['request_id' => 'log-ctx-1']);
+        $this->assertTrue(Context::has('request_id'));
+        $this->assertSame('log-ctx-1', Context::get('request_id'));
     }
 
     public function test_each_request_gets_its_own_id(): void
