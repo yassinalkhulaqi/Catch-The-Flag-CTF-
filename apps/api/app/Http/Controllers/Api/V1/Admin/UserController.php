@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Actions\Admin\AdjustXpAction;
 use App\Actions\Admin\BanUserAction;
 use App\Actions\Admin\ChangeUserRoleAction;
+use App\Actions\Admin\UnlockUserAction;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdjustXpRequest;
@@ -63,6 +64,11 @@ class UserController extends Controller
     public function unban(Request $request, User $user, BanUserAction $action): AdminUserResource
     {
         return new AdminUserResource($action->unban($request->user(), $user, $request));
+    }
+
+    public function unlock(Request $request, User $user, UnlockUserAction $action): AdminUserResource
+    {
+        return new AdminUserResource($action->execute($request->user(), $user, $request));
     }
 
     public function changeRole(ChangeRoleRequest $request, User $user, ChangeUserRoleAction $action): AdminUserResource
