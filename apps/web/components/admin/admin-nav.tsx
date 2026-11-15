@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const ITEMS = [
   { href: "/admin", label: "Dashboard", exact: true },
   { href: "/admin/review-queue", label: "Review queue", exact: false },
+  { href: "/admin/analytics", label: "Analytics", exact: false },
   { href: "/admin/challenges", label: "Challenges", exact: false },
   { href: "/admin/paths", label: "Paths", exact: false },
   { href: "/admin/users", label: "Users", exact: false },

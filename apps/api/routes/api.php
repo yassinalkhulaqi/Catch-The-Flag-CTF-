@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AdminAnalyticsController;
 use App\Http\Controllers\Api\V1\Admin\AdminReviewQueueController;
 use App\Http\Controllers\Api\V1\Admin\AdminStatsController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
@@ -132,6 +133,9 @@ Route::prefix('v1')->group(function (): void {
     */
     Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
         Route::get('/stats', [AdminStatsController::class, 'show']);
+        Route::get('/analytics/summary', [AdminAnalyticsController::class, 'summary']);
+        Route::get('/analytics/categories', [AdminAnalyticsController::class, 'categories']);
+        Route::get('/analytics/xp', [AdminAnalyticsController::class, 'xp']);
         Route::get('/review-queue', [AdminReviewQueueController::class, 'index']);
         Route::post('/challenges/{challenge}/duplicate', [AdminChallengeController::class, 'duplicate']);
         Route::post('/paths/{path}/duplicate', [AdminPathController::class, 'duplicate']);

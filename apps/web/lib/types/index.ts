@@ -478,3 +478,35 @@ export interface AdminQuiz {
   questions?: AdminQuizQuestion[] | null;
 }
 
+/* ---------- admin analytics (staff) ---------- */
+
+export interface AdminAnalyticsSummary {
+  users: number;
+  xp_total: number;
+  solves_total: number;
+  submissions_total: number;
+  challenges_published: number;
+  solve_rate: number;
+  registrations_30d: number;
+  active_learners_30d: number;
+}
+
+export interface CategoryAnalyticsRow {
+  category: string;
+  slug: string;
+  published: number;
+  attempts: number;
+  solves: number;
+  solve_rate: number;
+}
+
+export interface XpPoint {
+  day: string;
+  xp: number;
+}
+
+export interface AdminAnalyticsXpSeries {
+  days: number;
+  series: XpPoint[];
+}
+

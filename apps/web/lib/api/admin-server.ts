@@ -9,7 +9,16 @@ import type {
   AdminUserRow,
 } from "@/lib/api/admin";
 import { serverApi } from "@/lib/api/server";
-import type { AdminStats, Category, ContentStatus, Paginated, ReviewQueue } from "@/lib/types";
+import type {
+  AdminAnalyticsSummary,
+  AdminStats,
+  Category,
+  CategoryAnalyticsRow,
+  ContentStatus,
+  Paginated,
+  ReviewQueue,
+  XpPoint,
+} from "@/lib/types";
 
 /**
  * Server-side admin helpers for `app/admin/*` Server Components.
@@ -226,6 +235,29 @@ export async function getReviewQueueServer(): Promise<ReviewQueue | null> {
   try {
     const res = await serverApi<{ data: ReviewQueue }>("GET", "/admin/review-queue");
     return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Staff analytics: summary + per-category funnel + 30-day XP series. */
+export async function getAdminAnalyticsServer(): Promise<{
+  summary: AdminAnalyticsSummary | null;
+  categories: CategoryAnalyticsRow[];
+  series: XpPoint[];
+} | null> {
+  try {
+    const [summaryRes, categoriesRes, xpRes] = await Promise.all([
+      serverApi<{ data: AdminAnalyticsSummary }>("GET", "/admin/analytics/summary"),
+      serverApi<{ data: CategoryAnalyticsRow[] }>("GET", "/admin/analytics/categories"),
+      serverApi<{ data: { days: number; series: XpPoint[] } }>("GET", "/admin/analytics/xp?days=30"),
+    ]);
+
+    return {
+      summary: summaryRes.data ?? null,
+      categories: categoriesRes.data ?? [],
+      series: xpRes.data?.series ?? [],
+    };
   } catch {
     return null;
   }
