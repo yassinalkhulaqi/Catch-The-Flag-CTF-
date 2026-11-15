@@ -103,6 +103,7 @@ submissions & solves · XP ledger · deterministic progress · global leaderboar
 achievements · search & filtering · admin content workflow
 (draft→review→published→archived) · secure file uploads/downloads ·
 rate limiting · audit logging · notifications (achievement/path) ·
+learner bookmarks with private notes · staff analytics (totals, funnel, XP) ·
 tests & documentation.
 
 ## 6. Explicitly out of scope for V1
