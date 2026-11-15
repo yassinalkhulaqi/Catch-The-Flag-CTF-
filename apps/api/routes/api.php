@@ -133,6 +133,8 @@ Route::prefix('v1')->group(function (): void {
     Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
         Route::get('/stats', [AdminStatsController::class, 'show']);
         Route::get('/review-queue', [AdminReviewQueueController::class, 'index']);
+        Route::post('/challenges/{challenge}/duplicate', [AdminChallengeController::class, 'duplicate']);
+        Route::post('/paths/{path}/duplicate', [AdminPathController::class, 'duplicate']);
         Route::get('/challenges', [AdminChallengeController::class, 'index']);
         Route::post('/challenges', [AdminChallengeController::class, 'store']);
         Route::get('/challenges/{challenge}', [AdminChallengeController::class, 'show']);

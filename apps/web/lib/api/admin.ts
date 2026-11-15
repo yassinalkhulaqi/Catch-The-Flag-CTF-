@@ -462,3 +462,27 @@ export async function listCategoriesAdmin(): Promise<Category[]> {
     return [];
   }
 }
+
+/* ---------- duplication ---------- */
+
+export interface AdminDuplicateRef {
+  id: number;
+  slug: string;
+  title: string;
+  status: ContentStatus;
+}
+
+export function duplicateAdminChallenge(id: number): Promise<AdminResult<AdminDuplicateRef>> {
+  return mutate<AdminDuplicateRef>(
+    () => api.post<unknown>(`/admin/challenges/${id}/duplicate`),
+    "Could not duplicate the challenge.",
+  );
+}
+
+export function duplicateAdminPath(id: number): Promise<AdminResult<AdminDuplicateRef>> {
+  return mutate<AdminDuplicateRef>(
+    () => api.post<unknown>(`/admin/paths/${id}/duplicate`),
+    "Could not duplicate the path.",
+  );
+}
+
