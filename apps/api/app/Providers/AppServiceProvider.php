@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\Role;
+use App\Models\Bookmark;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\Challenge;
@@ -13,6 +14,7 @@ use App\Models\Path;
 use App\Models\PathModule;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
+use App\Policies\BookmarkPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\ChallengePolicy;
 use App\Policies\LessonPolicy;
@@ -22,6 +24,7 @@ use App\Policies\QuizAttemptPolicy;
 use App\Policies\QuizPolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -34,7 +37,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Morph-map the bookmark targets: the database holds a stable alias,
+        // never a class name.
+        Relation::morphMap([
+            'challenge' => \App\Models\Challenge::class,
+            'lesson' => \App\Models\Lesson::class,
+            'path' => \App\Models\Path::class,
+        ]);
     }
 
     /**
@@ -77,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Lesson::class, LessonPolicy::class);
         Gate::policy(Quiz::class, QuizPolicy::class);
         Gate::policy(QuizAttempt::class, QuizAttemptPolicy::class);
+        Gate::policy(Bookmark::class, BookmarkPolicy::class);
     }
 
     /**

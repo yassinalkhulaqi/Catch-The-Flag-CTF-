@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AdminAnalyticsController;
 use App\Http\Controllers\Api\V1\Admin\AdminReviewQueueController;
 use App\Http\Controllers\Api\V1\Admin\AdminStatsController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\PathController;
 use App\Http\Controllers\Api\V1\PathProgressController;
+use App\Http\Controllers\Api\V1\BookmarkController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\QuizAttemptController;
@@ -110,6 +112,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/me/notifications/{id}/read', [MeController::class, 'readNotification']);
         Route::post('/me/notifications/read-all', [MeController::class, 'readAllNotifications']);
 
+        // Learner bookmarks (docs/product.md §6)
+        Route::get('/me/bookmarks', [BookmarkController::class, 'index']);
+        Route::post('/me/bookmarks', [BookmarkController::class, 'store']);
+        Route::patch('/me/bookmarks/{bookmark}', [BookmarkController::class, 'update']);
+        Route::delete('/me/bookmarks/{bookmark}', [BookmarkController::class, 'destroy']);
+
         Route::post('/challenges/{challenge}/hints/{hint}/unlock', [HintUnlockController::class, 'store']);
         Route::post('/challenges/{challenge}/submissions', [SubmissionController::class, 'store'])
             ->middleware(['throttle:submission-user', 'throttle:submission-challenge']);
@@ -132,6 +140,9 @@ Route::prefix('v1')->group(function (): void {
     */
     Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
         Route::get('/stats', [AdminStatsController::class, 'show']);
+        Route::get('/analytics/summary', [AdminAnalyticsController::class, 'summary']);
+        Route::get('/analytics/categories', [AdminAnalyticsController::class, 'categories']);
+        Route::get('/analytics/xp', [AdminAnalyticsController::class, 'xp']);
         Route::get('/review-queue', [AdminReviewQueueController::class, 'index']);
         Route::post('/challenges/{challenge}/duplicate', [AdminChallengeController::class, 'duplicate']);
         Route::post('/paths/{path}/duplicate', [AdminPathController::class, 'duplicate']);
