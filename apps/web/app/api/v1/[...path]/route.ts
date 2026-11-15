@@ -51,6 +51,10 @@ async function proxy(
   const headers = new Headers();
   headers.set("Accept", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
+  // Session names are derived from the User-Agent server-side; forward it so
+  // a user can tell their sessions apart. It is sanitized there.
+  const userAgent = request.headers.get("user-agent");
+  if (userAgent) headers.set("User-Agent", userAgent);
 
   let body: BodyInit | undefined;
   if (!["GET", "HEAD"].includes(method)) {

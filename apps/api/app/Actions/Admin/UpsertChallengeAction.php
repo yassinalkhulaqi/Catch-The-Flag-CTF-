@@ -7,6 +7,7 @@ namespace App\Actions\Admin;
 use App\Models\Challenge;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\MarkdownSafety;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,8 @@ class UpsertChallengeAction
      */
     public function execute(User $actor, ?Challenge $challenge, array $data, Request $request): Challenge
     {
+        MarkdownSafety::assertSafe($data, ['description', 'scenario', 'solution_walkthrough']);
+
         return DB::transaction(function () use ($actor, $challenge, $data, $request): Challenge {
             $tagIds = Arr::pull($data, 'tag_ids');
 
