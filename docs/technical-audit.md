@@ -131,19 +131,31 @@ M9 last-admin guard.
 
 ## 10. Testing gaps
 
-Must expand:
+Must expand. Status after Branch 2 (`feat/security-hardening-and-test-matrix`):
 
-- Per-challenge submit throttle 429
-- Register hourly throttle
-- `max_attempts` enforcement
-- Concurrent solve (second request already_solved / unique)
-- Quiz attempt IDOR
-- File/hint cross-challenge IDOR
-- Moderator cannot hit `/admin/users`
-- Last-admin demotion blocked
-- MIME rejection on upload
-- Profile mass-assign role/xp
-- Frontend: open-redirect rejection; markdown bad href
+| Gap | Status | Where |
+| --- | --- | --- |
+| Per-challenge submit throttle 429 | EXISTS | `SubmissionTest::test_submissions_are_rate_limited_per_challenge` |
+| Register hourly throttle | EXISTS | `RateLimitConfigurationTest::test_the_register_limiter_is_driven_by_config` |
+| Reset-password throttle | EXISTS | `RateLimitConfigurationTest::test_the_password_reset_limiter_is_driven_by_config` |
+| Login lockout 429 + Retry-After | EXISTS | `SecurityHardeningTest::test_locked_account_cannot_keep_trying` |
+| `max_attempts` enforcement | EXISTS | `SubmissionTest` |
+| Concurrent solve | EXISTS | `AuditMatrixRegressionTest::test_concurrent_solve_falls_back_to_the_unique_index` |
+| Quiz attempt IDOR | EXISTS | `QuizTest::test_resubmit_is_conflict_and_foreign_attempt_is_404` |
+| File/hint cross-challenge IDOR | EXISTS | `HintUnlockTest`, `AuditMatrixRegressionTest::test_file_id_from_another_challenge_returns_404` |
+| Moderator cannot hit `/admin/users` | EXISTS | `AdminTest::test_moderator_manages_content_but_not_users_or_audit` |
+| Last-admin demotion blocked | EXISTS | `AdminTest::test_last_admin_demotion_is_blocked` |
+| MIME rejection on upload | EXISTS | `SecurityTest::test_mime_spoof_is_rejected_by_server_side_detection` |
+| Profile mass-assign role/xp | EXISTS | `AuditMatrixRegressionTest::test_profile_update_cannot_escalate_role_or_xp` |
+| Frontend: open-redirect rejection; markdown bad href | EXISTS | `lib/safe-url.test.ts`, `lib/markdown.test.ts` |
+| CORS allowlist behaviour | EXISTS | `AuditMatrixRegressionTest::test_cors_honours_the_configured_frontend_origin_only` |
+| Reset-token reuse | EXISTS | `AuditMatrixRegressionTest::test_reset_password_token_is_single_use` |
+| 429 + Retry-After shape | EXISTS | `RateLimitConfigurationTest`, `SecurityHardeningTest` |
+| Admin unlock (moderator denied, audited) | EXISTS | `SecurityHardeningTest` |
+| Session list/revoke, token hash never leaked | EXISTS | `SecurityHardeningTest` |
+| Server-side markdown link allowlist | EXISTS | `MarkdownSafetyTest` |
+
+**Remaining known testing gap:** concurrent submissions by the same user against the same challenge (the unique index catches it — see `AuditMatrixRegressionTest` — but there is no true multi-process race test; CI-level load testing is a V1.5/V2 concern).
 
 ---
 

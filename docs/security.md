@@ -45,14 +45,16 @@ Physical access, OS-level compromise of the host, DDoS at network edge
 |---|---|
 | Password hashing | Argon2id (Laravel default) — never reversible, never logged |
 | Password policy | min 12 chars, not in common-password denylist (breeze-style rule), max 255 to prevent DoS |
-| Login brute force | Rate limit `5/min` per email+IP on `/auth/login`, `10/hour` lockout escalation; identical error for unknown email vs wrong password (no enumeration) |
+| Login brute force | Rate limit `5/min` per IP on `/auth/login`; per-account lockout: **5 failures → 15-minute self-healing lock**, keyed by salted email hash (`ctf.security.lockout_*`), identical error for unknown email vs wrong password, `429` + `Retry-After` while locked, cleared on successful login, releasable by an admin (`POST /admin/users/{user}/unlock`, audited as `user.unlocked`) |
 | Registration | Rate limit `3/hour` per IP; email uniqueness checked case-insensitively (`citext`) |
-| Token issuance | Sanctum personal access tokens, `abilities` scoped (`*` for users, `admin` extra for admins), `expires_at` = 30 days |
+| Password reset | Token-based reset via email, single-use, 60-minute TTL; `password_reset` throttle `5/hour` per IP |
+| Token issuance | Sanctum personal access tokens, `*` abilities, `expires_at` = 30 days (`ctf.tokens.ttl_days`); names carry a sanitised User-Agent so a user can tell sessions apart |
 | Token storage | **httpOnly cookie held by Next.js BFF only** — never in localStorage, never readable by JS (architecture.md §6) |
-| Token revocation | `DELETE /auth/logout` revokes the current token; `logout_all` revokes all; password change revokes all tokens |
-| Password reset | Token-based reset via email, single-use, 60-minute TTL, rate-limited (mail is `log` driver by default in dev) |
-| Account lockout | `banned_at` flag blocks login and API access with a generic 403 |
-| Session fixation | N/A for stateless tokens; cookie is regenerated (rotated) on every login |
+| Token revocation | `DELETE /auth/logout` revokes the current token; `logout-all` revokes all; password change revokes all; expired tokens are swept nightly (`ctf:prune-tokens`) |
+| Session hygiene | Users list their sessions (`GET /auth/sessions` — name, last used, expiry; **never the token hash**) and revoke any of them (`DELETE /auth/sessions/{id}`); revoking the current one logs the device out |
+| Password reset reuse | A token that reset once can never reset again (broker invalidates it; regression-tested) |
+| Account lockout | `banned_at` flag blocks login and API access with a generic 403; lockout counter failures are logged by account hash, never raw email |
+| Session fixation | N/A for stateless tokens; a new random session cookie is issued on every login |
 
 **No enumeration:** login, register, forgot-password, and challenge-solve
 responses are constant-shaped and constant-timing in their error paths.
@@ -248,6 +250,15 @@ Automated (PHPUnit):
 - Mass assignment: attempt to set `role`, `xp`, `status` via public endpoints →
   ignored.
 - Password reset single-use + expiry; login lockout.
+- Branch 2 additions (all in `AuditMatrixRegressionTest` / `SecurityHardeningTest`):
+  concurrent solve falls back to the unique index and awards nothing; CORS
+  allowlist permits only the configured frontend origin; `429` bodies carry the
+  `request_id` and `Retry-After` header; profile update cannot escalate
+  `role`/`xp`/`solved_count`/`banned_at`; file id belonging to another
+  challenge returns 404; admin unlock clears a lockout and moderators cannot;
+  session list never leaks the token hash; revoking another user's session is
+  404; markdown write-path rejects `javascript:`/`data:` links.
+
 
 Manual/operational checklist lives in [development.md](development.md) §8.
 

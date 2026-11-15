@@ -81,9 +81,11 @@ URLs; APIs accept `id` (frontend resolves slug→id via detail endpoints).
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/auth/register` | — | Create account → `{user, token}` |
-| POST | `/auth/login` | — | `{email, password}` → `{user, token}` |
+| POST | `/auth/login` | — | `{email, password}` → `{user, token}` (`429` + `Retry-After` while the account is locked) |
 | POST | `/auth/logout` | ✔ | Revoke current token |
 | POST | `/auth/logout-all` | ✔ | Revoke all of user's tokens |
+| GET | `/auth/sessions` | ✔ | Own sessions: `id`, `name` (sanitised User-Agent), `created_at`, `last_used_at`, `expires_at`, `current`. Token hashes are never returned |
+| DELETE | `/auth/sessions/{id}` | ✔ | Revoke one own session (revoking the current token logs the device out) |
 | GET | `/auth/me` | ✔ | Current user + role + unread count + own `theme` |
 | PUT | `/profile` | ✔ | Update own name/bio/avatar |
 | PUT | `/profile/password` | ✔ | Change password (revokes other tokens) |
@@ -179,7 +181,7 @@ GET/POST        /admin/categories       PUT/DELETE /admin/categories/{id}
 GET/POST        /admin/tags             DELETE /admin/tags/{id}
 GET/POST        /admin/achievements     PUT/DELETE /admin/achievements/{id}
 GET             /admin/users            GET/PUT /admin/users/{id}
-PUT             /admin/users/{id}/role  POST /admin/users/{id}/ban|unban
+PUT             /admin/users/{id}/role  POST /admin/users/{id}/ban|unban|unlock
 POST            /admin/users/{id}/xp    {amount, reason}  (audited)
 GET             /admin/audit-logs       (filter: actor, action, entity, date)
 GET             /admin/stats            (dashboard counters; Gate `viewAdminDashboard`)
