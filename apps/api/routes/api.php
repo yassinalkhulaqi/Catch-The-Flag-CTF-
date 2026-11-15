@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\PathController;
 use App\Http\Controllers\Api\V1\PathProgressController;
+use App\Http\Controllers\Api\V1\BookmarkController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\QuizAttemptController;
@@ -110,6 +111,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/me/notifications', [MeController::class, 'notifications']);
         Route::post('/me/notifications/{id}/read', [MeController::class, 'readNotification']);
         Route::post('/me/notifications/read-all', [MeController::class, 'readAllNotifications']);
+
+        // Learner bookmarks (docs/product.md §6)
+        Route::get('/me/bookmarks', [BookmarkController::class, 'index']);
+        Route::post('/me/bookmarks', [BookmarkController::class, 'store']);
+        Route::patch('/me/bookmarks/{bookmark}', [BookmarkController::class, 'update']);
+        Route::delete('/me/bookmarks/{bookmark}', [BookmarkController::class, 'destroy']);
 
         Route::post('/challenges/{challenge}/hints/{hint}/unlock', [HintUnlockController::class, 'store']);
         Route::post('/challenges/{challenge}/submissions', [SubmissionController::class, 'store'])

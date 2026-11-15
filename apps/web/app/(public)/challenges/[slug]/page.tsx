@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/empty-state";
 import { HintList } from "@/components/hint-list";
 import { LabActionHub } from "@/components/lab-action-hub";
 import { LabObjective } from "@/components/lab-objective";
+import { BookmarkToggle } from "@/components/bookmark-toggle";
 import { LabSidebar } from "@/components/lab-sidebar";
 import { LabStatusBanner } from "@/components/lab-status-banner";
 import { Markdown } from "@/components/markdown";
@@ -98,7 +99,12 @@ export default async function ChallengeDetailPage({
               </Badge>
             ) : null}
           </div>
-          <h1 className="type-title mt-3 max-w-3xl text-balance">{challenge.title}</h1>
+           <h1 className="type-title mt-3 max-w-3xl text-balance">{challenge.title}</h1>
+          {user ? (
+            <div className="mt-3">
+              <BookmarkToggle type="challenge" id={challenge.id} />
+            </div>
+          ) : null}
           {challenge.scenario ? (
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
               {challenge.scenario}
