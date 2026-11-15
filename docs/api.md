@@ -207,7 +207,11 @@ re-read — security.md §5).
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/health` | `{ status, version, db, storage, time }` — 503 when degraded; no config/stack exposure |
+| GET | `/health` | Liveness. `{ status, version }` — process is up; no I/O, always 200 when serving |
+| GET | `/health/live` | Liveness alias with the same shape |
+| GET | `/health/ready` | Readiness. `{ status, version, checks }` — probes `database`, `cache` and `storage`; 200 when all pass, 503 (`degraded`) otherwise. Per-check latency in ms; **no hostnames, paths, versions or config values are exposed** |
+
+Every response (success or error) carries an `X-Request-Id` header. Error bodies carry the same id as `error.request_id`.
 
 ---
 

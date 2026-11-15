@@ -291,9 +291,12 @@ submitted flag is only ever stored as an HMAC.
 |---|---|
 | Validation | FormRequest classes; strict `exists`/`enum` rules; no mass-assignment of guarded fields |
 | Authorization | Policies + server-side role checks; IDOR covered by policies on every read/write of user-owned data |
-| Rate limiting | Laravel RateLimiter (cache): auth, submissions, downloads, admin writes — numbers in `config/ctf.php` |
+| Rate limiting | Laravel RateLimiter (cache), driven by `config/ctf.php` (`rate_limits`) and read at request time — auth, register, password-reset, submissions, downloads, admin writes, global API |
 | Errors | Consistent JSON envelope + `request_id` for correlation; generic messages for 401/403/404/429/500 |
-| Logging | Monolog JSON-ish context; structured; no secrets; health endpoint `/api/v1/health` |
+| Logging | `structured` log channel (`LOG_CHANNEL=structured` or `LOG_STACK=single,structured`); every record carries the request id in its extra block; no secrets; no stack traces leave the server |
+| Correlation | `X-Request-Id` on **every** response (set by the `AssignRequestId` middleware); an inbound id is honoured only when it matches a short, log-safe charset, otherwise a fresh UUID is minted. The id is the same in the header and in `error.request_id` on failures, and it is bound to the request-scoped log context |
+| Health | `/api/v1/health` and `/health/live` (liveness, cheap) · `/health/ready` (readiness: database, cache, challenge-artifact disk — 200 or 503 with per-dependency status/latency; no hostnames or config values) |
+| Retention | `ctf:prune-submissions` anonymises IPs/user agents on submissions older than `ctf.submissions.ip_retention_days`; `ctf:prune-tokens` deletes expired PATs. Both run nightly via the scheduler and support `--dry-run` |
 | Migrations | All schema in versioned migrations; seeds for demo/admin content |
 | Config | Env-driven; `.env.example` documents every knob; secrets never committed |
 

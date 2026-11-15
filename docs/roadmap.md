@@ -53,6 +53,8 @@
 
 V1.5 polish landed: light and system themes, challenge authoring steps, and hard path-prerequisite enforcement. Admin achievements are authored in the web UI.
 
+Observability baseline landed: request correlation (`X-Request-Id` everywhere), a structured JSON log channel, liveness/readiness health probes, config-driven rate limits (incl. password-reset), and the retention commands `ctf:prune-submissions` / `ctf:prune-tokens`.
+
 ---
 
 ## V2 — Interactive labs & events

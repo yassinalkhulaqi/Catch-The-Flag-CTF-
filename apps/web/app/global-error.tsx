@@ -7,7 +7,6 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  void error;
   return (
     <html lang="en">
       <body
@@ -25,6 +24,11 @@ export default function GlobalError({
           <p style={{ color: "#e5484d", letterSpacing: "0.2em", fontSize: 12 }}>ERROR</p>
           <h1 style={{ fontSize: 28, margin: "12px 0" }}>Catch The Flag</h1>
           <p style={{ color: "#93a4b3" }}>A critical error occurred. Please try again.</p>
+          {error.digest ? (
+            <p style={{ color: "#93a4b3", fontSize: 11, fontFamily: "monospace", marginTop: 8 }}>
+              Reference: {error.digest}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={reset}

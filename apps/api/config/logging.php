@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -111,6 +112,29 @@ return [
             ],
             'formatter' => env('LOG_STDERR_FORMATTER'),
             'processors' => [PsrLogMessageProcessor::class],
+        ],
+
+        /*
+         * Machine-readable log stream (docs/architecture.md §7 Observability).
+         *
+         * One JSON object per line, so a log shipper can parse it without
+         * regular expressions. The request id rides along in the record
+         * context, which is bound per request by the AssignRequestId
+         * middleware — a log line and a user-reported failure then share one
+         * identifier.
+         */
+        'structured' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'info'),
+            'handler' => StreamHandler::class,
+            'handler_with' => [
+                'stream' => env('LOG_STRUCTURED_STREAM', 'php://stderr'),
+            ],
+            'formatter' => JsonFormatter::class,
+            'formatter_with' => [
+                'batchMode' => JsonFormatter::BATCH_MODE_JSON,
+                'appendNewline' => true,
+            ],
         ],
 
         'syslog' => [
