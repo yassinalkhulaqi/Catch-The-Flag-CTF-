@@ -50,7 +50,7 @@ Physical access, OS-level compromise of the host, DDoS at network edge
 | Password reset | Token-based reset via email, single-use, 60-minute TTL; `password_reset` throttle `5/hour` per IP |
 | Token issuance | Sanctum personal access tokens, `*` abilities, `expires_at` = 30 days (`ctf.tokens.ttl_days`); names carry a sanitised User-Agent so a user can tell sessions apart |
 | Token storage | **httpOnly cookie held by Next.js BFF only** — never in localStorage, never readable by JS (architecture.md §6) |
-| Token revocation | `DELETE /auth/logout` revokes the current token; `logout-all` revokes all; password change revokes all; expired tokens are swept nightly (`ctf:prune-tokens`) |
+| Token revocation | `DELETE /auth/logout` revokes the current token; `logout-all` revokes all; password change revokes all other sessions; role change and ban revoke all of the target's tokens; expired tokens are swept nightly (`ctf:prune-tokens`) |
 | Session hygiene | Users list their sessions (`GET /auth/sessions` — name, last used, expiry; **never the token hash**) and revoke any of them (`DELETE /auth/sessions/{id}`); revoking the current one logs the device out |
 | Password reset reuse | A token that reset once can never reset again (broker invalidates it; regression-tested) |
 | Account lockout | `banned_at` flag blocks login and API access with a generic 403; lockout counter failures are logged by account hash, never raw email |
