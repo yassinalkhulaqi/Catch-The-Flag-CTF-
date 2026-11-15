@@ -304,3 +304,17 @@ bisect.
 | Dead config (already happened once with `ip_retention_days`) | Branch 1 wires retention to a real command; branch 5 audits config coverage. |
 | Unverifiable backend changes | CI runs the full backend suite on every branch; a branch that cannot pass CI is not merged. |
 | Branch 5 is large | Split into reviewable commits; the API-token slice can ship on its own if the branch must be shortened. |
+
+## 10. Status as of the build session (honest accounting)
+
+| # | Branch | State | Measured diff |
+|---|---|---|---|
+| 1 | feat/ops-observability-baseline | **Done, pushed** | ~1,500 lines |
+| 2 | feat/security-hardening-and-test-matrix | **Done, pushed** | ~1,320 lines |
+| 3 | feat/content-authoring-depth | **Done** - authoring UI (lessons/quizzes/linked challenges), review queue, duplication, live stats, bulk path table, retired legacy editor + duplicate components | ~2,600 lines |
+| 4 | feat/learning-analytics-and-insights | **Partial** - staff analytics + learner bookmarks shipped; **email notifications + preferences and learner mastery/streak UI NOT delivered (deferred)** | ~4,100 lines |
+| 5 | feat/platform-integrations-and-delivery | **Started** - SEO/PWA slice landed (robots, sitemap, manifest, icon); **public API + PATs, webhooks, full i18n and CI matrix NOT delivered** | ~180 lines |
+| | | **Delivered so far** | **~9,700 lines** |
+
+Backend PHPUnit was authored everywhere but never executed locally; Docker Desktop would not start and local PHP is 8.3 vs the required 8.4, so CI (.github/workflows/ci.yml, Postgres 17) is the verification gate for the backend. Frontend lint, typecheck, vitest (149 tests) and next build all pass.
+
