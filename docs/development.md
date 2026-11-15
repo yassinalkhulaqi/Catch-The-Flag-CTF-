@@ -58,9 +58,21 @@ php artisan migrate                 # migrate
 php artisan migrate:fresh --seed    # reset + seed
 php artisan test                    # all tests
 php artisan test --filter=Flag      # subset
-php artisan pints                   # style fixer (Laravel Pint)
+php artisan pint                    # style fixer (Laravel Pint)
 php artisan route:list --path=api   # route inventory
 php artisan config:clear            # after .env edits (native only)
+
+# health probes (docs/api.md §6)
+curl -i  http://127.0.0.1:8000/api/v1/health        # liveness
+curl -i  http://127.0.0.1:8000/api/v1/health/ready  # readiness (db/cache/storage)
+
+# retention (docs/security.md §8) — safe to re-run; --dry-run first
+php artisan ctf:prune-submissions --dry-run
+php artisan ctf:prune-submissions
+php artisan ctf:prune-tokens
+# nightly via scheduler: php artisan schedule:work (or cron → schedule:run)
+
+# structured logs: LOG_CHANNEL=structured (or LOG_STACK=single,structured)
 ```
 
 ### Frontend (`apps/web`)

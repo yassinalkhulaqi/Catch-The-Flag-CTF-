@@ -114,7 +114,7 @@ UI hiding is never sufficient — every row above is enforced server-side.
 | Output encoding | JSON API (never HTML-embedded). Markdown from authors is rendered **sanitized** on the client with a strict allowlist (no raw HTML in lesson/challenge markdown); stored XSS surface is minimized. |
 | Security headers | Set on the web app (and API): `Content-Security-Policy` (no `unsafe-eval`; `object-src 'none'`; `base-uri 'self'`; `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy`, HSTS in production. |
 | Body limits | `post_max_size`/client body ≤ 32 MB (admin uploads); per-file limit configurable (`MAX_CHALLENGE_FILE_MB`, default 64 MB) and enforced server-side. |
-| Error handling | Uniform JSON envelope with `request_id`; stack traces, SQL, and framework detail never returned (only logged). 500s log with request id for correlation. |
+| Error handling | Uniform JSON envelope with `request_id`; stack traces, SQL, and framework detail never returned (only logged). 500s log with request id for correlation. `AssignRequestId` mints the id (inbound ids honoured only when short and log-safe), echoes it as `X-Request-Id` on every response, and binds it to the request-scoped log context |
 | Mass assignment | `$fillable` everywhere; `role`, `xp`, `solved_count`, `status` (where applicable) never fillable from user input. |
 | Debug mode | `APP_DEBUG=false` in production — enforced by deployment checklist. |
 
@@ -194,7 +194,7 @@ Assume **every byte is hostile**.
 | Passwords | Argon2id; never in logs, exports, audit diffs |
 | Transport | TLS everywhere in production; HSTS enabled; cookies `Secure` in prod |
 | Database | Least-privilege app user (DML only, no DDL at runtime in prod), parameterized queries via Eloquent/query builder, no raw string SQL with user input |
-| PII retention | `challenge_submissions.ip_address` retained 90 days (documented purge), deletable via user deletion flow (soft delete + anonymization) |
+| PII retention | `challenge_submissions.ip_address` / `user_agent` retained 90 days, then anonymised (row kept) by `php artisan ctf:prune-submissions` (nightly via scheduler; `--dry-run` supported). Expired Sanctum PATs are deleted by `ctf:prune-tokens` |
 | Logs | Structured; request logging excludes bodies for `/auth/*` and submissions; flags/keys/passwords never logged |
 | Backups | DB backups encrypted at rest by provider; storage bucket versioning recommended in deployment.md |
 
