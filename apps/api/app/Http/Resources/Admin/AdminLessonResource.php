@@ -39,6 +39,14 @@ class AdminLessonResource extends JsonResource
                     'status' => $challenge->status->value,
                 ])->values()->all();
             }),
+            // Staff-only: the lesson's primary quiz (first by position), full
+            // detail including questions and options. Learner payloads never
+            // include this — correctness is authoring data.
+            'quiz' => $this->whenLoaded('quizzes', function () {
+                $quiz = $this->quizzes->first();
+
+                return $quiz === null ? null : (new AdminQuizResource($quiz))->resolve();
+            }),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

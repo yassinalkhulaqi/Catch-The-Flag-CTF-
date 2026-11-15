@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
 
 /**
  * Staff lesson management nested under modules, plus the
- * lesson↔challenge link endpoints.
+ * lessonâ†”challenge link endpoints.
  */
 class LessonController extends Controller
 {
@@ -39,7 +39,8 @@ class LessonController extends Controller
 
     public function show(Lesson $lesson): AdminLessonResource
     {
-        $lesson->load(['challenges']);
+        $lesson->load(['challenges', 'quizzes']);
+        $lesson->loadMissing('quizzes.questions.options');
 
         return new AdminLessonResource($lesson);
     }
