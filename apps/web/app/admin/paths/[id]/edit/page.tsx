@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ModuleOrder } from "@/components/admin/module-order";
 import { PathEditor } from "@/components/admin/path-forms";
+import { DuplicateButton } from "@/components/admin/duplicate-button";
 import { ErrorState, PageHeader } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
@@ -47,6 +48,7 @@ export default async function AdminPathEditPage({
             <Link href="/admin/paths" className={cn(buttonVariants("ghost", "sm"))}>
               Back to list
             </Link>
+            <DuplicateButton kind="path" id={path.id} />
             <Link
               href={`/paths/${path.slug}`}
               className={cn(buttonVariants("outline", "sm"))}

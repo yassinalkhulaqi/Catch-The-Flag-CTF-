@@ -58,6 +58,6 @@ class Lesson extends Model
     /** @return HasMany<Quiz, $this> */
     public function quizzes(): HasMany
     {
-        return $this->hasMany(Quiz::class, 'lesson_id');
+        return $this->hasMany(Quiz::class, 'lesson_id')->orderBy('position')->orderBy('id');
     }
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Enums\Role;
 use App\Models\Category;
+use App\Models\User;
 use App\Models\Challenge;
 use App\Models\Lesson;
 use App\Models\Path;
@@ -42,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->defineRateLimiters();
         $this->registerPolicies();
+        $this->defineGates();
 
         // Password reset links point at the Next.js frontend, never the API:
         // the token travels in the URL once and is consumed server-side.
@@ -50,6 +53,14 @@ class AppServiceProvider extends ServiceProvider
 
             return "{$frontend}/reset-password?token={$token}&email=".urlencode($user->getEmailForPasswordReset());
         });
+    }
+
+    /**
+     * Staff-dashboard gate (docs/security.md §7). Moderators and admins only.
+     */
+    protected function defineGates(): void
+    {
+        Gate::define('viewAdminDashboard', static fn (User $user): bool => $user->hasRole(Role::Moderator));
     }
 
     /**
@@ -69,7 +80,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Named rate limiters driven by config/ctf.php (docs/security.md §4).
+     * Named rate limiters driven by config/ctf.php (docs/security.md آ§4).
      * All resolve per-minute (per-hour for register/password-reset);
      * authenticated limiters key on user id so one abuser cannot exhaust a
      * shared bucket.

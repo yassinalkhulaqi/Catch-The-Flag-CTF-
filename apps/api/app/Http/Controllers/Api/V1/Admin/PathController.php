@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Admin\DuplicatePathAction;
 use App\Actions\Admin\TransitionPathAction;
 use App\Actions\Admin\UpsertPathAction;
 use App\Enums\ContentStatus;
@@ -75,6 +76,21 @@ class PathController extends Controller
     public function archive(Request $request, Path $path, TransitionPathAction $action): AdminPathResource
     {
         return new AdminPathResource($action->execute($request->user(), $path, ContentStatus::Archived, $request));
+    }
+
+    /**
+     * Deep-clone this path as a draft (modules, lessons, linked challenges and quizzes).
+     */
+    public function duplicate(Request $request, Path $path, DuplicatePathAction $action): JsonResponse
+    {
+        $copy = $action->execute($request->user(), $path, $request);
+
+        return response()->json(['data' => [
+            'id' => $copy->id,
+            'slug' => $copy->slug,
+            'title' => $copy->title,
+            'status' => $copy->status instanceof ContentStatus ? $copy->status->value : $copy->status,
+        ]], 201);
     }
 
     public function review(Request $request, Path $path, TransitionPathAction $action): AdminPathResource

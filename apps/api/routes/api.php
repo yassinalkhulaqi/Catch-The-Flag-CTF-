@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\AchievementController as AdminAchievementController;
+use App\Http\Controllers\Api\V1\Admin\AdminReviewQueueController;
+use App\Http\Controllers\Api\V1\Admin\AdminStatsController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ChallengeController as AdminChallengeController;
@@ -46,7 +48,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function (): void {
-    // Health probes (docs/architecture.md آ§7). Liveness is cheap; readiness
+    // Health probes (docs/architecture.md §7). Liveness is cheap; readiness
     // probes the database, the cache and the challenge-artifact disk.
     Route::get('/health', [HealthController::class, 'show']);
     Route::get('/health/live', [HealthController::class, 'live']);
@@ -130,6 +132,10 @@ Route::prefix('v1')->group(function (): void {
     | are 409. DELETE on challenges/paths archives instead of deleting.
     */
     Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
+        Route::get('/stats', [AdminStatsController::class, 'show']);
+        Route::get('/review-queue', [AdminReviewQueueController::class, 'index']);
+        Route::post('/challenges/{challenge}/duplicate', [AdminChallengeController::class, 'duplicate']);
+        Route::post('/paths/{path}/duplicate', [AdminPathController::class, 'duplicate']);
         Route::get('/challenges', [AdminChallengeController::class, 'index']);
         Route::post('/challenges', [AdminChallengeController::class, 'store']);
         Route::get('/challenges/{challenge}', [AdminChallengeController::class, 'show']);
