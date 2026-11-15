@@ -56,6 +56,12 @@ class User extends Authenticatable
         return $this->hasMany(ChallengeSubmission::class);
     }
 
+    /** @return HasMany<Bookmark, $this> */
+    public function bookmarks(): HasMany
+    {
+        return $this->hasMany(Bookmark::class);
+    }
+
     /** @return HasMany<ChallengeSolve, $this> */
     public function solves(): HasMany
     {

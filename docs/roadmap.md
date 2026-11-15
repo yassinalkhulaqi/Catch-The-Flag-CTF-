@@ -59,6 +59,10 @@ Security hardening landed: per-account login lockout with audited admin unlock, 
 
 Authoring depth landed: staff can author modules, lessons, quizzes (single/multiple/true-false, with explanations) and linked challenges from the web UI under `/admin/modules/{id}`; content passes through a `/admin/review-queue` editorial workflow; challenges and paths can be duplicated into drafts.
 
+Learning insights landed: staff analytics service over the source-of-truth tables (`/admin/analytics/summary|categories|xp`) and a matching admin page; learner bookmarks with private notes (`/me/bookmarks`) of challenges, lessons and paths.
+
+Still planned: email notifications + preferences, streak/study-queue UI, and the public API + webhooks work below (Branch 5).
+
 ---
 
 ## V2 — Interactive labs & events

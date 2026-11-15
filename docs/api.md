@@ -144,6 +144,10 @@ ordering).
 | GET | `/me/xp-ledger` | Paginated `xp_transactions` |
 | GET | `/me/achievements` | Awarded + progress-toward-locked achievements |
 | GET | `/me/notifications` | Paginated; `POST /me/notifications/{id}/read`, `POST /me/notifications/read-all` |
+| GET | `/me/bookmarks` | Own bookmarks: `id`, `type` (`challenge` / `lesson` / `path`), `note`, `created_at`, `target`. Idempotent create — POST same target = note replace; drafts invisible (`404`) |
+| POST | `/me/bookmarks` | `{type, id, note?}` → upsert own bookmark |
+| PATCH | `/me/bookmarks/{id}` | Replace the private note (`200`) |
+| DELETE | `/me/bookmarks/{id}` | Remove the bookmark (owner-only) |
 | GET | `/me/settings` / PUT | Email + persisted theme (`system`/`light`/`dark`) |
 
 ### Quizzes
@@ -178,6 +182,9 @@ POST            /admin/challenges/{id}/preview      (rendered content, admin onl
 
 GET/POST        /admin/quizzes …        /admin/quizzes/{id}/questions
 GET             /admin/stats            Counts: users, draft/review/live content, solves, completions
+GET             /admin/analytics/summary  Summary: users, XP awarded, solve rate, registrations/active 30d
+GET             /admin/analytics/categories  Per-category funnel (published, attempts, solves, rate)
+GET             /admin/analytics/xp?days=30   Zero-filled XP-per-day series (7–90 days)
 GET             /admin/review-queue     Everything in status `review`, oldest first
 POST            /admin/challenges/{id}/duplicate   Clone as draft (hints+tags, never files/flags)
 POST            /admin/paths/{id}/duplicate        Deep-clone modules/lessons/quizzes as draft
