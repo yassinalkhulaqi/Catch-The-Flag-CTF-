@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AchievementController as AdminAchievementController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ChallengeController as AdminChallengeController;
@@ -160,6 +161,13 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/tags/{tag}', [AdminTagController::class, 'show']);
         Route::match(['put', 'patch'], '/tags/{tag}', [AdminTagController::class, 'update']);
         Route::delete('/tags/{tag}', [AdminTagController::class, 'destroy']);
+
+        Route::get('/achievements', [AdminAchievementController::class, 'index']);
+        Route::post('/achievements', [AdminAchievementController::class, 'store']);
+        Route::get('/achievements/{achievement}', [AdminAchievementController::class, 'show']);
+        Route::match(['put', 'patch'], '/achievements/{achievement}', [AdminAchievementController::class, 'update']);
+        Route::delete('/achievements/{achievement}', [AdminAchievementController::class, 'destroy'])
+            ->middleware('role:admin');
 
         Route::get('/paths', [AdminPathController::class, 'index']);
         Route::post('/paths', [AdminPathController::class, 'store']);
