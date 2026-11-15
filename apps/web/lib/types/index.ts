@@ -383,3 +383,29 @@ export interface SessionsResponse {
   sessions: ActiveSession[];
 }
 
+/* ---------- moderation ---------- */
+
+export interface ReviewQueueChallenge {
+  id: number;
+  title: string;
+  slug: string;
+  difficulty: string;
+  points: number;
+  author: string | null;
+  updated_at: string | null;
+}
+
+export interface ReviewQueuePath {
+  id: number;
+  title: string;
+  slug: string;
+  difficulty: string;
+  estimated_minutes: number | null;
+  updated_at: string | null;
+}
+
+export interface ReviewQueue {
+  challenges: ReviewQueueChallenge[];
+  paths: ReviewQueuePath[];
+}
+

@@ -9,7 +9,7 @@ import type {
   AdminUserRow,
 } from "@/lib/api/admin";
 import { serverApi } from "@/lib/api/server";
-import type { AdminStats, Category, ContentStatus, Paginated } from "@/lib/types";
+import type { AdminStats, Category, ContentStatus, Paginated, ReviewQueue } from "@/lib/types";
 
 /**
  * Server-side admin helpers for `app/admin/*` Server Components.
@@ -212,6 +212,19 @@ export async function getAdminDashboardServer(): Promise<AdminDashboard> {
 export async function getAdminStatsServer(): Promise<AdminStats | null> {
   try {
     const res = await serverApi<{ data: AdminStats }>("GET", "/admin/stats");
+    return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Everything waiting on a reviewer from `/admin/review-queue`. Null means
+ * the backend is unavailable, never an invented queue.
+ */
+export async function getReviewQueueServer(): Promise<ReviewQueue | null> {
+  try {
+    const res = await serverApi<{ data: ReviewQueue }>("GET", "/admin/review-queue");
     return res.data ?? null;
   } catch {
     return null;
