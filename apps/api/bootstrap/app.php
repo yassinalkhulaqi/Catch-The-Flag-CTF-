@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\AccountBannedException;
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateOptionally;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\RejectBannedUsers;
@@ -36,6 +37,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'optional-auth' => AuthenticateOptionally::class,
         ]);
 
+        // Request correlation runs first so that every response — including
+        // the ones produced by maintenance mode or an early failure — carries
+        // the same id as the log lines it produced (docs/architecture.md §7).
+        $middleware->prepend(AssignRequestId::class);
+
         // Hardening headers on every /api/* response (docs/security.md §4).
         // CORS stays separate via HandleCors + config/cors.php.
         $middleware->api(append: [
@@ -50,11 +56,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $isApi = static fn (Request $request): bool => $request->is('api/*') || $request->expectsJson();
 
         $requestId = static function (Request $request): string {
-            if (! $request->attributes->has('request_id')) {
-                $request->attributes->set('request_id', (string) Str::uuid());
+            if (! $request->attributes->has(AssignRequestId::ATTRIBUTE)) {
+                $request->attributes->set(AssignRequestId::ATTRIBUTE, (string) Str::uuid());
             }
 
-            return $request->attributes->get('request_id');
+            return $request->attributes->get(AssignRequestId::ATTRIBUTE);
         };
 
         /**
@@ -71,6 +77,10 @@ return Application::configure(basePath: dirname(__DIR__))
                     'request_id' => $requestId($request),
                 ]),
             ]), $status);
+
+            // The header and the body always carry the same id, so a user can
+            // quote one value and an operator can find the matching logs.
+            $response->headers->set(AssignRequestId::HEADER, $requestId($request));
 
             if ($request->attributes->has('retry_after')) {
                 $response->headers->set('Retry-After', (string) $request->attributes->get('retry_after'));
