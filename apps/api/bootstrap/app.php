@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         apiPrefix: 'api',
     )
+    // Register commands in app/Console/Commands (ctf:prune-submissions,
+    // ctf:prune-tokens). Without this the directory is never scanned.
+    ->withCommands()
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => EnsureRole::class,
