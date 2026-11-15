@@ -59,7 +59,7 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
 
     // Public content catalog (Phase 2). `optional-auth` resolves a
     // bearer token when present (per-viewer solved/progress fields)
