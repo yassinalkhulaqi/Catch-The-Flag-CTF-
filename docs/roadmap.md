@@ -57,6 +57,8 @@ Observability baseline landed: request correlation (`X-Request-Id` everywhere), 
 
 Security hardening landed: per-account login lockout with audited admin unlock, session management API, server-side markdown link allowlist at the write boundary, CORS allowlist tests, single-use reset-token tests, and production transport headers (HSTS, COOP, CORP).
 
+Authoring depth landed: staff can author modules, lessons, quizzes (single/multiple/true-false, with explanations) and linked challenges from the web UI under `/admin/modules/{id}`; content passes through a `/admin/review-queue` editorial workflow; challenges and paths can be duplicated into drafts.
+
 ---
 
 ## V2 — Interactive labs & events

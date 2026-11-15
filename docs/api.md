@@ -177,6 +177,17 @@ GET/POST/PUT/DELETE /admin/challenges/{id}/flags     (write-only; GET returns la
 POST            /admin/challenges/{id}/preview      (rendered content, admin only)
 
 GET/POST        /admin/quizzes …        /admin/quizzes/{id}/questions
+GET             /admin/stats            Counts: users, draft/review/live content, solves, completions
+GET             /admin/review-queue     Everything in status `review`, oldest first
+POST            /admin/challenges/{id}/duplicate   Clone as draft (hints+tags, never files/flags)
+POST            /admin/paths/{id}/duplicate        Deep-clone modules/lessons/quizzes as draft
+
+GET/POST        /admin/modules/{id}      /admin/modules/{id}/lessons
+GET/PUT/DELETE  /admin/lessons/{id}      lessons carry quiz through the staff resource
+GET/POST        /admin/lessons/{id}/challenges      (link/unlink)
+GET             /admin/quizzes/{id}       questions+options with is_correct (staff only)
+POST/PUT/DELETE /admin/quizzes/{id}/questions       /admin/questions/{id}/options
+
 GET/POST        /admin/categories       PUT/DELETE /admin/categories/{id}
 GET/POST        /admin/tags             DELETE /admin/tags/{id}
 GET/POST        /admin/achievements     PUT/DELETE /admin/achievements/{id}

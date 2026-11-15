@@ -33,6 +33,22 @@ Draft → Review → Published → Archived
 Admin UI: `/admin/challenges` (details → scenario → files → hints → flag → preview and publish), `/admin/paths`. Server validates before publish
 (`PublishChallengeAction` / `PublishPathAction`).
 
+### 2.1 The review queue
+
+Everything in `review` lands in `/admin/review-queue` (staff only,
+gated by `viewAdminDashboard`). Each row deep-links to the editor and offers
+two actions, both audited through the existing transition endpoints:
+
+- **Approve & publish** → `POST /admin/{…}/{id}/publish` (`review → published`)
+- **Request changes** → `POST /admin/{…}/{id}/unpublish` (`review → draft`)
+
+The easiest way to run an editorial pass on a variant is
+`POST /admin/challenges/{id}/duplicate` or `POST /admin/paths/{id}/duplicate`:
+a full clone lands as a draft (challenges copy hints and tags but **never**
+files — payloads stay with the original — or flags — the clone must get its
+own flag in the flag manager; paths deep-copy modules, lessons and quizzes).
+Duplicate is also exposed as a button on the challenge and path editors.
+
 ---
 
 ## 3. Paths → Modules → Lessons
@@ -47,11 +63,22 @@ Admin UI: `/admin/challenges` (details → scenario → files → hints → flag
 ### Module
 Ordered section inside a path. Title + short description + position.
 
+**Authoring UI:** on `/admin/paths/{id}/edit`, each row in the module order
+list links to `/admin/modules/{moduleId}` — lessons, quizzes and linked
+challenges are authored there.
+
 ### Lesson
 - Theory content as **Markdown** (sanitized on render — no raw HTML)
 - Support headings, lists, tables, fenced code, callouts via Markdown
 - Link 0..n challenges via `lesson_challenge`
 - Optional quiz attached to the lesson or its module
+
+**Authoring UI:** `/admin/modules/{moduleId}` lists the module's lessons.
+Each lesson edits inline: title, summary, estimated minutes, published flag,
+markdown content (with a live learner preview beside the editor), linked
+challenges and its quiz. Markdown links are restricted to `https`, `http`,
+`mailto` and relative paths — anything else is rejected at write time
+(`MarkdownSafety::assertSafe`).
 
 **Completion rule:** learner explicitly marks the lesson complete
 (`POST /lessons/{id}/complete`). Awards lesson XP once (ledger-guarded).
@@ -69,6 +96,14 @@ Rules:
 - Passing awards quiz XP once per user+quiz (ledger).
 
 Author tips: write explanations for each question; keep stems unambiguous.
+
+**Authoring UI:** a lesson without a quiz has a "Create quiz" form (title,
+pass score, description). Once created, edit in place: question type
+(`single`/`multiple`/`true_false`), text, explanation, points, and options
+with exactly-one-correct (single / true-false) or any-number-correct
+(multiple) selection. Quizzes are saved per change, no separate "submit"
+step. Correctness is part of the staff payload only — the learner endpoint
+still never sees `is_correct` before grading.
 
 ---
 
