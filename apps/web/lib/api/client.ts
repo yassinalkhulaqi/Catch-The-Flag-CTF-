@@ -69,7 +69,15 @@ async function request<T>(
 
   if (!res.ok) {
     const err = payload as ApiErrorBody | null;
-    throw new ApiError(res.status, err?.error ?? null, retryAfterSeconds(res));
+    const body = err?.error ?? null;
+    // Older or non-JSON failures may not carry request_id in the body; fall
+    // back to the header so every API error still has a correlation id.
+    const requestId = body?.request_id ?? res.headers.get("X-Request-Id") ?? null;
+    throw new ApiError(
+      res.status,
+      requestId ? { ...body, code: body?.code ?? "server_error", message: body?.message ?? "Request failed.", request_id: requestId } : body,
+      retryAfterSeconds(res),
+    );
   }
   return payload as T;
 }

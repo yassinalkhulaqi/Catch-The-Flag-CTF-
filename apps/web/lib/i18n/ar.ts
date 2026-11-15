@@ -74,6 +74,7 @@ export const ar: Dictionary = {
     retry: "إعادة المحاولة",
     maintenance: "الموقع قيد الصيانة",
     maintenanceBody: "منصة التعلم غير متاحة لبرهة. تقدمك يبقى على الخادم.",
+    errorReference: "المرجع:",
   },
   profile: {
     eyebrow: "الحساب",

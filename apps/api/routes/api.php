@@ -44,7 +44,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function (): void {
+    // Health probes (docs/architecture.md §7). Liveness is cheap; readiness
+    // probes the database, the cache and the challenge-artifact disk.
     Route::get('/health', [HealthController::class, 'show']);
+    Route::get('/health/live', [HealthController::class, 'live']);
+    Route::get('/health/ready', [HealthController::class, 'ready']);
 
     // Auth, challenges, paths, leaderboard, admin … land here as the
     // corresponding controllers/actions are implemented.
@@ -55,7 +59,7 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
 
     // Public content catalog (Phase 2). `optional-auth` resolves a
     // bearer token when present (per-viewer solved/progress fields)
