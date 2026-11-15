@@ -1,22 +1,34 @@
 import { AtSign, KeyRound, Palette, ShieldCheck, UserRound } from "lucide-react";
 import { PasswordForm } from "@/components/password-form";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { SessionList } from "@/components/session-list";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
 import { dictionaryFor } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/theme/locale";
+import { serverApi } from "@/lib/api/server";
+import type { ActiveSession, SessionsResponse } from "@/lib/types";
 
 export const metadata = { title: "Settings" };
 
 const NAV = [
   { href: "#account-heading", label: "Account" },
   { href: "#prefs-heading", label: "Preferences" },
+  { href: "#sessions-heading", label: "Sessions" },
   { href: "#password-heading", label: "Password" },
 ] as const;
 
 export default async function SettingsPage() {
   const user = await requireUser();
   const copy = dictionaryFor(await getLocale());
+  // Session list is best-effort: a failure must never take the page down.
+  let sessions: ActiveSession[] | null = null;
+  try {
+    const result = await serverApi<{ data: SessionsResponse }>("GET", "/auth/sessions");
+    sessions = result.data.sessions;
+  } catch {
+    sessions = null;
+  }
   const initials = user.name
     .split(/\s+/)
     .slice(0, 2)
@@ -120,6 +132,29 @@ export default async function SettingsPage() {
             <div className="mt-4">
               <ThemeSwitcher initial={user.theme ?? "system"} signedIn={false} />
               <p className="mt-2 text-xs text-muted">Saved on this device only.</p>
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="sessions-heading"
+            className="rounded-2xl border border-border bg-surface p-5 sm:p-6"
+          >
+            <h2
+              id="sessions-heading"
+              className="scroll-mt-24 type-eyebrow inline-flex items-center gap-2 text-accent"
+            >
+              <ShieldCheck aria-hidden="true" className="size-3.5" />
+              Sessions
+            </h2>
+            <div className="mt-4">
+              {sessions === null ? (
+                <p className="text-sm text-muted">Sessions are unavailable right now. Refresh the page to try again.</p>
+              ) : (
+                <SessionList initialSessions={sessions} />
+              )}
+              <p className="mt-3 text-xs text-muted">
+                Sessions last until the browser closes or you revoke them. Token hashes never leave the server.
+              </p>
             </div>
           </section>
 

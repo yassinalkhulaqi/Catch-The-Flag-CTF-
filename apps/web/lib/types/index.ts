@@ -366,3 +366,20 @@ export interface UserSettings {
   email: string;
   theme: "system" | "light" | "dark";
 }
+
+/* ---------- security ---------- */
+
+export interface ActiveSession {
+  id: number;
+  name: string;
+  created_at: string | null;
+  last_used_at: string | null;
+  expires_at: string | null;
+  current: boolean;
+}
+
+export interface SessionsResponse {
+  current_id: number | null;
+  sessions: ActiveSession[];
+}
+

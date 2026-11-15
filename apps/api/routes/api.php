@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\PathController;
 use App\Http\Controllers\Api\V1\PathProgressController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\QuizAttemptController;
 use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Api\V1\SubmissionController;
@@ -45,13 +46,13 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function (): void {
-    // Health probes (docs/architecture.md §7). Liveness is cheap; readiness
+    // Health probes (docs/architecture.md آ§7). Liveness is cheap; readiness
     // probes the database, the cache and the challenge-artifact disk.
     Route::get('/health', [HealthController::class, 'show']);
     Route::get('/health/live', [HealthController::class, 'live']);
     Route::get('/health/ready', [HealthController::class, 'ready']);
 
-    // Auth, challenges, paths, leaderboard, admin … land here as the
+    // Auth, challenges, paths, leaderboard, admin â€¦ land here as the
     // corresponding controllers/actions are implemented.
 
     Route::middleware('throttle:register')->group(function (): void {
@@ -81,6 +82,9 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'banned'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
+        Route::get('/auth/sessions', [SecurityController::class, 'sessions']);
+        Route::delete('/auth/sessions/{tokenId}', [SecurityController::class, 'revokeSession'])
+            ->whereNumber('tokenId');
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::get('/leaderboard/me', [LeaderboardController::class, 'me']);
         Route::put('/profile', [ProfileController::class, 'update']);
@@ -112,17 +116,17 @@ Route::prefix('v1')->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
-    | Admin authoring (docs/api.md §5, Phase 5 backend)
+    | Admin authoring (docs/api.md آ§5, Phase 5 backend)
     |--------------------------------------------------------------------------
     |
     | Authorization choice (documented per plan): no per-object policies
-    | here — admin operates cross-ownership, so the `role` middleware is
+    | here â€” admin operates cross-ownership, so the `role` middleware is
     | the authorization layer. Moderators manage content; the nested
     | `role:admin` group reserves accounts (users/roles) and the audit
     | trail for administrators. Every mutation audits via AuditLogger.
     |
-    | Transition endpoints map literally to statuses: publish→published,
-    | unpublish→draft, archive→archived, review→review. Illegal moves
+    | Transition endpoints map literally to statuses: publishâ†’published,
+    | unpublishâ†’draft, archiveâ†’archived, reviewâ†’review. Illegal moves
     | are 409. DELETE on challenges/paths archives instead of deleting.
     */
     Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
@@ -221,6 +225,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/users/{user}', [AdminUserController::class, 'show']);
             Route::post('/users/{user}/ban', [AdminUserController::class, 'ban']);
             Route::post('/users/{user}/unban', [AdminUserController::class, 'unban']);
+            Route::post('/users/{user}/unlock', [AdminUserController::class, 'unlock']);
             Route::match(['put', 'patch'], '/users/{user}/role', [AdminUserController::class, 'changeRole']);
             Route::post('/users/{user}/xp', [AdminUserController::class, 'adjustXp']);
 

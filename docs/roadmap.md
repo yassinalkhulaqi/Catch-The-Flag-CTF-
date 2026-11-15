@@ -55,6 +55,8 @@ V1.5 polish landed: light and system themes, challenge authoring steps, and hard
 
 Observability baseline landed: request correlation (`X-Request-Id` everywhere), a structured JSON log channel, liveness/readiness health probes, config-driven rate limits (incl. password-reset), and the retention commands `ctf:prune-submissions` / `ctf:prune-tokens`.
 
+Security hardening landed: per-account login lockout with audited admin unlock, session management API, server-side markdown link allowlist at the write boundary, CORS allowlist tests, single-use reset-token tests, and production transport headers (HSTS, COOP, CORP).
+
 ---
 
 ## V2 — Interactive labs & events

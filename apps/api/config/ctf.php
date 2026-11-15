@@ -21,6 +21,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Account lockout (docs/security.md §2)
+    |--------------------------------------------------------------------------
+    */
+
+    'security' => [
+        // Failed attempts against one account before it locks for the window.
+        'lockout_max_attempts' => (int) env('SECURITY_LOCKOUT_MAX_ATTEMPTS', 5),
+        // Minutes a locked account stays locked. Also the attempt window length.
+        'lockout_decay_minutes' => (int) env('SECURITY_LOCKOUT_DECAY_MINUTES', 15),
+        // Window in which attempts are counted (failsafe for misconfigured decays).
+        'login_attempts_window_minutes' => (int) env('SECURITY_LOGIN_ATTEMPTS_WINDOW_MINUTES', 15),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Uploads (docs/security.md §6)
     |--------------------------------------------------------------------------
     */

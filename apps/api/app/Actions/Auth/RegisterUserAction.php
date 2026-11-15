@@ -17,18 +17,19 @@ class RegisterUserAction
 
     /**
      * @param  array{name: string, email: string, password: string}  $validated
+     * @param  string|null  $userAgent  Client User-Agent (optional; used to name the session).
      * @return array{user: User, token: string, expires_at: string}
      */
-    public function execute(array $validated): array
+    public function execute(array $validated, ?string $userAgent = null): array
     {
-        return DB::transaction(function () use ($validated): array {
+        return DB::transaction(function () use ($validated, $userAgent): array {
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
             ]);
 
-            return $this->issueToken($user);
+            return $this->issueToken($user, $userAgent);
         });
     }
 }
