@@ -88,7 +88,7 @@ const EMPTY: ChallengeFormInitial = {
 
 /**
  * Create/edit form island for admin challenges. Covers the writable fields
- * only — status transitions and flags live in their own islands/endpoints.
+ * only ??? status transitions and flags live in their own islands/endpoints.
  */
 export function ChallengeForm({
   mode,
@@ -172,7 +172,7 @@ export function ChallengeForm({
     }
 
     if (mode === "create") {
-      router.push(`/admin/challenges/${result.data.id}`);
+      router.push(`/admin/challenges/${result.data.id}/edit`);
       router.refresh();
     } else {
       setSuccess("Challenge saved.");
@@ -235,7 +235,7 @@ export function ChallengeForm({
             id="challenge-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What the solver has to do, tools allowed, deliverable…"
+            placeholder="What the solver has to do, tools allowed, deliverable???"
             rows={5}
             aria-invalid={errors.description ? true : undefined}
           />
@@ -248,7 +248,7 @@ export function ChallengeForm({
             id="challenge-scenario"
             value={scenario}
             onChange={(e) => setScenario(e.target.value)}
-            placeholder="Story context shown on the challenge page…"
+            placeholder="Story context shown on the challenge page???"
             rows={3}
           />
         </Field>
@@ -266,7 +266,7 @@ export function ChallengeForm({
             }
             aria-invalid={errors.category_id ? true : undefined}
           >
-            <option value="">Select…</option>
+            <option value="">Select???</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -275,7 +275,7 @@ export function ChallengeForm({
           </select>
           {categories.length === 0 ? (
             <p className="text-xs text-faint">
-              No categories available — the API may be unreachable.
+              No categories available ??? the API may be unreachable.
             </p>
           ) : null}
           {errors.category_id ? (
@@ -318,7 +318,7 @@ export function ChallengeForm({
       <div className="mt-6">
         <Button type="submit" disabled={pending}>
           {pending
-            ? "Saving…"
+            ? "Saving???"
             : mode === "create"
               ? "Create challenge"
               : "Save changes"}

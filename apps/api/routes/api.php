@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AdminStatsController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ChallengeController as AdminChallengeController;
@@ -129,6 +130,7 @@ Route::prefix('v1')->group(function (): void {
     | are 409. DELETE on challenges/paths archives instead of deleting.
     */
     Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
+        Route::get('/stats', [AdminStatsController::class, 'show']);
         Route::get('/challenges', [AdminChallengeController::class, 'index']);
         Route::post('/challenges', [AdminChallengeController::class, 'store']);
         Route::get('/challenges/{challenge}', [AdminChallengeController::class, 'show']);

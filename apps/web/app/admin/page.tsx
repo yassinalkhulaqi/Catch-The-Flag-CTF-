@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { getAdminDashboardServer } from "@/lib/api/admin-server";
+import { getAdminDashboardServer, getAdminStatsServer } from "@/lib/api/admin-server";
+import { StatsChart } from "@/components/admin/stats-chart";
 import { timeAgo } from "@/lib/utils";
 import type { ContentStatus } from "@/lib/types";
 
@@ -50,7 +51,10 @@ function describeTarget(auditable: unknown): string {
 
 /** Staff dashboard: content counts, user/path totals, recent audit trail. */
 export default async function AdminDashboardPage() {
-  const dashboard = await getAdminDashboardServer();
+  const [dashboard, stats] = await Promise.all([
+    getAdminDashboardServer(),
+    getAdminStatsServer(),
+  ]);
   const totalChallenges = STATUS_META.reduce(
     (sum, s) => sum + dashboard.byStatus[s.status],
     0,
@@ -87,6 +91,12 @@ export default async function AdminDashboardPage() {
           ))}
         </ul>
       </section>
+
+      {stats ? (
+        <section aria-label="Live counts" className="mt-6">
+          <StatsChart stats={stats} />
+        </section>
+      ) : null}
 
       <section aria-label="Community totals" className="mt-6">
         <ul className="grid gap-3 sm:grid-cols-2">
