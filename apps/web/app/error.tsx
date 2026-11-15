@@ -25,6 +25,11 @@ export default function ErrorPage({
       <p className="font-mono text-xs uppercase tracking-[0.28em] text-danger">Error</p>
       <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">{copy.errors.generic}</h1>
       <p className="mt-3 text-muted">{copy.errors.genericBody}</p>
+      {error.digest ? (
+        <p className="mt-4 font-mono text-xs text-muted">
+          {copy.errors.errorReference} {error.digest}
+        </p>
+      ) : null}
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button type="button" onClick={reset}>
           {copy.errors.retry}

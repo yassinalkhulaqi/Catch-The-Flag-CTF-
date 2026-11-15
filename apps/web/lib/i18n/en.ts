@@ -72,6 +72,7 @@ export const en = {
     retry: "Try again",
     maintenance: "Down for maintenance",
     maintenanceBody: "The learning site is briefly unavailable. Your progress stays on the server.",
+    errorReference: "Reference:",
   },
   profile: {
     eyebrow: "Account",
