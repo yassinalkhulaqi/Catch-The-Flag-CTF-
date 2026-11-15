@@ -1,12 +1,8 @@
-import Link from "next/link";
 import { PathCreateForm } from "@/components/admin/path-forms";
-import { DifficultyBadge } from "@/components/difficulty-badge";
-import { EmptyState, ErrorState, PageHeader } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { PathTable } from "@/components/admin/path-table";
+import { ErrorState, PageHeader } from "@/components/empty-state";
 import { requireStaff } from "@/lib/auth";
 import { serverApi } from "@/lib/api/server";
-import { cn } from "@/lib/utils";
 import type {
   Category,
   ContentStatus,
@@ -68,47 +64,10 @@ export default async function AdminPathsPage() {
 
       {loadError ? (
         <ErrorState />
-      ) : items.length === 0 ? (
-        <EmptyState className="mt-8" title="No paths yet" />
       ) : (
-        <ul className="mt-8 divide-y divide-border border-t border-border">
-          {items.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div className="max-w-2xl space-y-1">
-                <Link
-                  href={`/admin/paths/${p.id}/edit`}
-                  className="font-semibold hover:text-accent"
-                >
-                  {p.title}
-                </Link>
-                <div className="flex flex-wrap items-center gap-2">
-                  <DifficultyBadge difficulty={p.difficulty} />
-                  <Badge>{p.status}</Badge>
-                  <span className="font-mono text-xs text-faint">
-                    {p.slug}
-                  </span>
-                </div>
-                {p.summary ? (
-                  <p className="text-sm text-muted">{p.summary}</p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/admin/paths/${p.id}/edit`}
-                  className={cn(buttonVariants("outline", "sm"))}
-                >
-                  Edit
-                </Link>
-                <Link
-                  href={`/paths/${p.slug}`}
-                  className="text-sm text-accent hover:underline"
-                >
-                  View public
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-8">
+          <PathTable rows={items} />
+        </div>
       )}
     </div>
   );
