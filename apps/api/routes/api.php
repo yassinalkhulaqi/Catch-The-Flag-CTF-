@@ -47,7 +47,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function (): void {
-    // Health probes (docs/architecture.md آ§7). Liveness is cheap; readiness
+    // Health probes (docs/architecture.md §7). Liveness is cheap; readiness
     // probes the database, the cache and the challenge-artifact disk.
     Route::get('/health', [HealthController::class, 'show']);
     Route::get('/health/live', [HealthController::class, 'live']);
