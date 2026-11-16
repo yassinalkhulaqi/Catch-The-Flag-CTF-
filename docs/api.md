@@ -81,9 +81,11 @@ URLs; APIs accept `id` (frontend resolves slug→id via detail endpoints).
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/auth/register` | — | Create account → `{user, token}` |
-| POST | `/auth/login` | — | `{email, password}` → `{user, token}` |
+| POST | `/auth/login` | — | `{email, password}` → `{user, token}` (`429` + `Retry-After` while the account is locked) |
 | POST | `/auth/logout` | ✔ | Revoke current token |
 | POST | `/auth/logout-all` | ✔ | Revoke all of user's tokens |
+| GET | `/auth/sessions` | ✔ | Own sessions: `id`, `name` (sanitised User-Agent), `created_at`, `last_used_at`, `expires_at`, `current`. Token hashes are never returned |
+| DELETE | `/auth/sessions/{id}` | ✔ | Revoke one own session (revoking the current token logs the device out) |
 | GET | `/auth/me` | ✔ | Current user + role + unread count + own `theme` |
 | PUT | `/profile` | ✔ | Update own name/bio/avatar |
 | PUT | `/profile/password` | ✔ | Change password (revokes other tokens) |
@@ -142,6 +144,10 @@ ordering).
 | GET | `/me/xp-ledger` | Paginated `xp_transactions` |
 | GET | `/me/achievements` | Awarded + progress-toward-locked achievements |
 | GET | `/me/notifications` | Paginated; `POST /me/notifications/{id}/read`, `POST /me/notifications/read-all` |
+| GET | `/me/bookmarks` | Own bookmarks: `id`, `type` (`challenge` / `lesson` / `path`), `note`, `created_at`, `target`. Idempotent create — POST same target = note replace; drafts invisible (`404`) |
+| POST | `/me/bookmarks` | `{type, id, note?}` → upsert own bookmark |
+| PATCH | `/me/bookmarks/{id}` | Replace the private note (`200`) |
+| DELETE | `/me/bookmarks/{id}` | Remove the bookmark (owner-only) |
 | GET | `/me/settings` / PUT | Email + persisted theme (`system`/`light`/`dark`) |
 
 ### Quizzes
@@ -175,11 +181,25 @@ GET/POST/PUT/DELETE /admin/challenges/{id}/flags     (write-only; GET returns la
 POST            /admin/challenges/{id}/preview      (rendered content, admin only)
 
 GET/POST        /admin/quizzes …        /admin/quizzes/{id}/questions
+GET             /admin/stats            Counts: users, draft/review/live content, solves, completions
+GET             /admin/analytics/summary  Summary: users, XP awarded, solve rate, registrations/active 30d
+GET             /admin/analytics/categories  Per-category funnel (published, attempts, solves, rate)
+GET             /admin/analytics/xp?days=30   Zero-filled XP-per-day series (7–90 days)
+GET             /admin/review-queue     Everything in status `review`, oldest first
+POST            /admin/challenges/{id}/duplicate   Clone as draft (hints+tags, never files/flags)
+POST            /admin/paths/{id}/duplicate        Deep-clone modules/lessons/quizzes as draft
+
+GET/POST        /admin/modules/{id}      /admin/modules/{id}/lessons
+GET/PUT/DELETE  /admin/lessons/{id}      lessons carry quiz through the staff resource
+GET/POST        /admin/lessons/{id}/challenges      (link/unlink)
+GET             /admin/quizzes/{id}       questions+options with is_correct (staff only)
+POST/PUT/DELETE /admin/quizzes/{id}/questions       /admin/questions/{id}/options
+
 GET/POST        /admin/categories       PUT/DELETE /admin/categories/{id}
 GET/POST        /admin/tags             DELETE /admin/tags/{id}
 GET/POST        /admin/achievements     PUT/DELETE /admin/achievements/{id}
 GET             /admin/users            GET/PUT /admin/users/{id}
-PUT             /admin/users/{id}/role  POST /admin/users/{id}/ban|unban
+PUT             /admin/users/{id}/role  POST /admin/users/{id}/ban|unban|unlock
 POST            /admin/users/{id}/xp    {amount, reason}  (audited)
 GET             /admin/audit-logs       (filter: actor, action, entity, date)
 GET             /admin/stats            (dashboard counters; Gate `viewAdminDashboard`)
@@ -207,7 +227,11 @@ re-read — security.md §5).
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/health` | `{ status, version, db, storage, time }` — 503 when degraded; no config/stack exposure |
+| GET | `/health` | Liveness. `{ status, version }` — process is up; no I/O, always 200 when serving |
+| GET | `/health/live` | Liveness alias with the same shape |
+| GET | `/health/ready` | Readiness. `{ status, version, checks }` — probes `database`, `cache` and `storage`; 200 when all pass, 503 (`degraded`) otherwise. Per-check latency in ms; **no hostnames, paths, versions or config values are exposed** |
+
+Every response (success or error) carries an `X-Request-Id` header. Error bodies carry the same id as `error.request_id`.
 
 ---
 

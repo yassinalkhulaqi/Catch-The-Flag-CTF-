@@ -51,7 +51,19 @@
   next-action; pagination; related challenges; branded 404/error; SEO basics
 - Path list progress batching (N+1 removal)
 
-V1.5 polish landed: light and system themes, challenge authoring steps, and hard path-prerequisite enforcement. Admin achievements are authored in the web UI.
+V1.5 polish landed: light and system themes, challenge authoring steps, and hard path-prerequisite enforcement. Admin achievements are authored in the web UI (backend CRUD restored in the Phase 0 consolidation — see `docs/delivery-plan.md` §11).
+
+Observability baseline landed: request correlation (`X-Request-Id` everywhere), a structured JSON log channel, liveness/readiness health probes, config-driven rate limits (incl. password-reset), and the retention commands `ctf:prune-submissions` / `ctf:prune-tokens`.
+
+Security hardening landed: per-account login lockout with audited admin unlock, session management API, server-side markdown link allowlist at the write boundary, CORS allowlist tests, single-use reset-token tests, and production transport headers (HSTS, COOP, CORP).
+
+Consolidation in progress: the five delivery branches (`docs/delivery-plan.md`) are merged on `fix/phase00-consolidation` — review queue, challenge/path duplication, lesson+quiz authoring UI, sortable path table with bulk actions, staff analytics, learner bookmarks, SEO/PWA basics.
+
+Authoring depth landed: staff can author modules, lessons, quizzes (single/multiple/true-false, with explanations) and linked challenges from the web UI under `/admin/modules/{id}`; content passes through a `/admin/review-queue` editorial workflow; challenges and paths can be duplicated into drafts.
+
+Learning insights landed: staff analytics service over the source-of-truth tables (`/admin/analytics/summary|categories|xp`) and a matching admin page; learner bookmarks with private notes (`/me/bookmarks`) of challenges, lessons and paths.
+
+Still planned: email notifications + preferences, streak/study-queue UI, and the public API + webhooks work below (Branch 5).
 
 ---
 

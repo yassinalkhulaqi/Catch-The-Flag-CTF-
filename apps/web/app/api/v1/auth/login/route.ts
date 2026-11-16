@@ -14,7 +14,12 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const body = readJson(request);
   try {
-    const auth = await serverAuth("/auth/login", await body);
+    const userAgent = request.headers.get("user-agent") ?? undefined;
+    const auth = await serverAuth(
+      "/auth/login",
+      await body,
+      userAgent ? { "User-Agent": userAgent } : undefined,
+    );
     if (!auth.token) {
       return NextResponse.json(
         { error: { code: "server_error", message: "Authentication token missing." } },

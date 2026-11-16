@@ -85,7 +85,7 @@ describe("ChallengeForm", () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  it("creates with valid input and navigates to the detail page", async () => {
+  it("creates with valid input and navigates to the wizard editor", async () => {
     createMock.mockResolvedValueOnce({
       ok: true,
       data: {
@@ -113,7 +113,7 @@ describe("ChallengeForm", () => {
       points: 150,
     });
     await vi.waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith("/admin/challenges/9");
+      expect(pushMock).toHaveBeenCalledWith("/admin/challenges/9/edit");
     });
   });
 

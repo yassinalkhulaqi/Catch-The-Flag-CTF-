@@ -25,7 +25,7 @@ class AuthController extends Controller
 {
     public function register(RegisterRequest $request, RegisterUserAction $action): JsonResponse
     {
-        $result = $action->execute($request->validated());
+        $result = $action->execute($request->validated(), $request->userAgent());
 
         return response()->json([
             'data' => [
@@ -41,6 +41,7 @@ class AuthController extends Controller
         $result = $action->execute(
             $request->string('email')->toString(),
             $request->string('password')->toString(),
+            $request->userAgent(),
         );
 
         return response()->json([

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ChallengeEditor } from "@/components/admin/challenge-editor";
+import { DuplicateButton } from "@/components/admin/duplicate-button";
 import { ErrorState, PageHeader } from "@/components/empty-state";
 import { ApiError } from "@/lib/api/client";
 import { requireStaff } from "@/lib/auth";
@@ -56,6 +57,11 @@ export default async function EditChallengePage({
         eyebrow="Authoring"
         title={`Edit · ${challenge.title}`}
         description={`Status: ${challenge.status}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <DuplicateButton kind="challenge" id={challenge.id} />
+          </div>
+        }
       />
       <ChallengeEditor
         categories={categories}

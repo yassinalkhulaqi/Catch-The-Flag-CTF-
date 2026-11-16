@@ -10,11 +10,28 @@ return [
 
     'rate_limits' => [
         'auth_per_minute' => (int) env('RATE_LIMIT_AUTH_PER_MIN', 5),
+        'register_per_hour' => (int) env('RATE_LIMIT_REGISTER_PER_HOUR', 3),
+        'password_reset_per_hour' => (int) env('RATE_LIMIT_PASSWORD_RESET_PER_HOUR', 5),
         'submit_per_challenge_per_minute' => (int) env('RATE_LIMIT_SUBMIT_PER_CHALLENGE_PER_MIN', 10),
         'submit_per_user_per_minute' => (int) env('RATE_LIMIT_SUBMIT_PER_USER_PER_MIN', 30),
         'download_per_minute' => (int) env('RATE_LIMIT_DOWNLOAD_PER_MIN', 60),
         'admin_per_minute' => (int) env('RATE_LIMIT_ADMIN_PER_MIN', 120),
         'api_per_minute' => (int) env('RATE_LIMIT_API_PER_MIN', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account lockout (docs/security.md §2)
+    |--------------------------------------------------------------------------
+    */
+
+    'security' => [
+        // Failed attempts against one account before it locks for the window.
+        'lockout_max_attempts' => (int) env('SECURITY_LOCKOUT_MAX_ATTEMPTS', 5),
+        // Minutes a locked account stays locked. Also the attempt window length.
+        'lockout_decay_minutes' => (int) env('SECURITY_LOCKOUT_DECAY_MINUTES', 15),
+        // Window in which attempts are counted (failsafe for misconfigured decays).
+        'login_attempts_window_minutes' => (int) env('SECURITY_LOGIN_ATTEMPTS_WINDOW_MINUTES', 15),
     ],
 
     /*

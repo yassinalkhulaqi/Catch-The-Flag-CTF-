@@ -172,7 +172,7 @@ export function ChallengeForm({
     }
 
     if (mode === "create") {
-      router.push(`/admin/challenges/${result.data.id}`);
+      router.push(`/admin/challenges/${result.data.id}/edit`);
       router.refresh();
     } else {
       setSuccess("Challenge saved.");

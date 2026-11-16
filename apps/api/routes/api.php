@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AchievementController as AdminAchievementController;
+use App\Http\Controllers\Api\V1\Admin\AdminAnalyticsController;
+use App\Http\Controllers\Api\V1\Admin\AdminReviewQueueController;
+use App\Http\Controllers\Api\V1\Admin\AdminStatsController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ChallengeController as AdminChallengeController;
@@ -26,7 +30,9 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\ModuleController;
 use App\Http\Controllers\Api\V1\PathController;
 use App\Http\Controllers\Api\V1\PathProgressController;
+use App\Http\Controllers\Api\V1\BookmarkController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\QuizAttemptController;
 use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Api\V1\SubmissionController;
@@ -44,9 +50,13 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function (): void {
+    // Health probes (docs/architecture.md §7). Liveness is cheap; readiness
+    // probes the database, the cache and the challenge-artifact disk.
     Route::get('/health', [HealthController::class, 'show']);
+    Route::get('/health/live', [HealthController::class, 'live']);
+    Route::get('/health/ready', [HealthController::class, 'ready']);
 
-    // Auth, challenges, paths, leaderboard, admin … land here as the
+    // Auth, challenges, paths, leaderboard, admin â€¦ land here as the
     // corresponding controllers/actions are implemented.
 
     Route::middleware('throttle:register')->group(function (): void {
@@ -55,7 +65,7 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
 
     // Public content catalog (Phase 2). `optional-auth` resolves a
     // bearer token when present (per-viewer solved/progress fields)
@@ -76,6 +86,9 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'banned'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
+        Route::get('/auth/sessions', [SecurityController::class, 'sessions']);
+        Route::delete('/auth/sessions/{tokenId}', [SecurityController::class, 'revokeSession'])
+            ->whereNumber('tokenId');
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::get('/leaderboard/me', [LeaderboardController::class, 'me']);
         Route::put('/profile', [ProfileController::class, 'update']);
@@ -100,6 +113,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/me/notifications/{id}/read', [MeController::class, 'readNotification']);
         Route::post('/me/notifications/read-all', [MeController::class, 'readAllNotifications']);
 
+        // Learner bookmarks (docs/product.md §6)
+        Route::get('/me/bookmarks', [BookmarkController::class, 'index']);
+        Route::post('/me/bookmarks', [BookmarkController::class, 'store']);
+        Route::patch('/me/bookmarks/{bookmark}', [BookmarkController::class, 'update']);
+        Route::delete('/me/bookmarks/{bookmark}', [BookmarkController::class, 'destroy']);
+
         Route::post('/challenges/{challenge}/hints/{hint}/unlock', [HintUnlockController::class, 'store']);
         Route::post('/challenges/{challenge}/submissions', [SubmissionController::class, 'store'])
             ->middleware(['throttle:submission-user', 'throttle:submission-challenge']);
@@ -107,20 +126,27 @@ Route::prefix('v1')->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
-    | Admin authoring (docs/api.md §5, Phase 5 backend)
+    | Admin authoring (docs/api.md آ§5, Phase 5 backend)
     |--------------------------------------------------------------------------
     |
     | Authorization choice (documented per plan): no per-object policies
-    | here — admin operates cross-ownership, so the `role` middleware is
+    | here â€” admin operates cross-ownership, so the `role` middleware is
     | the authorization layer. Moderators manage content; the nested
     | `role:admin` group reserves accounts (users/roles) and the audit
     | trail for administrators. Every mutation audits via AuditLogger.
     |
-    | Transition endpoints map literally to statuses: publish→published,
-    | unpublish→draft, archive→archived, review→review. Illegal moves
+    | Transition endpoints map literally to statuses: publishâ†’published,
+    | unpublishâ†’draft, archiveâ†’archived, reviewâ†’review. Illegal moves
     | are 409. DELETE on challenges/paths archives instead of deleting.
     */
     Route::prefix('admin')->middleware(['auth:sanctum', 'banned', 'role:admin,moderator', 'throttle:admin'])->group(function (): void {
+        Route::get('/stats', [AdminStatsController::class, 'show']);
+        Route::get('/analytics/summary', [AdminAnalyticsController::class, 'summary']);
+        Route::get('/analytics/categories', [AdminAnalyticsController::class, 'categories']);
+        Route::get('/analytics/xp', [AdminAnalyticsController::class, 'xp']);
+        Route::get('/review-queue', [AdminReviewQueueController::class, 'index']);
+        Route::post('/challenges/{challenge}/duplicate', [AdminChallengeController::class, 'duplicate']);
+        Route::post('/paths/{path}/duplicate', [AdminPathController::class, 'duplicate']);
         Route::get('/challenges', [AdminChallengeController::class, 'index']);
         Route::post('/challenges', [AdminChallengeController::class, 'store']);
         Route::get('/challenges/{challenge}', [AdminChallengeController::class, 'show']);
@@ -160,6 +186,13 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/tags/{tag}', [AdminTagController::class, 'show']);
         Route::match(['put', 'patch'], '/tags/{tag}', [AdminTagController::class, 'update']);
         Route::delete('/tags/{tag}', [AdminTagController::class, 'destroy']);
+
+        Route::get('/achievements', [AdminAchievementController::class, 'index']);
+        Route::post('/achievements', [AdminAchievementController::class, 'store']);
+        Route::get('/achievements/{achievement}', [AdminAchievementController::class, 'show']);
+        Route::match(['put', 'patch'], '/achievements/{achievement}', [AdminAchievementController::class, 'update']);
+        Route::delete('/achievements/{achievement}', [AdminAchievementController::class, 'destroy'])
+            ->middleware('role:admin');
 
         Route::get('/paths', [AdminPathController::class, 'index']);
         Route::post('/paths', [AdminPathController::class, 'store']);
@@ -209,6 +242,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/users/{user}', [AdminUserController::class, 'show']);
             Route::post('/users/{user}/ban', [AdminUserController::class, 'ban']);
             Route::post('/users/{user}/unban', [AdminUserController::class, 'unban']);
+            Route::post('/users/{user}/unlock', [AdminUserController::class, 'unlock']);
             Route::match(['put', 'patch'], '/users/{user}/role', [AdminUserController::class, 'changeRole']);
             Route::post('/users/{user}/xp', [AdminUserController::class, 'adjustXp']);
 

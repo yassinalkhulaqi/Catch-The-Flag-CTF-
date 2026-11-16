@@ -84,10 +84,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 export async function serverAuth(
   path: string,
   body: unknown,
+  headers?: Record<string, string>,
 ): Promise<AuthResponse> {
   const res = await serverApi<{ data: AuthResponse }>("POST", path, {
     body,
     token: null,
+    headers,
   });
   return res.data;
 }

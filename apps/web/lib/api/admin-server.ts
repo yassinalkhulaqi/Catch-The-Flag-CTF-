@@ -9,7 +9,16 @@ import type {
   AdminUserRow,
 } from "@/lib/api/admin";
 import { serverApi } from "@/lib/api/server";
-import type { Category, ContentStatus, Paginated } from "@/lib/types";
+import type {
+  AdminAnalyticsSummary,
+  AdminStats,
+  Category,
+  CategoryAnalyticsRow,
+  ContentStatus,
+  Paginated,
+  ReviewQueue,
+  XpPoint,
+} from "@/lib/types";
 
 /**
  * Server-side admin helpers for `app/admin/*` Server Components.
@@ -202,4 +211,54 @@ export async function getAdminDashboardServer(): Promise<AdminDashboard> {
     pathsTotal: paths.total,
     recentAudit: audit.items,
   };
+}
+
+/**
+ * Counts from the real `/admin/stats` endpoint. Returns null when the
+ * endpoint is unreachable, so the dashboard renders without it rather than
+ * fabricating numbers.
+ */
+export async function getAdminStatsServer(): Promise<AdminStats | null> {
+  try {
+    const res = await serverApi<{ data: AdminStats }>("GET", "/admin/stats");
+    return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Everything waiting on a reviewer from `/admin/review-queue`. Null means
+ * the backend is unavailable, never an invented queue.
+ */
+export async function getReviewQueueServer(): Promise<ReviewQueue | null> {
+  try {
+    const res = await serverApi<{ data: ReviewQueue }>("GET", "/admin/review-queue");
+    return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Staff analytics: summary + per-category funnel + 30-day XP series. */
+export async function getAdminAnalyticsServer(): Promise<{
+  summary: AdminAnalyticsSummary | null;
+  categories: CategoryAnalyticsRow[];
+  series: XpPoint[];
+} | null> {
+  try {
+    const [summaryRes, categoriesRes, xpRes] = await Promise.all([
+      serverApi<{ data: AdminAnalyticsSummary }>("GET", "/admin/analytics/summary"),
+      serverApi<{ data: CategoryAnalyticsRow[] }>("GET", "/admin/analytics/categories"),
+      serverApi<{ data: { days: number; series: XpPoint[] } }>("GET", "/admin/analytics/xp?days=30"),
+    ]);
+
+    return {
+      summary: summaryRes.data ?? null,
+      categories: categoriesRes.data ?? [],
+      series: xpRes.data?.series ?? [],
+    };
+  } catch {
+    return null;
+  }
 }

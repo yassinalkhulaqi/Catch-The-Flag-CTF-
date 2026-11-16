@@ -8,6 +8,7 @@ use App\Models\Lesson;
 use App\Models\PathModule;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\MarkdownSafety;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,8 @@ class UpsertLessonAction
      */
     public function execute(User $actor, PathModule $module, ?Lesson $lesson, array $data, Request $request): Lesson
     {
+        MarkdownSafety::assertSafe($data, 'content');
+
         return DB::transaction(function () use ($actor, $module, $lesson, $data, $request): Lesson {
             if ($lesson === null) {
                 $model = new Lesson;

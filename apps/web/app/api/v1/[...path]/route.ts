@@ -10,9 +10,10 @@ const API_URL = process.env.API_URL ?? "http://localhost:8000";
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 function errorResponse(status: number, code: string, message: string, requestId?: string) {
+  const id = requestId ?? crypto.randomUUID();
   return NextResponse.json(
-    { error: { code, message, request_id: requestId } },
-    { status },
+    { error: { code, message, request_id: id } },
+    { status, headers: { "X-Request-Id": id } },
   );
 }
 
@@ -50,6 +51,10 @@ async function proxy(
   const headers = new Headers();
   headers.set("Accept", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
+  // Session names are derived from the User-Agent server-side; forward it so
+  // a user can tell their sessions apart. It is sanitized there.
+  const userAgent = request.headers.get("user-agent");
+  if (userAgent) headers.set("User-Agent", userAgent);
 
   let body: BodyInit | undefined;
   if (!["GET", "HEAD"].includes(method)) {
@@ -62,7 +67,17 @@ async function proxy(
   try {
     res = await fetch(target, { method, headers, body, cache: "no-store" });
   } catch {
-    return errorResponse(500, "server_error", "Upstream service unavailable.");
+    const requestId = crypto.randomUUID();
+    return NextResponse.json(
+      {
+        error: {
+          code: "server_error",
+          message: "Upstream service unavailable.",
+          request_id: requestId,
+        },
+      },
+      { status: 500, headers: { "X-Request-Id": requestId } },
+    );
   }
 
   const responseHeaders = new Headers();
@@ -78,6 +93,10 @@ async function proxy(
 
   const retryAfter = res.headers.get("Retry-After");
   if (retryAfter) responseHeaders.set("Retry-After", retryAfter);
+  // Correlation id from Laravel — shown to the user in error states so a
+  // support report can be traced to the exact server log line.
+  const requestId = res.headers.get("X-Request-Id");
+  if (requestId) responseHeaders.set("X-Request-Id", requestId);
   // File downloads: preserve the sniffing guard.
   const noSniff = res.headers.get("X-Content-Type-Options");
   if (noSniff) responseHeaders.set("X-Content-Type-Options", noSniff);
