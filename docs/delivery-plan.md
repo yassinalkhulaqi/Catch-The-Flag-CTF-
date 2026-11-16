@@ -318,3 +318,27 @@ bisect.
 
 Backend PHPUnit was authored everywhere but never executed locally; Docker Desktop would not start and local PHP is 8.3 vs the required 8.4, so CI (.github/workflows/ci.yml, Postgres 17) is the verification gate for the backend. Frontend lint, typecheck, vitest (149 tests) and next build all pass.
 
+## 11. Phase 0 consolidation (status: in progress)
+
+All five branches above are now **merged into `fix/phase00-consolidation`**
+(one `--no-ff` merge each, in size order: observability → security →
+content → analytics → platform). During that pass:
+
+- **Recovered the admin achievements CRUD backend** (`91b665f`) —
+  controller, request, resource, audited upsert action, tightened
+  `achievements_criteria_type_check` DB constraint, and a 10-case feature
+  test. The original implementation was silently dropped from `main` in
+  merge `d6619cf` while the web UI survived; the routes seam is the known
+  risk and every merge into the consolidation branch was seam-checked
+  (`routes/api.php` diffed, no conflict markers repo-wide).
+- Frontend verification on the merged tree: **lint clean, typecheck clean,
+  vitest 39 files / 153 tests passing**.
+- Backend suite still awaits local execution (same Docker/WSL gate as
+  above; a WSL2 kernel repair was in progress at time of writing). CI
+  remains the authoritative backend gate until that lands.
+- Deferred slices from branches 4/5 (email notifications, mastery/streak
+  UI, public API + PATs, webhooks, full i18n) carry forward as candidate
+  scope for **Phase 1+**, together with the admin authoring-depth UI gaps
+  (dedicated module/lesson/quiz/hint editor pages) and the test-matrix
+  deepening from `docs/technical-audit.md`.
+
