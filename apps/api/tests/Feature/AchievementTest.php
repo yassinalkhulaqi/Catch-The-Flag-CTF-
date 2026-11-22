@@ -21,7 +21,7 @@ class AchievementTest extends TestCase
     {
         Achievement::factory()->create([
             'key' => 'first-solve',
-            'criteria' => ['type' => 'solves_total', 'target' => 1],
+            'criteria' => ['type' => 'solves_total', 'threshold' => 1],
             'points' => 50,
         ]);
 
@@ -55,7 +55,7 @@ class AchievementTest extends TestCase
     {
         Achievement::factory()->create([
             'key' => 'first-solve',
-            'criteria' => ['type' => 'solves_total', 'target' => 1],
+            'criteria' => ['type' => 'solves_total', 'threshold' => 1],
             'points' => 50,
         ]);
 
@@ -80,7 +80,7 @@ class AchievementTest extends TestCase
     {
         Achievement::factory()->create([
             'key' => 'first-blood',
-            'criteria' => ['type' => 'first_blood', 'target' => 1],
+            'criteria' => ['type' => 'first_blood', 'threshold' => 1],
             'points' => 25,
         ]);
 
@@ -111,7 +111,7 @@ class AchievementTest extends TestCase
     {
         AchievementFactory::new()->create([
             'key' => 'solve-ten',
-            'criteria' => ['type' => 'solves_total', 'target' => 10],
+            'criteria' => ['type' => 'solves_total', 'threshold' => 10],
             'points' => 50,
         ]);
 

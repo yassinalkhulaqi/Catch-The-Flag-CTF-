@@ -18,7 +18,7 @@ class AchievementFactory extends Factory
             'key' => 'test-'.fake()->unique()->lexify('????????'),
             'title' => ucfirst(fake()->words(2, true)),
             'description' => fake()->sentence(),
-            'criteria' => ['type' => 'solves_total', 'target' => 1],
+            'criteria' => ['type' => 'solves_total', 'threshold' => 1],
             'points' => 50,
             'is_active' => true,
             'sort_order' => 0,

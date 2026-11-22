@@ -50,6 +50,14 @@ class AchievementEvaluator
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $criteria
+     */
+    private function criteriaThreshold(array $criteria): int
+    {
+        return (int) ($criteria['threshold'] ?? $criteria['target'] ?? 1);
+    }
+
     private function satisfied(User $user, Achievement $achievement, ?Challenge $justSolved): bool
     {
         $criteria = $achievement->criteria ?? [];
@@ -59,7 +67,7 @@ class AchievementEvaluator
             return false;
         }
 
-        $target = (int) ($criteria['target'] ?? 1);
+        $target = $this->criteriaThreshold($criteria);
 
         return match ($type) {
             AchievementCriteriaType::SolvesTotal => $user->solved_count >= $target,
@@ -85,7 +93,7 @@ class AchievementEvaluator
             return null;
         }
 
-        $target = max(1, (int) ($criteria['target'] ?? 1));
+        $target = max(1, $this->criteriaThreshold($criteria));
 
         $current = match ($type) {
             AchievementCriteriaType::SolvesTotal => $user->solved_count,
