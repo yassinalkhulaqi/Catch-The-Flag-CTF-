@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureRole;
 use App\Models\Challenge;
 use App\Models\Path;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /**
@@ -22,6 +24,16 @@ class AdminStatsTest extends TestCase
     {
         $this->getJson('/api/v1/admin/stats')->assertUnauthorized();
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->create()))->assertForbidden();
+        $diagnosticRequest = Request::create('/api/v1/admin/stats');
+        $diagnosticRequest->setUserResolver(static fn () => User::factory()->moderator()->create());
+        $diagnosticResponse = (new EnsureRole)->handle(
+            $diagnosticRequest,
+            static fn () => response('ok'),
+            'admin',
+            'moderator',
+        );
+        fwrite(STDERR, "\nMIDDLEWARE_STATUS=".$diagnosticResponse->getStatusCode()."\n");
+
         $moderatorResponse = $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->moderator()->create()));
         if ($moderatorResponse->status() !== 200) {
             fwrite(STDERR, "\nSTAFF_BODY=".$moderatorResponse->getContent()."\n");
