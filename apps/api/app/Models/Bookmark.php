@@ -19,6 +19,8 @@ class Bookmark extends Model
 {
     /** @var list<string> */
     protected $fillable = [
+        'bookmarkable_type',
+        'bookmarkable_id',
         'note',
     ];
 

@@ -96,12 +96,10 @@ class AuditMatrixRegressionTest extends TestCase
 
         $frontendOrigin = $allowed[0];
 
-        $this->withHeader('Origin', $frontendOrigin)
-            ->getJson('/api/v1/health')
+        $this->getJson('/api/v1/health', ['Origin' => $frontendOrigin])
             ->assertHeader('Access-Control-Allow-Origin', $frontendOrigin);
 
-        $evil = $this->withHeader('Origin', 'https://evil.example.com')
-            ->getJson('/api/v1/health');
+        $evil = $this->getJson('/api/v1/health', ['Origin' => 'https://evil.example.com']);
 
         $this->assertFalse($evil->headers->has('Access-Control-Allow-Origin'));
     }
