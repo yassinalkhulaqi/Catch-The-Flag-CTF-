@@ -849,3 +849,15 @@ html[dir="rtl"] .marquee-track {
     animation: none;
   }
 }
+
+.focus-active [data-focus-hide] {
+  display: none !important;
+}
+
+.focus-active .focus-layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.focus-active [id^="focus-"] {
+  scroll-margin-top: 9rem;
+}

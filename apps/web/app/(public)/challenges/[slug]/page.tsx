@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Clock3, Flag, Trophy } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
+import { FocusShell } from "@/components/challenge/focus-shell";
 import { ChallengeCard } from "@/components/challenge-card";
 import { ChallengeFiles } from "@/components/challenge-files";
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -20,6 +21,9 @@ import { TierPill } from "@/components/tier-pill";
 import { ToolsDrawer } from "@/components/tools/tools-drawer";
 import { ApiError } from "@/lib/api/client";
 import { getCurrentUser, serverApi } from "@/lib/api/server";
+import { focusSections } from "@/lib/challenge/focus";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
+import { getLocale } from "@/lib/theme/locale";
 import { formatXp } from "@/lib/utils";
 import type { ChallengeDetail } from "@/lib/types";
 
@@ -74,17 +78,35 @@ export default async function ChallengeDetailPage({
       ? challenge.files.map((f) => f.original_name).join(", ")
       : `${challenge.category.name} static lab`;
   const walkthrough = challenge.solution_walkthrough;
+  const dict = dictionaryFor(await getLocale());
+  const sections = focusSections(
+    {
+      authenticated: Boolean(user),
+      hasFiles: challenge.files.length > 0,
+      hasHints: challenge.hints.length > 0,
+      hasWalkthrough: typeof walkthrough === "string" && walkthrough.trim() !== "",
+    },
+    dict.focus.sections,
+  );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <Breadcrumb
-        className="mb-5"
-        items={[
-          { href: "/challenges", label: "Challenges" },
-          { href: `/challenges?category=${challenge.category.slug}`, label: challenge.category.name },
-          { label: challenge.title },
-        ]}
-      />
+    <FocusShell
+      challengeId={challenge.id}
+      title={challenge.title}
+      sections={sections}
+      copy={dict.focus}
+    >
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <div data-focus-hide>
+          <Breadcrumb
+            className="mb-5"
+            items={[
+              { href: "/challenges", label: "Challenges" },
+              { href: `/challenges?category=${challenge.category.slug}`, label: challenge.category.name },
+              { label: challenge.title },
+            ]}
+          />
+        </div>
 
       <section className="relative overflow-hidden rounded-2xl border border-border bg-surface/60 p-6 sm:p-8">
         <div aria-hidden="true" className="aurora pointer-events-none absolute inset-0 opacity-60" />
@@ -127,23 +149,23 @@ export default async function ChallengeDetailPage({
         </div>
       </section>
 
-      {/* 1 — status */}
-      <div className="mt-4">
+      <div id="focus-status" className="mt-4">
         <LabStatusBanner solved={challenge.solved} points={challenge.points} />
       </div>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
+      <div className="focus-layout mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="space-y-8">
-          {/* 2 — objective */}
-          <LabObjective
-            objective={challenge.scenario}
-            target={targetText}
-            difficulty={challenge.difficulty}
-            points={challenge.points}
-            categoryName={challenge.category.name}
-          />
+          <div id="focus-objective" className="scroll-mt-36">
+            <LabObjective
+              objective={challenge.scenario}
+              target={targetText}
+              difficulty={challenge.difficulty}
+              points={challenge.points}
+              categoryName={challenge.category.name}
+            />
+          </div>
 
-          <section aria-labelledby="briefing-heading">
+          <section id="focus-briefing" aria-labelledby="briefing-heading" className="scroll-mt-36">
             <h2
               id="briefing-heading"
               className="scroll-mt-24 font-mono text-xs uppercase tracking-[0.16em] text-accent"
@@ -155,17 +177,17 @@ export default async function ChallengeDetailPage({
             </div>
           </section>
 
-          {/* 3 — access the lab (static artifacts, no live infra) */}
-          <LabActionHub
-            challengeId={challenge.id}
-            files={challenge.files}
-            targetText={targetText}
-            objectiveText={objectiveText}
-            authenticated={!!user}
-          />
+          <div id="focus-artifacts" className="scroll-mt-36">
+            <LabActionHub
+              challengeId={challenge.id}
+              files={challenge.files}
+              targetText={targetText}
+              objectiveText={objectiveText}
+              authenticated={!!user}
+            />
+          </div>
 
-          {/* 4 — flag submit + celebration */}
-          <section aria-labelledby="submit-heading">
+          <section id="focus-submit" aria-labelledby="submit-heading" className="scroll-mt-36">
             <h2
               id="submit-heading"
               className="mb-3 scroll-mt-24 font-mono text-xs uppercase tracking-[0.16em] text-accent"
@@ -193,8 +215,7 @@ export default async function ChallengeDetailPage({
             )}
           </section>
 
-          {/* 5 — hints */}
-          <section aria-labelledby="hints-heading">
+          <section id="focus-hints" aria-labelledby="hints-heading" className="scroll-mt-36">
             <h2
               id="hints-heading"
               className="mb-3 scroll-mt-24 font-mono text-xs uppercase tracking-[0.16em] text-accent"
@@ -213,8 +234,7 @@ export default async function ChallengeDetailPage({
             )}
           </section>
 
-          {/* 6 — attachments */}
-          <section aria-labelledby="files-heading">
+          <section id="focus-files" aria-labelledby="files-heading" className="scroll-mt-36">
             <h2
               id="files-heading"
               className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-accent"
@@ -228,9 +248,8 @@ export default async function ChallengeDetailPage({
             />
           </section>
 
-          {/* 7 — official walkthrough (nullable until STEP 6 backend field lands) */}
           {typeof walkthrough === "string" && walkthrough.trim() !== "" ? (
-            <section aria-labelledby="walkthrough-heading">
+            <section id="focus-walkthrough" aria-labelledby="walkthrough-heading" className="scroll-mt-36">
               <h2 id="walkthrough-heading" className="sr-only">
                 Official solution walkthrough
               </h2>
@@ -239,11 +258,13 @@ export default async function ChallengeDetailPage({
           ) : null}
         </div>
 
-        <LabSidebar challenge={challenge} authenticated={!!user} />
+        <div data-focus-hide>
+          <LabSidebar challenge={challenge} authenticated={!!user} />
+        </div>
       </div>
 
       {(challenge.related?.length ?? 0) > 0 ? (
-        <section className="mt-14" aria-labelledby="related-heading">
+        <section data-focus-hide className="mt-14" aria-labelledby="related-heading">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="type-eyebrow text-accent">Keep going</p>
@@ -267,7 +288,10 @@ export default async function ChallengeDetailPage({
         </section>
       ) : null}
 
-      <ToolsDrawer />
-    </div>
+        <div data-focus-hide>
+          <ToolsDrawer />
+        </div>
+      </div>
+    </FocusShell>
   );
 }
