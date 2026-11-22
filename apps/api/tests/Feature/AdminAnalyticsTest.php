@@ -146,6 +146,7 @@ class AdminAnalyticsTest extends TestCase
      */
     private function headersFor(User $user): array
     {
+        $this->app['auth']->forgetGuards();
         $token = $user->createToken('web', ['*'], now()->addDay())->plainTextToken;
 
         return ['Authorization' => "Bearer {$token}"];

@@ -48,7 +48,7 @@ suite (36 files, 138 tests) passed before the docs commit.
 | Lab detail | Breadcrumbs, mission hero, state-rich status banner, sticky mission-control sidebar with anchors, polished hints, artifacts, flag feedback and related grid |
 | Learn | Path catalog hero stats, tile path cards, path detail stats and module progress timeline |
 | Account | Podium leaderboard, dashboard welcome/hero, split auth trust panel, anchored settings cards, offline tools hub |
-| Verification | `npm run typecheck --prefix apps/web` and `npm run test --prefix apps/web` pass (36 files, 138 tests). `next build` stops at Google Fonts fetching in this offline environment, before app compilation |
+| Verification | `npm run typecheck --prefix apps/web` and `npm run test --prefix apps/web` pass (36 files, 138 tests). `next build` no longer fetches Google Fonts at build time |
 
 No server behaviour changed: flags, XP, points, solves, rank and progress remain
 server-derived. The pass adds no lint exceptions and no runtime dependencies.
@@ -88,7 +88,7 @@ server-derived; no client code grants a badge.
 | Verification | `npm run typecheck`, `npm run lint`, and 26 new Vitest assertions for state predicates, filters, sorts, summary, search, and dialog interaction |
 
 The target band is a presentation label derived from the server target
-(`<10`, `10–49`, `50+`); the API still does not send a rarity tier.
+(`<10`, `10ï¿½49`, `50+`); the API still does not send a rarity tier.
 
 ## Leaderboard arena (`feat/uiux-leaderboard-arena`)
 

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Http\Middleware\EnsureRole;
 use App\Models\Challenge;
 use App\Models\Path;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /**
@@ -24,26 +22,7 @@ class AdminStatsTest extends TestCase
     {
         $this->getJson('/api/v1/admin/stats')->assertUnauthorized();
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->create()))->assertForbidden();
-        $diagnosticRequest = Request::create('/api/v1/admin/stats');
-        $diagnosticRequest->setUserResolver(static fn () => User::factory()->moderator()->create());
-        $diagnosticResponse = (new EnsureRole)->handle(
-            $diagnosticRequest,
-            static fn () => response('ok'),
-            'admin',
-            'moderator',
-        );
-        fwrite(STDERR, "\nMIDDLEWARE_STATUS=".$diagnosticResponse->getStatusCode()."\n");
-
-        $moderator = User::factory()->moderator()->create();
-        $moderatorHeaders = $this->headersFor($moderator);
-        fwrite(STDERR, "\nMODERATOR_ID={$moderator->id} DB_ROLE=".$moderator->fresh()->role->value."\n");
-        $meResponse = $this->getJson('/api/v1/auth/me', $moderatorHeaders)->json();
-        fwrite(STDERR, "\nAUTH_ME=".json_encode($meResponse)."\n");
-        $moderatorResponse = $this->getJson('/api/v1/admin/stats', $moderatorHeaders);
-        if ($moderatorResponse->status() !== 200) {
-            fwrite(STDERR, "\nSTAFF_BODY=".$moderatorResponse->getContent()."\n");
-        }
-        $this->assertSame(200, $moderatorResponse->status());
+        $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->moderator()->create()))->assertOk();
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->admin()->create()))->assertOk();
     }
 
@@ -85,6 +64,7 @@ class AdminStatsTest extends TestCase
      */
     private function headersFor(User $user): array
     {
+        $this->app['auth']->forgetGuards();
         $token = $user->createToken('test', ['*'], now()->addDay())->plainTextToken;
 
         return ['Authorization' => "Bearer {$token}"];

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans_Arabic, Source_Sans_3 } from "next/font/google";
 import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
 import { ScrollProgress } from "@/lib/motion/scroll-progress";
@@ -8,34 +7,6 @@ import type { ThemeName } from "@/lib/design/tokens";
 import { THEME_BOOT_SCRIPT, THEME_COOKIE } from "@/lib/theme/boot";
 import { directionFor, getLocale } from "@/lib/theme/locale";
 import "./globals.css";
-
-const display = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-  axes: ["SOFT", "WONK", "opsz"],
-  display: "swap",
-});
-
-const body = Source_Sans_3({
-  variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const mono = IBM_Plex_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
-const arabic = IBM_Plex_Sans_Arabic({
-  variable: "--font-arabic",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
 
 const siteDescription =
   "Cybersecurity learning paths and static CTF challenges — DFIR, malware analysis, reverse engineering, crypto, OSINT and more.";
@@ -80,7 +51,7 @@ export default async function RootLayout({
       data-theme={theme}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${display.variable} ${body.variable} ${mono.variable} ${arabic.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <body className="flex min-h-full flex-col font-sans">
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />

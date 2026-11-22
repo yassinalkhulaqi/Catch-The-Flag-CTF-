@@ -34,6 +34,10 @@ for the hero and a solved state, not for every card.
 | Mono | IBM Plex Mono | `font-mono`, `type-eyebrow` |
 | Arabic | IBM Plex Sans Arabic | Applied when `dir="rtl"` |
 
+The four faces are requested by a CSS `@import` in `app/globals.css`, so
+`next build` never fetches fonts. Each token has a system fallback for
+offline builds and slow networks.
+
 Sizes for display and titles use `clamp`. Do not jump to a fixed `text-7xl`
 for a new hero.
 

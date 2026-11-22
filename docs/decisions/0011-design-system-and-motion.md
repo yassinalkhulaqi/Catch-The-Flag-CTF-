@@ -15,7 +15,8 @@ layout, and motion that does not fight the product's calm identity
   `lib/design/tokens.ts` and resolved values from those variables. Hex is not
   duplicated in components.
 - Type: Fraunces (display), Source Sans 3 (body), IBM Plex Mono (flags and
-  data), IBM Plex Sans Arabic (when `dir="rtl"`). Loaded with `next/font`.
+  data), IBM Plex Sans Arabic (when `dir="rtl"`). Loaded at runtime from a
+  CSS `@import` in `globals.css` so builds do not depend on font-host access.
 - Theme is `data-theme` on `<html>`, set by the server from the account
   (`/me` theme) or, for guests, the `ctf_theme` cookie. A blocking inline
   script only fills the attribute when the server omitted it.
