@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main, 'cursor/**', 'feature/**']
+    branches: [main, 'feat/**', 'cursor/**', 'feature/**']
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -14,6 +17,7 @@ jobs:
   api:
     name: API (PHPUnit + Pint)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -32,17 +36,14 @@ jobs:
       run:
         working-directory: apps/api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: pgsql, mbstring, xml, curl, zip, bcmath, intl, gd
           coverage: none
-      - name: Cache Composer
-        uses: actions/cache@v4
-        with:
-          path: apps/api/vendor
-          key: composer-${{ hashFiles('apps/api/composer.lock') }}
+          cache: composer
+          cache-dependency-path: apps/api/composer.lock
       - run: composer install --no-interaction --prefer-dist --no-progress
       - name: Environment
         run: |
@@ -69,11 +70,12 @@ jobs:
   web:
     name: Web (lint · typecheck · test · build)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

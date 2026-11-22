@@ -1,0 +1,69 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build release artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pgsql, mbstring, xml, curl, zip, bcmath, intl, gd
+          coverage: none
+          cache: composer
+          cache-dependency-path: apps/api/composer.lock
+
+      - name: Install API runtime dependencies
+        working-directory: apps/api
+        run: composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --prefer-dist --no-progress
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Build web
+        working-directory: apps/web
+        env:
+          API_URL: http://127.0.0.1:8000
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: |
+          npm ci
+          npm run build
+          npm prune --omit=dev
+
+      - name: Package
+        run: |
+          mkdir -p release
+          tar --exclude='.env' \
+              --exclude='storage/logs/*' \
+              --exclude='storage/framework/cache/*' \
+              --exclude='storage/framework/sessions/*' \
+              --exclude='storage/framework/views/*' \
+              -czf release/api.tar.gz -C apps/api .
+          tar -czf release/web.tar.gz -C apps/web .
+          sha256sum release/api.tar.gz release/web.tar.gz > release/SHA256SUMS
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctf-release-${{ github.sha }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 14

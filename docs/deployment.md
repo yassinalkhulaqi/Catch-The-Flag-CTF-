@@ -78,6 +78,32 @@ Release steps (any host):
 Rollback: redeploy previous build; DB migrations must remain compatible with
 the previous release for one window (additive-first policy).
 
+### GitHub delivery pipeline
+
+`.github/workflows/ci.yml` runs two parallel gates on pull requests and branch
+pushes: API (`Pint --test`, migrate, `php artisan test`) and Web (`lint`,
+`typecheck`, `test`, `build`). Both must be green before merging to `main`.
+
+`.github/workflows/cd.yml` runs on `main` and on manual dispatch. It installs
+runtime-only dependencies, builds both apps, and uploads `api.tar.gz`,
+`web.tar.gz`, and `SHA256SUMS` as a GitHub Actions artifact named
+`ctf-release-<sha>`. No secrets are baked into the tarballs: `.env` is excluded
+and configuration/routes are cached on the host after environment injection.
+
+To deploy a build:
+
+1. Download the `ctf-release-<sha>` artifact from the successful CD run and
+   verify it with `sha256sum -c SHA256SUMS`.
+2. Unpack `api.tar.gz` and `web.tar.gz` into the release directories.
+3. Inject secrets from the host secret manager into `.env`, then run
+   `php artisan config:cache route:cache view:cache`.
+4. Run `php artisan migrate --force`, restart the processes, and health-check
+   `/api/v1/health` and `/`.
+
+The workflow deliberately does not push to a host; deployment stays
+provider-agnostic and can be wired to systemd, a single-host Docker compose
+file, or a cloud release pipeline without changing application code.
+
 ---
 
 ## 4. Process management (examples)

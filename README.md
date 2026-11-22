@@ -118,6 +118,13 @@ npm run dev | build | lint | typecheck | test
 - **Frontend:** Vitest + React Testing Library + MSW for critical flows
   (`npm run test --prefix apps/web`).
 
+GitHub Actions:
+- `.github/workflows/ci.yml` — PRs and branch pushes run API (Pint, migrate,
+  PHPUnit) and Web (lint, typecheck, Vitest, build) gates in parallel.
+- `.github/workflows/cd.yml` — pushes to `main` build production artifacts
+  (`api.tar.gz`, `web.tar.gz`, `SHA256SUMS`) and upload them as a run artifact.
+  Deploy from that artifact with the steps in `docs/deployment.md`.
+
 CI order: lint → typecheck → backend tests → frontend tests.
 
 ---
