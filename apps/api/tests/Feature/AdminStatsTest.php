@@ -23,7 +23,10 @@ class AdminStatsTest extends TestCase
         $this->getJson('/api/v1/admin/stats')->assertUnauthorized();
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->create()))->assertForbidden();
         $moderatorResponse = $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->moderator()->create()));
-        $this->assertSame(200, $moderatorResponse->status(), $moderatorResponse->getContent());
+        if ($moderatorResponse->status() !== 200) {
+            fwrite(STDERR, "\nSTAFF_BODY=".$moderatorResponse->getContent()."\n");
+        }
+        $this->assertSame(200, $moderatorResponse->status());
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->admin()->create()))->assertOk();
     }
 
