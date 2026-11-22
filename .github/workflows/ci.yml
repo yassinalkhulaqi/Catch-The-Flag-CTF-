@@ -48,6 +48,8 @@ jobs:
           path: apps/api/vendor
           key: composer-${{ hashFiles('apps/api/composer.lock') }}
       - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare storage
+        run: mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache
       - name: Environment
         run: |
           cp .env.example .env
@@ -81,7 +83,7 @@ jobs:
           status=$?
           cat phpunit.log
           if [ "$status" -ne 0 ]; then
-            grep -E '^[0-9]+\)|FAILED|FAIL |ERROR|Error:|Exception|SQLSTATE|Failed asserting|Expected response|/tests/Feature/|assertSame|->assert|SQLSTATE|Undefined|Call to|Attempt to read|ValueError|TypeError|ErrorException' phpunit.log | head -60 | while IFS= read -r line; do
+            grep -E '^[0-9]+\)|FAILED|FAIL |ERROR|Error:|Exception|SQLSTATE|Failed asserting|Expected response|/tests/Feature/|assertSame|->assert|SQLSTATE|Undefined|Call to|Attempt to read|ValueError|TypeError|ErrorException|Error' phpunit.log | head -60 | while IFS= read -r line; do
               echo "::error::${line}"
             done
           fi
