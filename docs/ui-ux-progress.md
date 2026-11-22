@@ -71,3 +71,21 @@ Still not invented:
 - Category and time-range leaderboards, and other players' public profiles
 - A date filter on audit logs (the controller does not apply one)
 - A single reorder endpoint (module order sends one update per module)
+
+## Trophy cabinet (`feat/uiux-trophy-cabinet`)
+
+The achievements page becomes a collectible cabinet over the existing
+`/me/achievements` payload. Award state, progress, and award dates remain
+server-derived; no client code grants a badge.
+
+| Area | Change |
+|---|---|
+| Cabinet hero | Completion ring, unlocked/in-progress/locked counts, latest award, and a closest-unlock spotlight with progress |
+| Tiles | Icon medallion from the server's `icon` key, state badge, progress bar, target band, and award day; keyboard focus and hover states |
+| Detail | Accessible `Dialog` with status, description, progress, remaining count, target band, and award date |
+| Browsing | Search by title/description/key, filter by state, sort by default/closest/recent/title, live result count, reset |
+| States | Route-level skeleton, filtered empty state, and the existing no-badges empty state |
+| Verification | `npm run typecheck`, `npm run lint`, and 26 new Vitest assertions for state predicates, filters, sorts, summary, search, and dialog interaction |
+
+The target band is a presentation label derived from the server target
+(`<10`, `10–49`, `50+`); the API still does not send a rarity tier.
