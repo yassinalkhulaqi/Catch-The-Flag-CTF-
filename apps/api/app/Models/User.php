@@ -98,9 +98,17 @@ class User extends Authenticatable
      */
     public function hasRole(Role|string ...$roles): bool
     {
+        $current = $this->role instanceof Role
+            ? $this->role
+            : Role::tryFrom(strtolower((string) $this->role));
+
+        if ($current === null) {
+            return false;
+        }
+
         foreach ($roles as $role) {
             $role = $role instanceof Role ? $role : Role::from($role);
-            if ($this->role instanceof Role && $this->role->isAtLeast($role)) {
+            if ($current->isAtLeast($role)) {
                 return true;
             }
         }

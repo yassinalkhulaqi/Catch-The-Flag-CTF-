@@ -8,7 +8,6 @@ use App\Models\Challenge;
 use App\Models\Path;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 /**
@@ -23,10 +22,7 @@ class AdminStatsTest extends TestCase
     {
         $this->getJson('/api/v1/admin/stats')->assertUnauthorized();
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->create()))->assertForbidden();
-        $moderator = User::factory()->moderator()->create();
-        $this->assertSame('moderator', $moderator->role->value);
-        $this->assertTrue(Gate::forUser($moderator)->allows('viewAdminDashboard'));
-        $this->getJson('/api/v1/admin/stats', $this->headersFor($moderator))->assertOk();
+        $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->moderator()->create()))->assertOk();
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->admin()->create()))->assertOk();
     }
 

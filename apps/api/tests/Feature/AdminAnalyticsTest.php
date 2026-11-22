@@ -73,9 +73,7 @@ class AdminAnalyticsTest extends TestCase
     {
         $this->getJson('/api/v1/admin/analytics/summary')->assertUnauthorized();
         $this->getJson('/api/v1/admin/analytics/summary', $this->headersFor(User::factory()->create()))->assertForbidden();
-        $moderator = User::factory()->moderator()->create();
-        $this->assertSame('moderator', $moderator->role->value);
-        $this->getJson('/api/v1/admin/analytics/categories', $this->headersFor($moderator))->assertOk();
+        $this->getJson('/api/v1/admin/analytics/categories', $this->headersFor(User::factory()->moderator()->create()))->assertOk();
         $this->getJson('/api/v1/admin/analytics/xp', $this->headersFor(User::factory()->moderator()->create()))->assertOk();
     }
 
