@@ -25,8 +25,12 @@ jobs:
           php-version: '8.4'
           extensions: pgsql, mbstring, xml, curl, zip, bcmath, intl, gd
           coverage: none
-          cache: composer
-          cache-dependency-path: apps/api/composer.lock
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: apps/api/vendor
+          key: composer-${{ hashFiles('apps/api/composer.lock') }}
 
       - name: Install API runtime dependencies
         working-directory: apps/api

@@ -42,8 +42,11 @@ jobs:
           php-version: '8.4'
           extensions: pgsql, mbstring, xml, curl, zip, bcmath, intl, gd
           coverage: none
-          cache: composer
-          cache-dependency-path: apps/api/composer.lock
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: apps/api/vendor
+          key: composer-${{ hashFiles('apps/api/composer.lock') }}
       - run: composer install --no-interaction --prefer-dist --no-progress
       - name: Environment
         run: |
@@ -64,8 +67,25 @@ jobs:
           DB_USERNAME: ctf
           DB_PASSWORD: ctf_secret_local_only
         run: |
-          php artisan migrate --force
-          php artisan test --compact
+          set +e
+          php artisan migrate --force > migrate.log 2>&1
+          migrate_status=$?
+          cat migrate.log
+          if [ "$migrate_status" -ne 0 ]; then
+            grep -E 'Error|Exception|SQLSTATE|ERROR' migrate.log | head -20 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            exit "$migrate_status"
+          fi
+          php artisan test --compact > phpunit.log 2>&1
+          status=$?
+          cat phpunit.log
+          if [ "$status" -ne 0 ]; then
+            grep -E '^[0-9]+\)|FAIL|ERROR|Error:|Exception|SQLSTATE|Failed asserting' phpunit.log | head -30 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+          fi
+          exit "$status"
 
   web:
     name: Web (lint · typecheck · test · build)
