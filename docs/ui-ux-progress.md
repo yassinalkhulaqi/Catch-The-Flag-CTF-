@@ -110,3 +110,21 @@ filters, and summarizes those rows.
 
 The sort direction is display-only. The rank column always shows the server
 rank even when the visible order changes.
+
+## Challenge focus mode (`feat/uiux-focus-lab`)
+
+The challenge detail page gains an optional, distraction-free session that
+works entirely from data the page already has. Nothing about flags, XP, or
+solves changes; the review checklist and timer live only in `localStorage`.
+
+| Area | Change |
+|---|---|
+| Entry point | Floating "Focus mode" control on every challenge; persisted per challenge on this device |
+| Session bar | Sticky bar with challenge title, elapsed timer, review progress, and exit control |
+| Mission map | Section rail with scroll-spy, numbered anchors, and an accessible review checklist |
+| Mobile | Horizontal section strip keeps navigation usable without the desktop rail |
+| Focus layout | Sidebar, breadcrumb, related challenges, and tools drawer are hidden; the mission fills the page |
+| Verification | `npm run typecheck`, `npm run lint`, and 19 new Vitest assertions for sections, progress, persistence, timer, and completion |
+
+Reduced-motion preferences disable smooth scrolling. The walkthrough only
+appears in the rail when the server actually returned one.
