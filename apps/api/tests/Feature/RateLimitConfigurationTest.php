@@ -94,6 +94,7 @@ class RateLimitConfigurationTest extends TestCase
      */
     private function headersFor(User $user): array
     {
+        $this->app['auth']->forgetGuards();
         $token = $user->createToken('test', ['*'], now()->addDay())->plainTextToken;
 
         return ['Authorization' => "Bearer {$token}"];
