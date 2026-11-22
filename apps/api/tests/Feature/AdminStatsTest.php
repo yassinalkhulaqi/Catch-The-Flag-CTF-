@@ -34,7 +34,9 @@ class AdminStatsTest extends TestCase
         );
         fwrite(STDERR, "\nMIDDLEWARE_STATUS=".$diagnosticResponse->getStatusCode()."\n");
 
-        $moderatorHeaders = $this->headersFor(User::factory()->moderator()->create());
+        $moderator = User::factory()->moderator()->create();
+        $moderatorHeaders = $this->headersFor($moderator);
+        fwrite(STDERR, "\nMODERATOR_ID={$moderator->id} DB_ROLE=".$moderator->fresh()->role->value."\n");
         $meResponse = $this->getJson('/api/v1/auth/me', $moderatorHeaders)->json();
         fwrite(STDERR, "\nAUTH_ME=".json_encode($meResponse)."\n");
         $moderatorResponse = $this->getJson('/api/v1/admin/stats', $moderatorHeaders);
