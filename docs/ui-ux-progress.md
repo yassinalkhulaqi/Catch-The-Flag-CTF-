@@ -89,3 +89,24 @@ server-derived; no client code grants a badge.
 
 The target band is a presentation label derived from the server target
 (`<10`, `10–49`, `50+`); the API still does not send a rarity tier.
+
+## Leaderboard arena (`feat/uiux-leaderboard-arena`)
+
+The leaderboard becomes a browsable arena without changing what the server
+computes. Rank, XP, solves, badges, and the viewer's rank still come from
+`GET /api/v1/leaderboard` and `/leaderboard/me`; the new layer only re-orders,
+filters, and summarizes those rows.
+
+| Area | Change |
+|---|---|
+| Summary | `ArenaHero` with ranked-player, total XP, solve, and average XP tiles |
+| Podium | Top three as ranked cards, first place visually elevated, viewer marked |
+| Board | Search by name, all/top-10/around-me scope, sortable XP/solves/badge columns with `aria-sort`, live result count, reset |
+| Mobile | Table collapses to metric cards; sort control stays reachable outside the table |
+| Standing | Sticky card with rank, percentile, XP/solves/badges, gap and progress toward the next rival, leader cushion, or unranked CTA |
+| Rules | "How ranking works" card repeats the server tie-break; category/time windows stay explicitly out of scope |
+| States | Route-level skeleton, filtered empty state, unranked and outside-loaded-page states |
+| Verification | `npm run typecheck`, `npm run lint`, and 31 new Vitest assertions for ordering, scope, stats, rival gaps, search, sort, and reset |
+
+The sort direction is display-only. The rank column always shows the server
+rank even when the visible order changes.
