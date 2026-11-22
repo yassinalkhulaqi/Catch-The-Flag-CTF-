@@ -27,7 +27,7 @@ class AuditMatrixRegressionTest extends TestCase
 
     public function test_concurrent_solve_falls_back_to_the_unique_index(): void
     {
-        $user = User::factory()->create(['xp' => 0, 'solved_count' => 0]);
+        $user = User::factory()->create(['xp' => 0, 'solved_count' => 1]);
         $challenge = Challenge::factory()->create(['points' => 100]);
         $flag = ChallengeFlagFactory::withPlaintext($challenge);
 

@@ -48,9 +48,20 @@ jobs:
           API_URL: http://127.0.0.1:8000
           NEXT_PUBLIC_APP_URL: http://localhost:3000
         run: |
-          npm ci
-          npm run build
-          npm prune --omit=dev
+          set +e
+          npm ci > npm-ci.log 2>&1
+          ci_status=$?
+          cat npm-ci.log
+          if [ "$ci_status" -ne 0 ]; then exit "$ci_status"; fi
+          npm run build > build.log 2>&1
+          build_status=$?
+          cat build.log
+          if [ "$build_status" -ne 0 ]; then
+            grep -E 'Error|error|Failed|failed|Cannot find|Module not found' build.log | head -30 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+          fi
+          exit "$build_status"
 
       - name: Package
         run: |

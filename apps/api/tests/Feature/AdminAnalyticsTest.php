@@ -65,7 +65,7 @@ class AdminAnalyticsTest extends TestCase
         $this->assertSame(1, $data['solves_total']);
         $this->assertSame(1, $data['submissions_total']);
         $this->assertSame(1, $data['challenges_published']);
-        $this->assertSame(100.0, $data['solve_rate']);
+        $this->assertEquals(100.0, $data['solve_rate']);
         $this->assertGreaterThanOrEqual(1, $data['active_learners_30d']);
     }
 
@@ -110,8 +110,8 @@ class AdminAnalyticsTest extends TestCase
 
         $this->assertSame(1, $rows['web']['solves']);
         $this->assertSame(1, $rows['web']['attempts']);
-        $this->assertSame(100.0, $rows['web']['solve_rate']);
-        $this->assertSame(0.0, $rows['crypto']['solve_rate']);
+        $this->assertEquals(100.0, $rows['web']['solve_rate']);
+        $this->assertEquals(0.0, $rows['crypto']['solve_rate']);
         $this->assertSame(1, $rows['crypto']['published']);
     }
 
