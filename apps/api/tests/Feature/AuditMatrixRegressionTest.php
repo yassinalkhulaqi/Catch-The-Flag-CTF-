@@ -88,7 +88,7 @@ class AuditMatrixRegressionTest extends TestCase
             ->assertJsonPath('error.code', 'bad_request');
     }
 
-    public function test_cors_honours_the_configured_frontend_origin_only(): void
+    public function test_cors_allows_the_configured_frontend_origin(): void
     {
         $allowed = config('cors.allowed_origins');
 
@@ -98,9 +98,11 @@ class AuditMatrixRegressionTest extends TestCase
 
         $this->getJson('/api/v1/health', ['Origin' => $frontendOrigin])
             ->assertHeader('Access-Control-Allow-Origin', $frontendOrigin);
+    }
 
+    public function test_cors_rejects_an_unconfigured_origin(): void
+    {
         $evil = $this->getJson('/api/v1/health', ['Origin' => 'https://evil.example.com']);
-        fwrite(STDERR, "\nCORS_HEADERS=".json_encode($evil->headers->all())."\n");
 
         $this->assertFalse($evil->headers->has('Access-Control-Allow-Origin'));
     }

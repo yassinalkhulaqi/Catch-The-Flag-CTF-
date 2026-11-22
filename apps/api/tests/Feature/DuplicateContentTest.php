@@ -154,10 +154,12 @@ class DuplicateContentTest extends TestCase
         $challenge = Challenge::factory()->create();
         $path = Path::factory()->create();
 
+        $this->app['auth']->forgetGuards();
         $this->postJson("/api/v1/admin/challenges/{$challenge->id}/duplicate")->assertUnauthorized();
         $this->postJson("/api/v1/admin/challenges/{$challenge->id}/duplicate", [], $this->headersFor(User::factory()->create()))
             ->assertForbidden();
 
+        $this->app['auth']->forgetGuards();
         $this->postJson("/api/v1/admin/paths/{$path->id}/duplicate")->assertUnauthorized();
         $this->postJson("/api/v1/admin/paths/{$path->id}/duplicate", [], $this->headersFor(User::factory()->create()))
             ->assertForbidden();
