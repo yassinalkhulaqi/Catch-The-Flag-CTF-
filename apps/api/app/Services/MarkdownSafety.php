@@ -60,7 +60,6 @@ final class MarkdownSafety
         // harmlessly demoted, so the author learns immediately.
         foreach (self::unsafeDestinations($value) as $destination) {
             throw self::fail($field, "Link scheme is not allowed ({$destination}). Use https, http, mailto or a relative path.");
-
         }
     }
 
@@ -98,9 +97,6 @@ final class MarkdownSafety
             || str_starts_with($lower, 'mailto:');
     }
 
-    /**
-     * @return ValidationException
-     */
     private static function fail(string $field, string $message): ValidationException
     {
         return ValidationException::withMessages([$field => [$message]]);

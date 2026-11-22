@@ -8,6 +8,7 @@ use App\Models\Challenge;
 use App\Models\ChallengeSubmission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -99,7 +100,7 @@ class PruneCommandsTest extends TestCase
     }
 
     /**
-     * @param  \Illuminate\Support\Carbon  $createdAt
+     * @param  Carbon  $createdAt
      */
     private function submission(Challenge $challenge, User $user, $createdAt, string $ip, string $userAgent): ChallengeSubmission
     {

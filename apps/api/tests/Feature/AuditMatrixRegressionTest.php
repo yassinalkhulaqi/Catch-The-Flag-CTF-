@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Challenge;
-use App\Models\ChallengeFile;
 use App\Models\ChallengeSolve;
 use App\Models\User;
 use Database\Factories\ChallengeFileFactory;
 use Database\Factories\ChallengeFlagFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**

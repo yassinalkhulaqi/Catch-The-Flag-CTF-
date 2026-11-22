@@ -7,13 +7,13 @@ namespace App\Providers;
 use App\Enums\Role;
 use App\Models\Bookmark;
 use App\Models\Category;
-use App\Models\User;
 use App\Models\Challenge;
 use App\Models\Lesson;
 use App\Models\Path;
 use App\Models\PathModule;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
+use App\Models\User;
 use App\Policies\BookmarkPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\ChallengePolicy;
@@ -40,9 +40,9 @@ class AppServiceProvider extends ServiceProvider
         // Morph-map the bookmark targets: the database holds a stable alias,
         // never a class name.
         Relation::morphMap([
-            'challenge' => \App\Models\Challenge::class,
-            'lesson' => \App\Models\Lesson::class,
-            'path' => \App\Models\Path::class,
+            'challenge' => Challenge::class,
+            'lesson' => Lesson::class,
+            'path' => Path::class,
         ]);
     }
 

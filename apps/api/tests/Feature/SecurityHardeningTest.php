@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -34,7 +35,7 @@ class SecurityHardeningTest extends TestCase
         ]);
     }
 
-    private function failedLogin(array $headers = []): \Illuminate\Testing\TestResponse
+    private function failedLogin(array $headers = []): TestResponse
     {
         return $this->postJson('/api/v1/auth/login', $this->credentials('definitely-wrong-passw0rd'), $headers);
     }
@@ -203,7 +204,7 @@ class SecurityHardeningTest extends TestCase
     {
         $this->makeLockoutTarget();
 
-        $hostile = "Mozilla/5.0\r\nX-Injected: yes" . str_repeat('a', 500);
+        $hostile = "Mozilla/5.0\r\nX-Injected: yes".str_repeat('a', 500);
 
         $token = $this->postJson('/api/v1/auth/login', $this->credentials(), ['User-Agent' => $hostile])
             ->assertOk()
@@ -252,7 +253,6 @@ class SecurityHardeningTest extends TestCase
     }
 
     /**
-     * @param  User  $user
      * @return array<string, string>
      */
     private function tokenHeaders(User $user): array

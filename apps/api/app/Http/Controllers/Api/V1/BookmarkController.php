@@ -156,9 +156,6 @@ class BookmarkController extends Controller
         ];
     }
 
-    /**
-     * @param  Model|null  $target
-     */
     private function targetMeta(?Model $target): ?array
     {
         if ($target === null) {
@@ -188,9 +185,6 @@ class BookmarkController extends Controller
         };
     }
 
-    /**
-     * @param  Model|null  $target
-     */
     private function morphAliasFor(?Model $target): string
     {
         return match (true) {

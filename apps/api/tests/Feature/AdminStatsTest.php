@@ -8,7 +8,6 @@ use App\Models\Challenge;
 use App\Models\Path;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**

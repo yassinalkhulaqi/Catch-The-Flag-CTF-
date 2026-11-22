@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\UserAchievement;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -167,7 +168,7 @@ class AchievementAdminTest extends TestCase
      */
     private function assertCriteriaRejected(array $criteria): void
     {
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         Achievement::query()->create([
             'key' => 'bad_shape',

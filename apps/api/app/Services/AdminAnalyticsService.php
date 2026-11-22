@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\ContentStatus;
+use App\Models\Category;
 use App\Models\Challenge;
 use App\Models\ChallengeSolve;
 use App\Models\ChallengeSubmission;
-use App\Models\Category;
 use App\Models\User;
 use App\Models\XpTransaction;
 

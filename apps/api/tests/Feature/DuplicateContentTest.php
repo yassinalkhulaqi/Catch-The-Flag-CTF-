@@ -6,7 +6,6 @@ namespace Tests\Feature;
 
 use App\Models\Challenge;
 use App\Models\ChallengeFile;
-use App\Models\ChallengeFlag;
 use App\Models\ChallengeHint;
 use App\Models\Lesson;
 use App\Models\Path;

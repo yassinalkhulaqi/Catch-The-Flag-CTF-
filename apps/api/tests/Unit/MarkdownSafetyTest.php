@@ -17,7 +17,7 @@ class MarkdownSafetyTest extends TestCase
     public function test_ordinary_markdown_passes(): void
     {
         MarkdownSafety::assertSafe([
-            'content' => "Check [this](https://example.com) and [https](http://example.com) and [mail](mailto:a@b.example) and [relative](/paths/1) and [fragment](#section) and ```code blocks```",
+            'content' => 'Check [this](https://example.com) and [https](http://example.com) and [mail](mailto:a@b.example) and [relative](/paths/1) and [fragment](#section) and ```code blocks```',
         ], 'content');
 
         $this->assertTrue(true);
@@ -73,7 +73,7 @@ class MarkdownSafetyTest extends TestCase
     public function test_unsafe_destinations_lists_every_bad_link(): void
     {
         $bad = MarkdownSafety::unsafeDestinations(
-            "Good [ok](https://example.com) Bad [x1](javascript:alert(1)) Bad [x2](vbscript:msgbox(1))"
+            'Good [ok](https://example.com) Bad [x1](javascript:alert(1)) Bad [x2](vbscript:msgbox(1))'
         );
 
         $this->assertCount(2, $bad);

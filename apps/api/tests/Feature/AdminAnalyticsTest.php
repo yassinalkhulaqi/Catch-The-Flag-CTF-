@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Challenge;
 use App\Models\ChallengeSolve;
 use App\Models\ChallengeSubmission;
-use App\Models\Category;
 use App\Models\User;
 use App\Models\XpTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,7 +49,7 @@ class AdminAnalyticsTest extends TestCase
             'user_id' => $user->id,
             'amount' => 100,
             'reason' => 'challenge_solve',
-            'reference_type' => \App\Models\Challenge::class,
+            'reference_type' => Challenge::class,
             'reference_id' => $challenger->id,
             'created_at' => now(),
         ]);
