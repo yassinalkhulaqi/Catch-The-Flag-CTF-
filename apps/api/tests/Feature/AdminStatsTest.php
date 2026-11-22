@@ -34,7 +34,10 @@ class AdminStatsTest extends TestCase
         );
         fwrite(STDERR, "\nMIDDLEWARE_STATUS=".$diagnosticResponse->getStatusCode()."\n");
 
-        $moderatorResponse = $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->moderator()->create()));
+        $moderatorHeaders = $this->headersFor(User::factory()->moderator()->create());
+        $meResponse = $this->getJson('/api/v1/auth/me', $moderatorHeaders)->json();
+        fwrite(STDERR, "\nAUTH_ME=".json_encode($meResponse)."\n");
+        $moderatorResponse = $this->getJson('/api/v1/admin/stats', $moderatorHeaders);
         if ($moderatorResponse->status() !== 200) {
             fwrite(STDERR, "\nSTAFF_BODY=".$moderatorResponse->getContent()."\n");
         }
