@@ -22,7 +22,8 @@ class AdminStatsTest extends TestCase
     {
         $this->getJson('/api/v1/admin/stats')->assertUnauthorized();
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->create()))->assertForbidden();
-        $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->moderator()->create()))->assertOk();
+        $moderatorResponse = $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->moderator()->create()));
+        $this->assertSame(200, $moderatorResponse->status(), $moderatorResponse->getContent());
         $this->getJson('/api/v1/admin/stats', $this->headersFor(User::factory()->admin()->create()))->assertOk();
     }
 
