@@ -1,5 +1,6 @@
 import { Markdown } from "@/components/markdown";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { Field, Textarea } from "@/components/ui/input";
 
 export function ScenarioStep({
@@ -22,7 +23,15 @@ export function ScenarioStep({
   onSave: () => void;
 }) {
   return (
-    <section className="space-y-4" aria-labelledby={`${id}-scenario`}>
+    <Form
+      label="Challenge scenario"
+      className="space-y-4"
+      pending={pending}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave();
+      }}
+    >
       <h2 id={`${id}-scenario`} className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
         Scenario
       </h2>
@@ -48,9 +57,9 @@ export function ScenarioStep({
           )}
         </div>
       </div>
-      <Button type="button" onClick={onSave} disabled={pending}>
-        {pending ? "Saving…" : isEdit ? "Save scenario" : "Create challenge"}
+      <Button type="submit" loading={pending}>
+        {isEdit ? "Save scenario" : "Create challenge"}
       </Button>
-    </section>
+    </Form>
   );
 }

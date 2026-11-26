@@ -135,7 +135,12 @@ npm run test:watch   # watch mode
 - Components: named for domain (`ChallengeCard`, `FlagSubmitBox`), not
   `BigWrapper2`. Styling via Tailwind utility classes + shadcn/ui primitives;
   design tokens from `globals.css` (dark-first).
-- Accessibility is part of "done": labels, focus rings, contrast, keyboard paths.
+- Forms follow the single standard in `docs/design-system.md` §5.2:
+  `react-hook-form` + `zodResolver`, shared `Form`/`Field`/`FormError`/
+  `SelectField` primitives, and `lib/forms/server-errors.ts` for API field
+  errors. Client schemas are UX only; the FormRequests are the source of truth.
+- Accessibility is part of "done": labels, focus rings, contrast, keyboard paths,
+  `aria-busy` on pending forms and Enter-to-submit on every editor.
 - No `dangerouslySetInnerHTML` for untrusted content; markdown rendered with a
   sanitized renderer.
 

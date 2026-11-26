@@ -1,33 +1,37 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Form, FormError } from "@/components/ui/form";
 import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/errors";
+import { quizAnswersSchema, type QuizAnswersInput } from "@/lib/schemas/quiz";
 import type { Quiz, QuizAttemptResult, QuizQuestion } from "@/lib/types";
 
 export function QuizAttempt({ quiz }: { quiz: Quiz }) {
   const router = useRouter();
   const [attemptId, setAttemptId] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<Record<number, number[]>>({});
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const form = useForm<QuizAnswersInput>({
+    resolver: zodResolver(quizAnswersSchema(quiz.questions.map((q) => q.id))),
+    defaultValues: { answers: {} },
+  });
+  const answers = form.watch("answers");
 
   function toggle(question: QuizQuestion, optionId: number) {
-    setAnswers((prev) => {
-      const current = prev[question.id] ?? [];
-      if (question.type === "multiple") {
-        return {
-          ...prev,
-          [question.id]: current.includes(optionId)
-            ? current.filter((id) => id !== optionId)
-            : [...current, optionId],
-        };
-      }
-      return { ...prev, [question.id]: [optionId] };
-    });
+    const key = String(question.id);
+    const current = answers[key] ?? [];
+    const next = question.type === "multiple"
+      ? current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId]
+      : [optionId];
+    form.setValue(`answers.${key}`, next, { shouldValidate: true });
   }
 
   function start() {
@@ -39,14 +43,14 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
         );
         setAttemptId(res.data.attempt.id);
         setResult(null);
-        setAnswers({});
+        form.reset({ answers: {} });
       } catch (err) {
         setError(errorMessage(err));
       }
     });
   }
 
-  function submit() {
+  const onSubmit = form.handleSubmit(({ answers: selections }) => {
     if (!attemptId) return;
     setError(null);
     startTransition(async () => {
@@ -54,7 +58,7 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
         for (const q of quiz.questions) {
           await api.post(`/quiz-attempts/${attemptId}/answer`, {
             question_id: q.id,
-            selected_option_ids: answers[q.id] ?? [],
+            selected_option_ids: selections[String(q.id)] ?? [],
           });
         }
         const res = await api.post<{ data: QuizAttemptResult }>(
@@ -66,7 +70,7 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
         setError(errorMessage(err));
       }
     });
-  }
+  });
 
   return (
     <section className="space-y-6" aria-labelledby="quiz-title">
@@ -82,15 +86,15 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
         </p>
       </div>
 
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      <FormError>{error ?? (
+        typeof form.formState.errors.answers?.message === "string"
+          ? form.formState.errors.answers.message
+          : undefined
+      )}</FormError>
 
       {!attemptId ? (
-        <Button onClick={start} disabled={pending}>
-          {pending ? "Starting…" : "Start attempt"}
+        <Button onClick={start} loading={pending}>
+          Start attempt
         </Button>
       ) : result ? (
         <div
@@ -105,12 +109,12 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
           <p className="text-sm text-muted">
             {result.correct_count} / {result.total} correct
           </p>
-          <Button className="mt-4" variant="secondary" onClick={start} disabled={pending}>
+          <Button className="mt-4" variant="secondary" onClick={start} loading={pending}>
             Retry
           </Button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <Form label="Quiz answers" onSubmit={onSubmit} pending={pending} className="space-y-6">
           {quiz.questions.map((q, idx) => (
             <fieldset key={q.id} className="border border-border bg-surface p-4">
               <legend className="px-1 font-mono text-xs uppercase tracking-wide text-muted">
@@ -119,7 +123,7 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
               <p className="mt-2 text-sm font-medium text-foreground">{q.question}</p>
               <div className="mt-3 space-y-2">
                 {q.options.map((opt) => {
-                  const selected = (answers[q.id] ?? []).includes(opt.id);
+                  const selected = (answers[String(q.id)] ?? []).includes(opt.id);
                   const inputType = q.type === "multiple" ? "checkbox" : "radio";
                   return (
                     <label
@@ -140,10 +144,10 @@ export function QuizAttempt({ quiz }: { quiz: Quiz }) {
               </div>
             </fieldset>
           ))}
-          <Button onClick={submit} disabled={pending}>
-            {pending ? "Submitting…" : "Submit quiz"}
+          <Button type="submit" loading={pending}>
+            Submit quiz
           </Button>
-        </div>
+        </Form>
       )}
     </section>
   );

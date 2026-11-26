@@ -13,12 +13,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdjustXpRequest;
 use App\Http\Requests\Admin\BanUserRequest;
 use App\Http\Requests\Admin\ChangeRoleRequest;
+use App\Http\Requests\Admin\UserIndexRequest;
 use App\Http\Resources\Admin\AdminUserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Validation\Rule;
 
 /**
  * Staff user management. Admin-only (nested `role:admin` route group):
@@ -26,13 +26,9 @@ use Illuminate\Validation\Rule;
  */
 class UserController extends Controller
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(UserIndexRequest $request): AnonymousResourceCollection
     {
-        $filters = $request->validate([
-            'role' => ['sometimes', 'string', Rule::in(['user', 'moderator', 'admin'])],
-            'q' => ['sometimes', 'string', 'max:160'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
+        $filters = $request->validated();
 
         $query = User::query()->latest('id');
 

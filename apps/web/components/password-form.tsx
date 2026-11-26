@@ -1,87 +1,81 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { Button } from "@/components/ui/button";
+import { Form, FormError, FormSuccess } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import { api } from "@/lib/api/client";
-import { errorMessage } from "@/lib/errors";
+import { applyServerError } from "@/lib/forms/server-errors";
+import { passwordSchema, type PasswordInput } from "@/lib/schemas/profile";
 
 export function PasswordForm() {
   const id = useId();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const form = useForm<PasswordInput>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { current_password: "", password: "", password_confirmation: "" },
+  });
+  const password = form.watch("password");
+  const confirmation = form.watch("password_confirmation");
+
+  const onSubmit = form.handleSubmit((values) => {
+    setMessage(null);
+    setError(null);
+    startTransition(async () => {
+      try {
+        await api.put("/profile/password", values);
+        setMessage("Password updated. Other sessions were signed out.");
+        form.reset();
+      } catch (err) {
+        setError(applyServerError(err, form.setError));
+      }
+    });
+  });
 
   return (
-    <form
-      className="max-w-lg space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        setMessage(null);
-        setError(null);
-        startTransition(async () => {
-          try {
-            await api.put("/profile/password", {
-              current_password: currentPassword,
-              password,
-              password_confirmation: passwordConfirmation,
-            });
-            setMessage("Password updated. Other sessions were signed out.");
-            setCurrentPassword("");
-            setPassword("");
-            setPasswordConfirmation("");
-          } catch (err) {
-            setError(errorMessage(err));
-          }
-        });
-      }}
-    >
-      <Field label="Current password" htmlFor={`${id}-current`}>
+    <Form label="Change password" onSubmit={onSubmit} pending={pending} className="max-w-lg">
+      <Field label="Current password" htmlFor={`${id}-current`} error={form.formState.errors.current_password?.message}>
         <Input
           id={`${id}-current`}
           type="password"
           autoComplete="current-password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          required
           disabled={pending}
+          {...form.register("current_password")}
         />
       </Field>
-      <Field label="New password" htmlFor={`${id}-new`}>
+      <Field label="New password" htmlFor={`${id}-new`} error={form.formState.errors.password?.message}>
         <Input
           id={`${id}-new`}
           type="password"
           autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={12}
           disabled={pending}
+          {...form.register("password")}
         />
       </Field>
-      <Field label="Confirm new password" htmlFor={`${id}-confirm`}>
+      <PasswordRequirements password={password} confirmation={confirmation} />
+      <Field
+        label="Confirm new password"
+        htmlFor={`${id}-confirm`}
+        error={form.formState.errors.password_confirmation?.message}
+      >
         <Input
           id={`${id}-confirm`}
           type="password"
           autoComplete="new-password"
-          value={passwordConfirmation}
-          onChange={(e) => setPasswordConfirmation(e.target.value)}
-          required
           disabled={pending}
+          {...form.register("password_confirmation")}
         />
       </Field>
-      {message ? <p className="text-sm text-success" role="status">{message}</p> : null}
-      {error ? (
-        <p className="text-sm text-danger" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Updating…" : "Update password"}
+      <FormSuccess>{message}</FormSuccess>
+      <FormError>{error}</FormError>
+      <Button type="submit" loading={pending}>
+        Update password
       </Button>
-    </form>
+    </Form>
   );
 }

@@ -144,6 +144,8 @@ class QuizTest extends TestCase
         $this->postJson("/api/v1/quiz-attempts/{$attemptId}/answer", [
             'question_id' => $q1->id,
             'selected_option_ids' => [999999],
-        ], $headers)->assertStatus(422);
+        ], $headers)->assertStatus(422)
+            ->assertJsonPath('error.code', 'validation_failed')
+            ->assertJsonStructure(['error' => ['fields' => ['form']]]);
     }
 }

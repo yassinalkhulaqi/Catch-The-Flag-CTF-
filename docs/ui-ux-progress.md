@@ -16,6 +16,7 @@ server state.
 | 3. Page redesign | done for the learner surface | Landing, auth, dashboard, lessons, challenges, leaderboard, achievements. Admin tables stay on the existing authoring UI. |
 | 4. UX quality | done for chrome | Command palette, EN/AR chrome, skip link, focus-trapping sheet and dialogs. No guided onboarding tour yet. |
 | 5. Performance, tests, docs | done | ADR-0011, design-system.md, heatmap and reduced-motion tests. Lint, typecheck, Vitest, and production build pass. |
+| 6. Forms overhaul | done | Standard RHF + zod pattern across learner, admin and filter forms; shared `Form`/`FormError`/`FormSuccess`/`SelectField` primitives; uniform backend 422 envelope; password-policy hints; `SearchFilterBar` wired to `/paths`. |
 
 ## Checklist
 
@@ -31,6 +32,8 @@ server state.
 - [x] Command palette, toasts, EN + AR chrome, skip link
 - [x] Tests, lint, typecheck, build
 - [x] `docs/design-system.md`, ADR-0011, development.md commands
+- [x] Forms standard (RHF + zod, shared primitives, server field-error mapping)
+- [x] Uniform 422 contract and validation coverage in the API
 
 ## Premium polish pass (50 commits)
 

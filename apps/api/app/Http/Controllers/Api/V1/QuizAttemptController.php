@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\QuizAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SubmitQuizAnswerRequest;
 use App\Http\Resources\QuizAttemptResource;
 use App\Models\QuizAttempt;
 use Illuminate\Http\JsonResponse;
@@ -17,17 +18,13 @@ use Illuminate\Support\Facades\Gate;
  */
 class QuizAttemptController extends Controller
 {
-    public function answer(Request $request, int $attempt, QuizAction $action): JsonResponse
+    public function answer(SubmitQuizAnswerRequest $request, int $attempt, QuizAction $action): JsonResponse
     {
         $model = QuizAttempt::query()->with('quiz.questions.options')->findOrFail($attempt);
 
         $this->denyAsNotFound($model, 'answer');
 
-        $validated = $request->validate([
-            'question_id' => ['required', 'integer'],
-            'selected_option_ids' => ['required', 'array', 'min:1'],
-            'selected_option_ids.*' => ['integer'],
-        ]);
+        $validated = $request->validated();
 
         $result = $action->answer(
             $request->user(),

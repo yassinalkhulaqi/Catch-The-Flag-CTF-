@@ -1,93 +1,75 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useId, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Form, FormError } from "@/components/ui/form";
 import { Field, Input, Textarea } from "@/components/ui/input";
+import { categoryCreateSchema, type CategoryCreateInput } from "@/lib/admin/schemas";
 import { api } from "@/lib/api/client";
-import { errorMessage } from "@/lib/errors";
+import { applyServerError } from "@/lib/forms/server-errors";
 import type { Category } from "@/lib/types";
 
 function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 export function CategoryCreateForm() {
   const id = useId();
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [color, setColor] = useState("#3B82F6");
-  const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const form = useForm<CategoryCreateInput>({
+    resolver: zodResolver(categoryCreateSchema),
+    defaultValues: { name: "", slug: "", description: "", color: "#3B82F6" },
+  });
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    setError(null);
+    try {
+      await api.post("/admin/categories", {
+        name: values.name,
+        slug: values.slug || slugify(values.name),
+        description: values.description || null,
+        color: values.color,
+      });
+      form.reset();
+      router.refresh();
+    } catch (err) {
+      setError(applyServerError(err, form.setError));
+    }
+  });
 
   return (
-    <form
-      className="mt-6 grid max-w-xl gap-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        setError(null);
-        startTransition(async () => {
-          try {
-            await api.post("/admin/categories", {
-              name,
-              slug: slug || slugify(name),
-              description: description || null,
-              color,
-            });
-            setName("");
-            setSlug("");
-            setDescription("");
-            router.refresh();
-          } catch (err) {
-            setError(errorMessage(err));
-          }
-        });
-      }}
-    >
-      <Field label="Name" htmlFor={`${id}-name`}>
+    <Form label="Add category" onSubmit={onSubmit} pending={form.formState.isSubmitting} className="mt-6 grid max-w-xl gap-3">
+      <Field label="Name" htmlFor={`${id}-name`} error={form.formState.errors.name?.message}>
         <Input
           id={`${id}-name`}
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setSlug(slugify(e.target.value));
-          }}
-          required
+          disabled={form.formState.isSubmitting}
+          {...form.register("name", {
+            onChange: (event) => {
+              if (!form.formState.dirtyFields.slug) {
+                form.setValue("slug", slugify(event.target.value), { shouldValidate: true });
+              }
+            },
+          })}
         />
       </Field>
-      <Field label="Slug" htmlFor={`${id}-slug`}>
-        <Input id={`${id}-slug`} value={slug} onChange={(e) => setSlug(e.target.value)} required />
+      <Field label="Slug" htmlFor={`${id}-slug`} error={form.formState.errors.slug?.message}>
+        <Input id={`${id}-slug`} disabled={form.formState.isSubmitting} {...form.register("slug")} />
       </Field>
-      <Field label="Description" htmlFor={`${id}-desc`}>
-        <Textarea
-          id={`${id}-desc`}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+      <Field label="Description" htmlFor={`${id}-desc`} error={form.formState.errors.description?.message}>
+        <Textarea id={`${id}-desc`} maxLength={500} disabled={form.formState.isSubmitting} {...form.register("description")} />
       </Field>
       <Field label="Color" htmlFor={`${id}-color`}>
-        <Input
-          id={`${id}-color`}
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-        />
+        <Input id={`${id}-color`} type="color" disabled={form.formState.isSubmitting} {...form.register("color")} />
       </Field>
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Creating…" : "Add category"}
+      <FormError>{error}</FormError>
+      <Button type="submit" loading={form.formState.isSubmitting}>
+        Add category
       </Button>
-    </form>
+    </Form>
   );
 }
 

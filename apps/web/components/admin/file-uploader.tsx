@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Form, FormError } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import {
   deleteAdminChallengeFile,
@@ -78,24 +79,21 @@ export function FileUploader({
 
   return (
     <div>
-      {error ? (
-        <p role="alert" className="mb-3 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      <FormError className="mb-3">{error}</FormError>
 
-      <form onSubmit={onUpload} className="flex flex-wrap items-end gap-3">
+      <Form label="Upload challenge file" onSubmit={onUpload} pending={pending} className="flex flex-wrap items-end gap-3">
         <Field label="Challenge file" htmlFor="challenge-file">
           <Input
             id="challenge-file"
             type="file"
+            disabled={pending}
             onChange={(e) => setSelected(e.target.files?.[0] ?? null)}
           />
         </Field>
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Uploading…" : "Upload file"}
+        <Button type="submit" size="sm" loading={pending}>
+          Upload file
         </Button>
-      </form>
+      </Form>
       <p className="mt-1 text-xs text-faint">
         Files are stored privately and served only through the authorized
         download endpoint.

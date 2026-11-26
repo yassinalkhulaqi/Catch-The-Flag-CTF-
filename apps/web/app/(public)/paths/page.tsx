@@ -1,11 +1,15 @@
 import { BookOpen, Clock3, Layers, Route } from "lucide-react";
+import { Suspense } from "react";
 import { EmptyState, ErrorState } from "@/components/empty-state";
 import { PathCard } from "@/components/path-card";
+import { SearchFilterBar } from "@/components/search-filter-bar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/badge";
 import { serverApi } from "@/lib/api/server";
+import { toQuery } from "@/lib/format";
 import { dictionaryFor } from "@/lib/i18n/dictionary";
 import { getLocale } from "@/lib/theme/locale";
-import type { Paginated, PathSummary } from "@/lib/types";
+import type { Category, Paginated, PathSummary } from "@/lib/types";
 
 export const metadata = {
   title: "Learning paths",
@@ -13,13 +17,29 @@ export const metadata = {
     "Guided cybersecurity curricula that move from theory to practice challenges across DFIR, malware, reverse engineering, crypto, and more.",
 };
 
-export default async function PathsPage() {
+export default async function PathsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q : undefined;
+  const category = typeof sp.category === "string" ? sp.category : undefined;
+  const difficulty = typeof sp.difficulty === "string" ? sp.difficulty : undefined;
   const copy = dictionaryFor(await getLocale());
   let paths: PathSummary[] = [];
+  let categories: Category[] = [];
   let loadError = false;
   try {
-    const res = await serverApi<Paginated<PathSummary>>("GET", "/paths?per_page=50");
+    const [res, catRes] = await Promise.all([
+      serverApi<Paginated<PathSummary>>(
+        "GET",
+        `/paths${toQuery({ q, category, difficulty, per_page: 50 })}`,
+      ),
+      serverApi<{ data: Category[] }>("GET", "/categories"),
+    ]);
     paths = res.data;
+    categories = catRes.data;
   } catch {
     loadError = true;
   }
@@ -67,6 +87,12 @@ export default async function PathsPage() {
           </dl>
         </div>
       </section>
+
+      <Suspense fallback={<Skeleton className="mt-8 h-32 w-full" />}>
+        <div className="mt-8">
+          <SearchFilterBar categories={categories} showSolved={false} />
+        </div>
+      </Suspense>
 
       {loadError ? (
         <div className="mt-8">

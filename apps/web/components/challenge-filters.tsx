@@ -2,22 +2,17 @@
 
 import { LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useId, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Form, FormError, SelectField } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { DIFFICULTIES, difficultyLabel } from "@/lib/format";
+import { challengeFiltersSchema } from "@/lib/schemas/filters";
 import { TIERS, TIER_LABELS, normalizeTier, type Tier } from "@/lib/tracks";
-import { cn } from "@/lib/utils";
 import type { Category, Tag } from "@/lib/types";
 
 type TierFilter = Tier | "all";
-
-const selectClass = cn(
-  "flex h-10 w-full rounded-md border border-border bg-background/70 px-3 text-sm text-foreground shadow-sm",
-  "transition-[border-color,box-shadow,background-color] duration-200 hover:border-border-strong",
-  "focus-visible:border-accent focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-);
 
 export function ChallengeFilters({
   categories,
@@ -30,6 +25,7 @@ export function ChallengeFilters({
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const view = params.get("view") === "grid" ? "grid" : "list";
   const activeTier: Tier | null = normalizeTier(params.get("tier"));
@@ -51,10 +47,22 @@ export function ChallengeFilters({
 
   function apply(form: HTMLFormElement) {
     const data = new FormData(form);
-    const next = new URLSearchParams();
+    const raw: Record<string, string | string[]> = {};
     for (const key of ["q", "category", "difficulty", "tags", "solved", "sort", "min_points", "max_points"]) {
-      const v = String(data.get(key) ?? "").trim();
-      if (v) next.set(key, v);
+      const value = String(data.get(key) ?? "").trim();
+      if (value) raw[key] = key === "tags" ? [value] : value;
+    }
+
+    const parsed = challengeFiltersSchema.safeParse(raw);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Check the filters and try again.");
+      return;
+    }
+    setError(null);
+
+    const next = new URLSearchParams();
+    for (const [key, value] of Object.entries(raw)) {
+      next.set(key, Array.isArray(value) ? value.join(",") : value);
     }
     // Preserve the presentation-only tier + layout params across submits.
     if (activeTier) next.set("tier", activeTier);
@@ -83,108 +91,94 @@ export function ChallengeFilters({
           onChange={(next) => setTier(next === "all" ? null : next)}
         />
       </div>
-      <form
+      <Form
+        label="Filter challenges"
+        pending={pending}
         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          apply(e.currentTarget);
+        onSubmit={(event) => {
+          event.preventDefault();
+          apply(event.currentTarget);
         }}
-        aria-label="Filter challenges"
-        aria-busy={pending}
       >
-      <Field label="Search" htmlFor={`${id}-q`} className="lg:col-span-2">
-        <Input
-          id={`${id}-q`}
-          name="q"
-          defaultValue={params.get("q") ?? ""}
-          placeholder="Memory dump, strings…"
-        />
-      </Field>
+        <div className="space-y-1.5 lg:col-span-2">
+          <FormError>{error}</FormError>
+          <Input
+            id={`${id}-q`}
+            name="q"
+            aria-label="Search"
+            placeholder="Memory dump, strings…"
+            defaultValue={params.get("q") ?? ""}
+          />
+        </div>
 
-      <Field label="Category" htmlFor={`${id}-category`}>
-        <select
+        <SelectField
           id={`${id}-category`}
           name="category"
+          label="Category"
           defaultValue={params.get("category") ?? ""}
-          className={selectClass}
-        >
-          <option value="">All</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </Field>
+          options={[
+            { value: "", label: "All" },
+            ...categories.map((c) => ({ value: c.slug, label: c.name })),
+          ]}
+        />
 
-      <Field label="Difficulty" htmlFor={`${id}-difficulty`}>
-        <select
+        <SelectField
           id={`${id}-difficulty`}
           name="difficulty"
+          label="Difficulty"
           defaultValue={params.get("difficulty") ?? ""}
-          className={selectClass}
-        >
-          <option value="">All</option>
-          {DIFFICULTIES.map((d) => (
-            <option key={d} value={d}>
-              {difficultyLabel(d)}
-            </option>
-          ))}
-        </select>
-      </Field>
+          options={[
+            { value: "", label: "All" },
+            ...DIFFICULTIES.map((d) => ({ value: d, label: difficultyLabel(d) })),
+          ]}
+        />
 
-      <Field label="Tag" htmlFor={`${id}-tags`}>
-        <select
+        <SelectField
           id={`${id}-tags`}
           name="tags"
+          label="Tag"
           defaultValue={params.get("tags") ?? ""}
-          className={selectClass}
-        >
-          <option value="">All</option>
-          {tags.map((t) => (
-            <option key={t.id} value={t.slug}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      </Field>
+          options={[
+            { value: "", label: "All" },
+            ...tags.map((t) => ({ value: t.slug, label: t.name })),
+          ]}
+        />
 
-      <Field label="Solved" htmlFor={`${id}-solved`}>
-        <select
+        <SelectField
           id={`${id}-solved`}
           name="solved"
+          label="Solved"
           defaultValue={params.get("solved") ?? ""}
-          className={selectClass}
-        >
-          <option value="">Any</option>
-          <option value="true">Solved</option>
-          <option value="false">Unsolved</option>
-        </select>
-      </Field>
+          options={[
+            { value: "", label: "Any" },
+            { value: "true", label: "Solved" },
+            { value: "false", label: "Unsolved" },
+          ]}
+        />
 
-      <Field label="Min points" htmlFor={`${id}-min`}>
-        <Input id={`${id}-min`} name="min_points" inputMode="numeric" defaultValue={params.get("min_points") ?? ""} />
-      </Field>
-      <Field label="Max points" htmlFor={`${id}-max`}>
-        <Input id={`${id}-max`} name="max_points" inputMode="numeric" defaultValue={params.get("max_points") ?? ""} />
-      </Field>
-      <Field label="Sort" htmlFor={`${id}-sort`}>
-        <select
+        <Field label="Min points" htmlFor={`${id}-min`}>
+          <Input id={`${id}-min`} name="min_points" inputMode="numeric" defaultValue={params.get("min_points") ?? ""} />
+        </Field>
+        <Field label="Max points" htmlFor={`${id}-max`}>
+          <Input id={`${id}-max`} name="max_points" inputMode="numeric" defaultValue={params.get("max_points") ?? ""} />
+        </Field>
+
+        <SelectField
           id={`${id}-sort`}
           name="sort"
+          label="Sort"
           defaultValue={params.get("sort") ?? ""}
-          className={selectClass}
-        >
-          <option value="">Default</option>
-          <option value="-points">Points, high to low</option>
-          <option value="points">Points, low to high</option>
-          <option value="-created_at">Newest</option>
-        </select>
-      </Field>
+          options={[
+            { value: "", label: "Default" },
+            { value: "-points", label: "Points, high to low" },
+            { value: "points", label: "Points, low to high" },
+            { value: "-created_at", label: "Newest" },
+          ]}
+        />
 
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Filtering…" : "Apply filters"}
+          <Button type="submit" loading={pending}>
+            Apply filters
           </Button>
           <Button
             type="button"
@@ -220,7 +214,7 @@ export function ChallengeFilters({
             onChange={(next) => setView(next)}
           />
         </div>
-      </form>
+      </Form>
     </div>
   );
 }

@@ -1,12 +1,22 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import {
+  achievementCreateSchema,
+  achievementEditSchema,
+  type AchievementCreateInput,
+  type AchievementEditInput,
+} from "@/lib/admin/schemas";
+import { api } from "@/lib/api/client";
+import { applyServerError } from "@/lib/forms/server-errors";
+import { errorMessage } from "@/lib/errors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Form, FormError, SelectField } from "@/components/ui/form";
 import { Field, Input, Textarea } from "@/components/ui/input";
-import { api } from "@/lib/api/client";
-import { errorMessage } from "@/lib/errors";
 import type {
   AchievementCriteriaType,
   AdminAchievement,
@@ -29,8 +39,7 @@ const CRITERIA: Array<{
   { value: "first_blood", label: "First bloods", thresholdLabel: "First bloods required" },
 ];
 
-const selectClass =
-  "flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60";
+const criteriaOptions = CRITERIA.map((item) => ({ value: item.value, label: item.label }));
 
 function toKey(value: string): string {
   return value
@@ -69,197 +78,132 @@ export function describeCriteria(
   }
 }
 
-function criteriaPayload(
-  type: AchievementCriteriaType,
-  threshold: string,
-  categoryId: string,
-): AdminAchievement["criteria"] {
-  const criteria: AdminAchievement["criteria"] = {
-    type,
-    threshold: Number(threshold),
-  };
-  if (type === "category_solves") {
-    criteria.category_id = Number(categoryId);
-  }
-  return criteria;
-}
-
 export function AchievementCreateForm({ categories }: { categories: Category[] }) {
   const id = useId();
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [key, setKey] = useState("");
-  const [keyTouched, setKeyTouched] = useState(false);
-  const [description, setDescription] = useState("");
-  const [icon, setIcon] = useState("");
-  const [type, setType] = useState<AchievementCriteriaType>("solves_total");
-  const [threshold, setThreshold] = useState("1");
-  const [categoryId, setCategoryId] = useState(categories[0] ? String(categories[0].id) : "");
-  const [points, setPoints] = useState("0");
-  const [sortOrder, setSortOrder] = useState("0");
-  const [active, setActive] = useState(true);
-  const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-
+  const defaults: AchievementCreateInput = {
+    key: "",
+    title: "",
+    description: "",
+    icon: "",
+    criteria: {
+      type: "solves_total",
+      threshold: 1,
+      ...(categories[0] ? { category_id: categories[0].id } : {}),
+    },
+    points: 0,
+    sort_order: 0,
+    is_active: true,
+  };
+  const form = useForm<AchievementCreateInput>({
+    resolver: zodResolver(achievementCreateSchema),
+    defaultValues: defaults,
+  });
+  const type = form.watch("criteria.type");
   const meta = criteriaMeta(type);
-
-  function reset() {
-    setTitle("");
-    setKey("");
-    setKeyTouched(false);
-    setDescription("");
-    setIcon("");
-    setType("solves_total");
-    setThreshold("1");
-    setCategoryId(categories[0] ? String(categories[0].id) : "");
-    setPoints("0");
-    setSortOrder("0");
-    setActive(true);
-  }
+  const categoryOptions = [
+    { value: "", label: categories.length === 0 ? "No categories" : "Choose a category" },
+    ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+  ];
 
   return (
-    <form
+    <Form
+      label="New achievement"
       className="mt-6 grid max-w-2xl gap-3"
-      onSubmit={(e) => {
-        e.preventDefault();
+      pending={form.formState.isSubmitting}
+      onSubmit={form.handleSubmit(async (values) => {
         setError(null);
-        startTransition(async () => {
-          try {
-            await api.post("/admin/achievements", {
-              key,
-              title,
-              description,
-              icon: icon.trim() || null,
-              criteria: criteriaPayload(type, threshold, categoryId),
-              points: Number(points),
-              is_active: active,
-              sort_order: Number(sortOrder),
-            });
-            reset();
-            router.refresh();
-          } catch (err) {
-            setError(errorMessage(err, "Could not create the achievement."));
-          }
-        });
-      }}
+        try {
+          await api.post("/admin/achievements", {
+            key: values.key,
+            title: values.title,
+            description: values.description,
+            icon: values.icon.trim() || null,
+            criteria: values.criteria.type === "category_solves"
+              ? {
+                  type: values.criteria.type,
+                  threshold: values.criteria.threshold,
+                  category_id: values.criteria.category_id ?? categories[0]?.id ?? 0,
+                }
+              : { type: values.criteria.type, threshold: values.criteria.threshold },
+            points: values.points,
+            is_active: values.is_active,
+            sort_order: values.sort_order,
+          });
+          form.reset(defaults);
+          router.refresh();
+        } catch (err) {
+          setError(applyServerError(err, form.setError));
+        }
+      })}
     >
       <h2 className="text-sm font-semibold text-foreground">New achievement</h2>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Title" htmlFor={`${id}-title`}>
+        <Field label="Title" htmlFor={`${id}-title`} error={form.formState.errors.title?.message}>
           <Input
             id={`${id}-title`}
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (!keyTouched) setKey(toKey(e.target.value));
-            }}
-            required
             maxLength={160}
+            {...form.register("title", {
+              onChange: (event) => {
+                if (!form.formState.dirtyFields.key) {
+                  form.setValue("key", toKey(event.target.value), { shouldValidate: true });
+                }
+              },
+            })}
           />
         </Field>
-        <Field label="Key" htmlFor={`${id}-key`}>
+        <Field label="Key" htmlFor={`${id}-key`} error={form.formState.errors.key?.message}>
           <Input
             id={`${id}-key`}
-            value={key}
-            onChange={(e) => {
-              setKeyTouched(true);
-              setKey(e.target.value);
-            }}
-            required
             maxLength={80}
-            pattern="[a-z0-9_]+"
             title="Lowercase letters, numbers, and underscores"
             autoComplete="off"
             className="font-mono"
+            {...form.register("key")}
           />
         </Field>
       </div>
-      <Field label="Description" htmlFor={`${id}-description`}>
-        <Textarea
-          id={`${id}-description`}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
-          maxLength={400}
-        />
+      <Field label="Description" htmlFor={`${id}-description`} error={form.formState.errors.description?.message}>
+        <Textarea id={`${id}-description`} maxLength={400} {...form.register("description")} />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Criteria" htmlFor={`${id}-type`}>
-          <select
-            id={`${id}-type`}
-            className={selectClass}
-            value={type}
-            onChange={(e) => setType(e.target.value as AchievementCriteriaType)}
-          >
-            {CRITERIA.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={meta.thresholdLabel} htmlFor={`${id}-threshold`}>
+        <SelectField
+          id={`${id}-type`}
+          label="Criteria"
+          options={criteriaOptions}
+          {...form.register("criteria.type")}
+        />
+        <Field label={meta.thresholdLabel} htmlFor={`${id}-threshold`} error={form.formState.errors.criteria?.threshold?.message}>
           <Input
             id={`${id}-threshold`}
             type="number"
             min={1}
             max={1000000}
-            value={threshold}
-            onChange={(e) => setThreshold(e.target.value)}
-            required
+            {...form.register("criteria.threshold", { valueAsNumber: true })}
           />
         </Field>
       </div>
       {type === "category_solves" ? (
-        <Field label="Category" htmlFor={`${id}-category`}>
-          <select
-            id={`${id}-category`}
-            className={selectClass}
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            required
-          >
-            {categories.length === 0 ? <option value="">No categories</option> : null}
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <SelectField
+          id={`${id}-category`}
+          label="Category"
+          options={categoryOptions}
+          value={String(form.watch("criteria.category_id") ?? "")}
+          onChange={(event) =>
+            form.setValue("criteria.category_id", Number(event.target.value), { shouldValidate: true })
+          }
+        />
       ) : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Icon" htmlFor={`${id}-icon`}>
-          <Input
-            id={`${id}-icon`}
-            value={icon}
-            onChange={(e) => setIcon(e.target.value)}
-            maxLength={60}
-            placeholder="trophy"
-            autoComplete="off"
-          />
+          <Input id={`${id}-icon`} maxLength={60} placeholder="trophy" autoComplete="off" {...form.register("icon")} />
         </Field>
-        <Field label="XP award" htmlFor={`${id}-points`}>
-          <Input
-            id={`${id}-points`}
-            type="number"
-            min={0}
-            max={10000}
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-            required
-          />
+        <Field label="XP award" htmlFor={`${id}-points`} error={form.formState.errors.points?.message}>
+          <Input id={`${id}-points`} type="number" min={0} max={10000} {...form.register("points", { valueAsNumber: true })} />
         </Field>
-        <Field label="Sort order" htmlFor={`${id}-sort`}>
-          <Input
-            id={`${id}-sort`}
-            type="number"
-            min={0}
-            max={10000}
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            required
-          />
+        <Field label="Sort order" htmlFor={`${id}-sort`} error={form.formState.errors.sort_order?.message}>
+          <Input id={`${id}-sort`} type="number" min={0} max={10000} {...form.register("sort_order", { valueAsNumber: true })} />
         </Field>
       </div>
       <p className="text-xs text-muted">
@@ -267,24 +211,14 @@ export function AchievementCreateForm({ categories }: { categories: Category[] }
         changed after creation.
       </p>
       <label className="flex items-center gap-2 text-sm text-foreground" htmlFor={`${id}-active`}>
-        <input
-          id={`${id}-active`}
-          type="checkbox"
-          className="size-4 accent-accent"
-          checked={active}
-          onChange={(e) => setActive(e.target.checked)}
-        />
+        <input id={`${id}-active`} type="checkbox" className="size-4 accent-accent" {...form.register("is_active")} />
         Active (eligible for new awards)
       </label>
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? "Creating…" : "Add achievement"}
+      <FormError>{error}</FormError>
+      <Button type="submit" loading={form.formState.isSubmitting} className="w-fit">
+        Add achievement
       </Button>
-    </form>
+    </Form>
   );
 }
 
@@ -316,11 +250,7 @@ export function AchievementList({
 
   return (
     <div className="mt-8">
-      {error ? (
-        <p role="alert" className="mb-3 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      <FormError className="mb-3">{error}</FormError>
       <ul className="divide-y divide-border border-t border-border">
         {items.map((item) => (
           <li key={item.id} className="py-4">
@@ -440,120 +370,89 @@ function AchievementEditForm({
   }) => void;
 }) {
   const id = useId();
-  const [title, setTitle] = useState(item.title);
-  const [description, setDescription] = useState(item.description);
-  const [icon, setIcon] = useState(item.icon ?? "");
-  const [type, setType] = useState<AchievementCriteriaType>(item.criteria.type);
-  const [threshold, setThreshold] = useState(String(item.criteria.threshold));
-  const [categoryId, setCategoryId] = useState(
-    item.criteria.category_id ? String(item.criteria.category_id) : categories[0] ? String(categories[0].id) : "",
-  );
-  const [points, setPoints] = useState(String(item.points));
-  const [sortOrder, setSortOrder] = useState(String(item.sort_order));
+  const defaults: AchievementEditInput = {
+    title: item.title,
+    description: item.description,
+    icon: item.icon ?? "",
+    criteria: {
+      type: item.criteria.type,
+      threshold: item.criteria.threshold,
+      category_id: item.criteria.category_id ?? categories[0]?.id,
+    },
+    points: item.points,
+    sort_order: item.sort_order,
+  };
+  const form = useForm<AchievementEditInput>({
+    resolver: zodResolver(achievementEditSchema),
+    defaultValues: defaults,
+  });
+  const type = form.watch("criteria.type");
   const meta = criteriaMeta(type);
 
   return (
-    <form
+    <Form
+      label={`Edit ${item.title}`}
       className="mt-4 grid max-w-2xl gap-3 border border-border bg-surface p-4"
-      aria-label={`Edit ${item.title}`}
-      onSubmit={(e) => {
-        e.preventDefault();
+      pending={form.formState.isSubmitting}
+      onSubmit={form.handleSubmit((values) => {
         onSave({
-          title,
-          description,
-          icon: icon.trim() || null,
-          criteria: criteriaPayload(type, threshold, categoryId),
-          points: Number(points),
-          sort_order: Number(sortOrder),
+          title: values.title,
+          description: values.description,
+          icon: values.icon.trim() || null,
+          criteria: values.criteria.type === "category_solves"
+            ? {
+                type: values.criteria.type,
+                threshold: values.criteria.threshold,
+                category_id: values.criteria.category_id ?? categories[0]?.id ?? 0,
+              }
+            : { type: values.criteria.type, threshold: values.criteria.threshold },
+          points: values.points,
+          sort_order: values.sort_order,
         });
-      }}
+      })}
     >
-      <Field label="Title" htmlFor={`${id}-title`}>
-        <Input id={`${id}-title`} value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={160} />
+      <Field label="Title" htmlFor={`${id}-title`} error={form.formState.errors.title?.message}>
+        <Input id={`${id}-title`} maxLength={160} {...form.register("title")} />
       </Field>
-      <Field label="Description" htmlFor={`${id}-description`}>
-        <Textarea
-          id={`${id}-description`}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
-          maxLength={400}
-        />
+      <Field label="Description" htmlFor={`${id}-description`} error={form.formState.errors.description?.message}>
+        <Textarea id={`${id}-description`} maxLength={400} {...form.register("description")} />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Criteria" htmlFor={`${id}-type`}>
-          <select
-            id={`${id}-type`}
-            className={selectClass}
-            value={type}
-            onChange={(e) => setType(e.target.value as AchievementCriteriaType)}
-          >
-            {CRITERIA.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={meta.thresholdLabel} htmlFor={`${id}-threshold`}>
-          <Input
-            id={`${id}-threshold`}
-            type="number"
-            min={1}
-            max={1000000}
-            value={threshold}
-            onChange={(e) => setThreshold(e.target.value)}
-            required
-          />
+        <SelectField
+          id={`${id}-type`}
+          label="Criteria"
+          options={criteriaOptions}
+          {...form.register("criteria.type")}
+        />
+        <Field label={meta.thresholdLabel} htmlFor={`${id}-threshold`} error={form.formState.errors.criteria?.threshold?.message}>
+          <Input id={`${id}-threshold`} type="number" min={1} max={1000000} {...form.register("criteria.threshold", { valueAsNumber: true })} />
         </Field>
       </div>
       {type === "category_solves" ? (
-        <Field label="Category" htmlFor={`${id}-category`}>
-          <select
-            id={`${id}-category`}
-            className={selectClass}
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            required
-          >
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <SelectField
+          id={`${id}-category`}
+          label="Category"
+          options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+          value={String(form.watch("criteria.category_id") ?? "")}
+          onChange={(event) =>
+            form.setValue("criteria.category_id", Number(event.target.value), { shouldValidate: true })
+          }
+        />
       ) : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Icon" htmlFor={`${id}-icon`}>
-          <Input id={`${id}-icon`} value={icon} onChange={(e) => setIcon(e.target.value)} maxLength={60} />
+          <Input id={`${id}-icon`} maxLength={60} {...form.register("icon")} />
         </Field>
-        <Field label="XP award" htmlFor={`${id}-points`}>
-          <Input
-            id={`${id}-points`}
-            type="number"
-            min={0}
-            max={10000}
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-            required
-          />
+        <Field label="XP award" htmlFor={`${id}-points`} error={form.formState.errors.points?.message}>
+          <Input id={`${id}-points`} type="number" min={0} max={10000} {...form.register("points", { valueAsNumber: true })} />
         </Field>
-        <Field label="Sort order" htmlFor={`${id}-sort`}>
-          <Input
-            id={`${id}-sort`}
-            type="number"
-            min={0}
-            max={10000}
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            required
-          />
+        <Field label="Sort order" htmlFor={`${id}-sort`} error={form.formState.errors.sort_order?.message}>
+          <Input id={`${id}-sort`} type="number" min={0} max={10000} {...form.register("sort_order", { valueAsNumber: true })} />
         </Field>
       </div>
-      <Button type="submit" size="sm" disabled={disabled} className="w-fit">
+      <Button type="submit" size="sm" loading={form.formState.isSubmitting || disabled} className="w-fit">
         Save changes
       </Button>
-    </form>
+    </Form>
   );
 }

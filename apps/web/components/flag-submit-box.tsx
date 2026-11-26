@@ -1,14 +1,18 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Clock3, ShieldCheck, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import { api, ApiError } from "@/lib/api/client";
 import { errorMessage } from "@/lib/errors";
 import { CountUp } from "@/lib/motion/count-up";
+import { flagSchema, type FlagInput as FlagValues } from "@/lib/schemas/flag";
 import { prefersReducedMotion } from "@/lib/motion/reduced";
 import { cn } from "@/lib/utils";
 import type { SubmissionOutcome } from "@/lib/types";
@@ -27,7 +31,10 @@ export function FlagSubmitBox({
   const id = useId();
   const router = useRouter();
   const panelRef = useRef<HTMLElement>(null);
-  const [flag, setFlag] = useState("");
+  const form = useForm<FlagValues>({
+    resolver: zodResolver(flagSchema),
+    defaultValues: { flag: "" },
+  });
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<SubmissionOutcome | null>(
     alreadySolved ? { result: "correct", already_solved: true } : null,
@@ -49,12 +56,9 @@ export function FlagSubmitBox({
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    void form.handleSubmit(({ flag }) => {
     setError(null);
     if (retryIn !== null && retryIn > 0) return;
-    if (!flag.trim()) {
-      setError("Enter a flag to submit.");
-      return;
-    }
     startTransition(async () => {
       try {
         const res = await api.post<{ data: SubmissionOutcome }>(
@@ -64,7 +68,7 @@ export function FlagSubmitBox({
         setResult(res.data);
         setAttempts((count) => count + 1);
         if (res.data.result === "correct") {
-          setFlag("");
+          form.reset({ flag: "" });
           onSolved?.(res.data);
           if (!res.data.already_solved && !prefersReducedMotion() && panelRef.current) {
             const rect = panelRef.current.getBoundingClientRect();
@@ -89,6 +93,7 @@ export function FlagSubmitBox({
         setError(errorMessage(err, "Submission failed."));
       }
     });
+    })(event);
   }
 
   return (
@@ -129,30 +134,38 @@ export function FlagSubmitBox({
       </div>
 
       {solved ? null : (
-        <form onSubmit={onSubmit} className="mt-4 space-y-3" aria-busy={pending}>
+        <Form
+          label="Submit flag"
+          onSubmit={onSubmit}
+          pending={pending}
+          className="mt-4 space-y-3"
+        >
           <Field
             label="Flag"
             htmlFor={`${id}-flag`}
-            error={error ?? undefined}
+            error={error ?? form.formState.errors.flag?.message}
             hint="Format varies. The comparison happens on the server."
           >
             <Input
               id={`${id}-flag`}
-              name="flag"
               autoComplete="off"
               spellCheck={false}
               placeholder="flag{…}"
-              value={flag}
-              onChange={(event) => setFlag(event.target.value)}
               disabled={pending || (retryIn !== null && retryIn > 0)}
-              aria-invalid={!!error || result?.result === "incorrect"}
+              aria-invalid={!!error || !!form.formState.errors.flag || result?.result === "incorrect"}
               data-testid="flag-input"
+              {...form.register("flag")}
             />
           </Field>
-          <Button type="submit" disabled={pending || (retryIn !== null && retryIn > 0)} data-testid="flag-submit">
-            {pending ? "Checking…" : "Submit"}
+          <Button
+            type="submit"
+            loading={pending}
+            disabled={retryIn !== null && retryIn > 0}
+            data-testid="flag-submit"
+          >
+            Submit
           </Button>
-        </form>
+        </Form>
       )}
 
       {result?.result === "incorrect" ? (

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 import { difficultyLabel, DIFFICULTIES } from "@/lib/format";
 import type { Category, Difficulty, Tag } from "@/lib/types";
@@ -48,7 +49,15 @@ export function DetailsStep({
   const selected = new Set(tagIds);
 
   return (
-    <section className="space-y-4" aria-labelledby={`${id}-details`}>
+    <Form
+      label="Challenge details"
+      className="space-y-4"
+      pending={pending}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave();
+      }}
+    >
       <h2 id={`${id}-details`} className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
         Details
       </h2>
@@ -119,14 +128,14 @@ export function DetailsStep({
       </fieldset>
       <div className="flex flex-wrap gap-2">
         {isEdit ? (
-          <Button type="button" onClick={onSave} disabled={pending}>
-            {pending ? "Saving…" : "Save details"}
+          <Button type="submit" loading={pending}>
+            Save details
           </Button>
         ) : null}
         <Button type="button" variant={isEdit ? "outline" : "primary"} onClick={onNext}>
           Next: scenario
         </Button>
       </div>
-    </section>
+    </Form>
   );
 }

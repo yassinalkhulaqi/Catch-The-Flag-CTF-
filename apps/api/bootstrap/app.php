@@ -138,6 +138,20 @@ return Application::configure(basePath: dirname(__DIR__))
                 : null;
         });
 
+        // Business-rule failures raised as abort(422, ...) in Actions/Services
+        // must share one contract with FormRequest failures so the client can
+        // always read `error.fields` (docs/api.md §1.1). A generic `form` key
+        // carries the message when no single input field is at fault.
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) use ($envelope, $isApi): ?JsonResponse {
+            if (! $isApi($request) || $e->getStatusCode() !== 422) {
+                return null;
+            }
+
+            return $envelope($request, 422, 'validation_failed', 'The given data was invalid.', [
+                'form' => [$e->getMessage() !== '' ? $e->getMessage() : 'The given data was invalid.'],
+            ]);
+        });
+
         $exceptions->render(function (Throwable $e, Request $request) use ($envelope, $isApi, $requestId): ?JsonResponse {
             if (! $isApi($request)) {
                 return null;

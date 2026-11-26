@@ -251,6 +251,12 @@ mobile bottom nav, no offline/error banner, footer is four links.
 - No retry button on `ErrorState`.
 - No offline detection.
 
+**Resolved by the forms overhaul:** pending states now use `Button loading` +
+`aria-busy` on the form; auth/profile/password/flag/filter/admin forms use
+react-hook-form + zod with inline field errors, `error.fields` mapping, and a
+visible password-policy checklist before submit. The inline feedback model is
+unchanged (no toasts on forms); see `docs/design-system.md` §5.2.
+
 ### 3.5 Content and tone
 
 - Copy is accurate and calm. It is also thin: several empty states are a single

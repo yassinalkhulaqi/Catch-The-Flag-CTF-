@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { listAdminAuditLogsServer } from "@/lib/api/admin-server";
 
 export const metadata: Metadata = { title: "Admin · Audit log" };
@@ -65,25 +68,26 @@ export default async function AdminAuditLogPage({
         are written by the backend on every admin mutation.
       </p>
 
-      <form method="get" action="/admin/audit-log" className="mt-4 flex max-w-md gap-2" role="search" aria-label="Filter audit log by action">
-        <label htmlFor="audit-action" className="sr-only">
-          Filter by action
-        </label>
-        <input
+      <Form
+        label="Filter audit log by action"
+        role="search"
+        method="get"
+        action="/admin/audit-log"
+        className="mt-4 flex max-w-md items-end gap-2"
+      >
+        <Input
           id="audit-action"
           name="action"
           type="search"
+          aria-label="Filter by action"
           defaultValue={action ?? ""}
           placeholder="Filter by action, e.g. challenge.published…"
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="font-mono"
         />
-        <button
-          type="submit"
-          className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border bg-surface-raised px-4 text-sm text-foreground hover:bg-border"
-        >
+        <Button type="submit" variant="secondary">
           Filter
-        </button>
-      </form>
+        </Button>
+      </Form>
 
       {items.length === 0 ? (
         <Card className="mt-4">

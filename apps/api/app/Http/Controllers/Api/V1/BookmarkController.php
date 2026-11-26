@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreBookmarkRequest;
+use App\Http\Requests\UpdateBookmarkRequest;
 use App\Models\Bookmark;
 use App\Models\Challenge;
 use App\Models\Lesson;
@@ -56,13 +58,9 @@ class BookmarkController extends Controller
     /**
      * Add or retarget a bookmark (idempotent — POST is an upsert).
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreBookmarkRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'type' => ['required', 'string', 'in:challenge,lesson,path'],
-            'id' => ['required', 'integer', 'min:1'],
-            'note' => ['sometimes', 'nullable', 'string', 'max:2000'],
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
 
@@ -89,13 +87,11 @@ class BookmarkController extends Controller
     /**
      * Replace the note on one of the current user's bookmarks.
      */
-    public function update(Request $request, Bookmark $bookmark): JsonResponse
+    public function update(UpdateBookmarkRequest $request, Bookmark $bookmark): JsonResponse
     {
         Gate::authorize('update', $bookmark);
 
-        $validated = $request->validate([
-            'note' => ['sometimes', 'nullable', 'string', 'max:2000'],
-        ]);
+        $validated = $request->validated();
 
         $bookmark->note = $validated['note'] ?? null;
         $bookmark->save();

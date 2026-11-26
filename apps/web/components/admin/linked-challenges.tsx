@@ -1,13 +1,22 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link as LinkIcon, Unlink } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Link as LinkIcon, Unlink } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Form, FormError } from "@/components/ui/form";
+import { Field, Input } from "@/components/ui/input";
 import { linkAdminLessonChallenge, unlinkAdminLessonChallenge } from "@/lib/api/admin";
 import type { AdminLinkedChallenge } from "@/lib/types";
+
+const linkSchema = z.object({
+  challengeId: z.number().int().positive("Enter the numeric id of the challenge."),
+});
+type LinkInput = z.infer<typeof linkSchema>;
 
 /** Linked challenges for a lesson (id/title/slug only — never flags). */
 export function LinkedChallenges({
@@ -18,19 +27,17 @@ export function LinkedChallenges({
   initialLinks: AdminLinkedChallenge[];
 }) {
   const [links, setLinks] = useState(initialLinks);
-  const [challengeId, setChallengeId] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const form = useForm<LinkInput>({
+    resolver: zodResolver(linkSchema),
+    defaultValues: { challengeId: Number.NaN },
+  });
 
-  async function link() {
-    const id = Number(challengeId);
-    if (!Number.isInteger(id) || id <= 0) {
-      setError("Enter the numeric id of the challenge.");
-      return;
-    }
+  const link = form.handleSubmit(async ({ challengeId }) => {
     setPending(true);
     setError(null);
-    const result = await linkAdminLessonChallenge(lessonId, id);
+    const result = await linkAdminLessonChallenge(lessonId, challengeId);
     setPending(false);
     if (!result.ok) {
       setError(result.message);
@@ -44,8 +51,8 @@ export function LinkedChallenges({
     } catch {
       // Keep the current list; the link succeeded.
     }
-    setChallengeId("");
-  }
+    form.reset();
+  });
 
   async function unlink(link: AdminLinkedChallenge) {
     setPending(true);
@@ -98,38 +105,33 @@ export function LinkedChallenges({
         <p className="text-sm text-muted">No challenges linked yet.</p>
       )}
 
-      <form
+      <Form
+        label="Link a challenge"
         className="mt-4 flex flex-wrap items-end gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void link();
-        }}
+        pending={pending}
+        onSubmit={link}
       >
-        <div>
-          <Label htmlFor="link-challenge-id" className="mb-1 block text-xs text-muted">
-            Link a challenge by numeric id
-          </Label>
+        <Field
+          label="Link a challenge by numeric id"
+          htmlFor="link-challenge-id"
+          error={form.formState.errors.challengeId?.message}
+        >
           <Input
             id="link-challenge-id"
             type="number"
             min={1}
             inputMode="numeric"
-            value={challengeId}
-            onChange={(event) => setChallengeId(event.target.value)}
             placeholder="e.g. 42"
             className="w-40"
+            {...form.register("challengeId", { valueAsNumber: true })}
           />
-        </div>
-        <Button type="submit" variant="secondary" size="sm" disabled={pending || challengeId.trim() === ""}>
+        </Field>
+        <Button type="submit" variant="secondary" size="sm" loading={pending}>
           <LinkIcon aria-hidden="true" className="size-4" />
           Link challenge
         </Button>
-      </form>
-      {error ? (
-        <p role="alert" className="mt-2 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      </Form>
+      <FormError className="mt-2">{error}</FormError>
     </div>
   );
 }

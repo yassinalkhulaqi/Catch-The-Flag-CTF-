@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { ChallengeHint } from "@/lib/types";
 
@@ -28,7 +29,15 @@ export function HintsStep({
       <h2 id={`${id}-hints`} className="font-mono text-xs uppercase tracking-[0.16em] text-accent">
         Hints
       </h2>
-      <div className="grid gap-3 md:grid-cols-[1fr_120px_auto]">
+      <Form
+        label="Add hint"
+        pending={pending}
+        className="grid gap-3 md:grid-cols-[1fr_120px_auto]"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onAdd();
+        }}
+      >
         <Input
           placeholder="Hint content"
           value={content}
@@ -42,10 +51,10 @@ export function HintsStep({
           onChange={(e) => onCost(e.target.value)}
           aria-label="Hint cost"
         />
-        <Button type="button" onClick={onAdd} disabled={pending}>
+        <Button type="submit" loading={pending}>
           Add hint
         </Button>
-      </div>
+      </Form>
       <ul className="space-y-2">
         {hints.length === 0 ? <li className="text-sm text-muted">No hints yet.</li> : null}
         {hints.map((hint) => (

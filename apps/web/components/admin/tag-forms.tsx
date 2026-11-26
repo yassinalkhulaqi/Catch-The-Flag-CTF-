@@ -1,70 +1,64 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Form, FormError } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
+import { tagCreateSchema, type TagCreateInput } from "@/lib/admin/schemas";
 import { api } from "@/lib/api/client";
-import { errorMessage } from "@/lib/errors";
+import { applyServerError } from "@/lib/forms/server-errors";
 import type { Tag } from "@/lib/types";
 
 function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 export function TagCreateForm() {
   const id = useId();
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const form = useForm<TagCreateInput>({
+    resolver: zodResolver(tagCreateSchema),
+    defaultValues: { name: "", slug: "" },
+  });
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    setError(null);
+    try {
+      await api.post("/admin/tags", { name: values.name, slug: values.slug || slugify(values.name) });
+      form.reset();
+      router.refresh();
+    } catch (err) {
+      setError(applyServerError(err, form.setError));
+    }
+  });
 
   return (
-    <form
-      className="mt-6 flex max-w-xl flex-wrap items-end gap-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        setError(null);
-        startTransition(async () => {
-          try {
-            await api.post("/admin/tags", { name, slug: slug || slugify(name) });
-            setName("");
-            setSlug("");
-            router.refresh();
-          } catch (err) {
-            setError(errorMessage(err));
-          }
-        });
-      }}
-    >
-      <Field label="Name" htmlFor={`${id}-name`} className="min-w-[140px] flex-1">
+    <Form label="Add tag" onSubmit={onSubmit} pending={form.formState.isSubmitting} className="mt-6 flex max-w-xl flex-wrap items-end gap-3">
+      <Field label="Name" htmlFor={`${id}-name`} error={form.formState.errors.name?.message} className="min-w-[140px] flex-1">
         <Input
           id={`${id}-name`}
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setSlug(slugify(e.target.value));
-          }}
-          required
+          disabled={form.formState.isSubmitting}
+          {...form.register("name", {
+            onChange: (event) => {
+              if (!form.formState.dirtyFields.slug) {
+                form.setValue("slug", slugify(event.target.value), { shouldValidate: true });
+              }
+            },
+          })}
         />
       </Field>
-      <Field label="Slug" htmlFor={`${id}-slug`} className="min-w-[140px] flex-1">
-        <Input id={`${id}-slug`} value={slug} onChange={(e) => setSlug(e.target.value)} required />
+      <Field label="Slug" htmlFor={`${id}-slug`} error={form.formState.errors.slug?.message} className="min-w-[140px] flex-1">
+        <Input id={`${id}-slug`} disabled={form.formState.isSubmitting} {...form.register("slug")} />
       </Field>
-      <Button type="submit" disabled={pending}>
-        {pending ? "Adding…" : "Add tag"}
+      <Button type="submit" loading={form.formState.isSubmitting}>
+        Add tag
       </Button>
-      {error ? (
-        <p role="alert" className="w-full text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-    </form>
+      <FormError className="w-full">{error}</FormError>
+    </Form>
   );
 }
 

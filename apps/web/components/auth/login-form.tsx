@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { Form, FormError } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
-import { api, ApiError } from "@/lib/api/client";
-import { errorMessage, fieldError } from "@/lib/errors";
+import { api } from "@/lib/api/client";
+import { applyServerError } from "@/lib/forms/server-errors";
 import { useDictionary } from "@/lib/i18n";
+import { loginSchema, type LoginInput } from "@/lib/schemas/auth";
 import { safeInternalPath } from "@/lib/safe-url";
 import type { AuthResponse } from "@/lib/types";
 
@@ -18,84 +22,63 @@ export function LoginForm() {
   const copy = useDictionary();
   const next = safeInternalPath(search.get("next"), "/dashboard");
   const [pending, startTransition] = useTransition();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const form = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const onSubmit = form.handleSubmit((values) => {
     setFormError(null);
-    setErrors({});
     startTransition(async () => {
       try {
-        await api.post<{ data: AuthResponse }>("/auth/login", { email, password });
+        await api.post<{ data: AuthResponse }>("/auth/login", values);
         router.push(next);
         router.refresh();
       } catch (err) {
-        setFormError(errorMessage(err, "Login failed."));
-        if (err instanceof ApiError && err.fields) {
-          setErrors({
-            email: fieldError(err, "email") ?? "",
-            password: fieldError(err, "password") ?? "",
-          });
-        }
+        setFormError(applyServerError(err, form.setError));
       }
     });
-  }
+  });
 
   return (
-    <form
+    <Form
+      label="Sign in"
       onSubmit={onSubmit}
-      className="space-y-4"
+      pending={pending}
       data-testid="login-form"
-      noValidate
     >
       <div className="space-y-1 text-center">
         <h1 className="font-display text-2xl font-semibold">{copy.pages.loginTitle}</h1>
         <p className="text-sm text-muted">{copy.pages.loginBody}</p>
       </div>
 
-      {formError ? (
-        <p role="alert" className="text-sm text-danger" data-testid="login-error">
-          {formError}
-        </p>
-      ) : null}
+      <FormError data-testid="login-error">{formError}</FormError>
 
-      <Field label="Email" htmlFor={`${id}-email`} error={errors.email || undefined}>
+      <Field label="Email" htmlFor={`${id}-email`} error={form.formState.errors.email?.message}>
         <Input
           id={`${id}-email`}
-          name="email"
           type="email"
           autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
           disabled={pending}
           data-testid="login-email"
+          {...form.register("email")}
         />
       </Field>
 
-      <Field
-        label="Password"
-        htmlFor={`${id}-password`}
-        error={errors.password || undefined}
-      >
+      <Field label="Password" htmlFor={`${id}-password`} error={form.formState.errors.password?.message}>
         <Input
           id={`${id}-password`}
-          name="password"
           type="password"
           autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           disabled={pending}
           data-testid="login-password"
+          {...form.register("password")}
         />
       </Field>
 
-      <Button type="submit" className="w-full" disabled={pending} data-testid="login-submit">
-        {pending ? "Signing in…" : "Sign in"}
+      <Button type="submit" loading={pending} className="w-full" data-testid="login-submit">
+        Sign in
       </Button>
 
       <p className="text-center text-sm text-muted">
@@ -108,6 +91,6 @@ export function LoginForm() {
           Forgot password?
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

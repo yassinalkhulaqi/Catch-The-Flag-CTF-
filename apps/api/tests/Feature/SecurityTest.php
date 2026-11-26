@@ -140,7 +140,9 @@ class SecurityTest extends TestCase
                 "/api/v1/admin/challenges/{$challenge->id}/files",
                 ['file' => $upload],
                 $headers
-            )->assertStatus(422)->assertJsonPath('error.code', 'bad_request');
+            )->assertStatus(422)
+                ->assertJsonPath('error.code', 'validation_failed')
+                ->assertJsonStructure(['error' => ['fields' => ['form']]]);
         } finally {
             @unlink($tmp);
         }

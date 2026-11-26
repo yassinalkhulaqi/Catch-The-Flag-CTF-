@@ -26,7 +26,7 @@ class CategoryRequest extends FormRequest
         $ignoreId = $bound instanceof Category ? $bound->id : $bound;
 
         return [
-            'name' => [$required, 'string', 'max:80'],
+            'name' => [$required, 'string', 'max:80', Rule::unique('categories', 'name')->ignore($ignoreId)],
             'slug' => ['sometimes', 'nullable', 'string', 'alpha_dash', 'max:80', Rule::unique('categories', 'slug')->ignore($ignoreId)],
             'description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'color' => ['sometimes', 'nullable', 'string', 'max:9'],

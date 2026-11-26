@@ -9,13 +9,13 @@ use App\Actions\Admin\TransitionPathAction;
 use App\Actions\Admin\UpsertPathAction;
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\PathIndexRequest;
 use App\Http\Requests\Admin\PathRequest;
 use App\Http\Resources\Admin\AdminPathResource;
 use App\Models\Path;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Validation\Rule;
 
 /**
  * Staff learning-path management including the publish workflow.
@@ -23,12 +23,9 @@ use Illuminate\Validation\Rule;
  */
 class PathController extends Controller
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(PathIndexRequest $request): AnonymousResourceCollection
     {
-        $filters = $request->validate([
-            'status' => ['sometimes', 'string', Rule::in(['draft', 'review', 'published', 'archived'])],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
+        $filters = $request->validated();
 
         $query = Path::query()->latest('id');
 

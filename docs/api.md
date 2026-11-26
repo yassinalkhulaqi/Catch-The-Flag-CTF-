@@ -47,7 +47,7 @@ payload (e.g. `{ "result": "correct" }`).
 | 404 | `not_found` | Missing **or** not-visible resource (same shape, no existence oracle) |
 | 409 | `conflict` | Uniqueness / state conflicts (e.g. duplicate handle) |
 | 413 | `file_too_large` | Upload over limit |
-| 422 | `validation_failed` | FormRequest failures, per-field messages |
+| 422 | `validation_failed` | Every validation failure: FormRequest failures use named fields; business-rule failures raised in Actions use a generic `form` field. `error.fields` is always present |
 | 429 | `rate_limited` | Includes `Retry-After` header |
 | 500 | `server_error` | Generic message only |
 
@@ -68,7 +68,7 @@ payload (e.g. `{ "result": "correct" }`).
 | `POST /challenges/{id}/submissions` | 10 / min / user+challenge, 30 / min / user |
 | `GET /challenges/{id}/files/{file}` | 60 / min / user |
 | admin writes | 120 / min / user |
-| everything else (auth'd) | 300 / min / user |
+| everything else (auth'd, including profile/bookmark/quiz writes) | 300 / min / user |
 
 ### 1.4 Timestamps / ids
 ISO-8601 UTC (`2026-09-27T12:00:00Z`). IDs are integers. Slugs used in public

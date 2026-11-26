@@ -2,18 +2,11 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { SelectField } from "@/components/ui/form";
 import { Input, Label } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/types";
 
 const DIFFICULTIES = ["beginner", "intermediate", "advanced", "expert"] as const;
-
-const selectClass = cn(
-  "flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm",
-  "text-foreground",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-  "disabled:cursor-not-allowed disabled:opacity-50",
-);
 
 type CategoryOption = Pick<Category, "id" | "name" | "slug">;
 
@@ -76,47 +69,31 @@ export function SearchFilterBar({
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-category">Category</Label>
-        <select
-          id="filter-category"
-          className={selectClass}
-          value={category}
-          onChange={(e) =>
-            update({
-              category: e.target.value === "all" ? null : e.target.value,
-            })
-          }
-        >
-          <option value="all">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SelectField
+        id="filter-category"
+        label="Category"
+        value={category}
+        onChange={(e) =>
+          update({ category: e.target.value === "all" ? null : e.target.value })
+        }
+        options={[
+          { value: "all", label: "All categories" },
+          ...categories.map((c) => ({ value: c.slug, label: c.name })),
+        ]}
+      />
 
-      <div className="space-y-1.5">
-        <Label htmlFor="filter-difficulty">Difficulty</Label>
-        <select
-          id="filter-difficulty"
-          className={selectClass}
-          value={difficulty}
-          onChange={(e) =>
-            update({
-              difficulty: e.target.value === "all" ? null : e.target.value,
-            })
-          }
-        >
-          <option value="all">All difficulties</option>
-          {DIFFICULTIES.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SelectField
+        id="filter-difficulty"
+        label="Difficulty"
+        value={difficulty}
+        onChange={(e) =>
+          update({ difficulty: e.target.value === "all" ? null : e.target.value })
+        }
+        options={[
+          { value: "all", label: "All difficulties" },
+          ...DIFFICULTIES.map((d) => ({ value: d, label: d })),
+        ]}
+      />
 
       {showSolved ? (
         <div className="flex items-end pb-2">

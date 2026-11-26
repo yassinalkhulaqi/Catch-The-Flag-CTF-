@@ -3,55 +3,44 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { Button } from "@/components/ui/button";
+import { Form, FormError } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
-import { api, ApiError } from "@/lib/api/client";
-import { errorMessage, fieldError } from "@/lib/errors";
+import { api } from "@/lib/api/client";
+import { applyServerError } from "@/lib/forms/server-errors";
+import { registerSchema, type RegisterInput } from "@/lib/schemas/auth";
 import type { AuthResponse } from "@/lib/types";
 
 export function RegisterForm() {
   const id = useId();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const form = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "", password_confirmation: "" },
+  });
+  const password = form.watch("password");
+  const confirmation = form.watch("password_confirmation");
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const onSubmit = form.handleSubmit((values) => {
     setFormError(null);
-    setErrors({});
     startTransition(async () => {
       try {
-        await api.post<{ data: AuthResponse }>(
-          "/auth/register",
-          {
-            name,
-            email,
-            password,
-            password_confirmation: passwordConfirmation,
-          },
-        );
+        await api.post<{ data: AuthResponse }>("/auth/register", values);
         router.push("/dashboard");
         router.refresh();
       } catch (err) {
-        setFormError(errorMessage(err, "Registration failed."));
-        if (err instanceof ApiError && err.fields) {
-          setErrors({
-            name: fieldError(err, "name") ?? "",
-            email: fieldError(err, "email") ?? "",
-            password: fieldError(err, "password") ?? "",
-          });
-        }
+        setFormError(applyServerError(err, form.setError));
       }
     });
-  }
+  });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate data-testid="register-form">
+    <Form label="Create account" onSubmit={onSubmit} pending={pending} data-testid="register-form">
       <div className="space-y-1 text-center">
         <h1 className="font-display text-2xl font-semibold">Create account</h1>
         <p className="text-sm text-muted">
@@ -59,72 +48,43 @@ export function RegisterForm() {
         </p>
       </div>
 
-      {formError ? (
-        <p role="alert" className="text-sm text-danger">
-          {formError}
-        </p>
-      ) : null}
+      <FormError>{formError}</FormError>
 
-      <Field label="Name" htmlFor={`${id}-name`} error={errors.name || undefined}>
-        <Input
-          id={`${id}-name`}
-          name="name"
-          autoComplete="name"
-          required
-          minLength={2}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={pending}
-        />
+      <Field label="Name" htmlFor={`${id}-name`} error={form.formState.errors.name?.message}>
+        <Input id={`${id}-name`} autoComplete="name" disabled={pending} {...form.register("name")} />
       </Field>
 
-      <Field label="Email" htmlFor={`${id}-email`} error={errors.email || undefined}>
-        <Input
-          id={`${id}-email`}
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={pending}
-        />
+      <Field label="Email" htmlFor={`${id}-email`} error={form.formState.errors.email?.message}>
+        <Input id={`${id}-email`} type="email" autoComplete="email" disabled={pending} {...form.register("email")} />
       </Field>
 
-      <Field
-        label="Password"
-        htmlFor={`${id}-password`}
-        error={errors.password || undefined}
-      >
+      <Field label="Password" htmlFor={`${id}-password`} error={form.formState.errors.password?.message}>
         <Input
           id={`${id}-password`}
-          name="password"
           type="password"
           autoComplete="new-password"
-          required
-          minLength={12}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           disabled={pending}
+          {...form.register("password")}
         />
       </Field>
-      <p className="text-xs text-faint">At least 12 characters, with letters and numbers.</p>
+      <PasswordRequirements password={password} confirmation={confirmation} />
 
-      <Field label="Confirm password" htmlFor={`${id}-confirm`}>
+      <Field
+        label="Confirm password"
+        htmlFor={`${id}-confirm`}
+        error={form.formState.errors.password_confirmation?.message}
+      >
         <Input
           id={`${id}-confirm`}
-          name="password_confirmation"
           type="password"
           autoComplete="new-password"
-          required
-          value={passwordConfirmation}
-          onChange={(e) => setPasswordConfirmation(e.target.value)}
           disabled={pending}
+          {...form.register("password_confirmation")}
         />
       </Field>
 
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Creating…" : "Create account"}
+      <Button type="submit" loading={pending} className="w-full">
+        Create account
       </Button>
 
       <p className="text-center text-sm text-muted">
@@ -133,6 +93,6 @@ export function RegisterForm() {
           Sign in
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

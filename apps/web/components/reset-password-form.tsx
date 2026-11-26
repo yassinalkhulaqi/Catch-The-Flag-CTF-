@@ -2,84 +2,78 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { Button } from "@/components/ui/button";
+import { Form, FormError } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
-import { ApiError, api } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
+import { applyServerError } from "@/lib/forms/server-errors";
+import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/schemas/auth";
 
 export function ResetPasswordForm({ token, email }: { token: string; email: string }) {
   const router = useRouter();
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(null);
+  const form = useForm<ResetPasswordInput>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { token, email, password: "", password_confirmation: "" },
+  });
+  const password = form.watch("password");
+  const confirmation = form.watch("password_confirmation");
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setError(null);
-    setPending(true);
-    try {
-      await api.post("/auth/reset-password", {
-        token,
-        email,
-        password,
-        password_confirmation: confirm,
-      });
-      router.push("/login");
-      router.refresh();
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Reset failed. Try again.",
-      );
-    } finally {
-      setPending(false);
-    }
-  }
+  const onSubmit = form.handleSubmit((values) => {
+    setFormError(null);
+    startTransition(async () => {
+      try {
+        await api.post("/auth/reset-password", values);
+        router.push("/login");
+        router.refresh();
+      } catch (err) {
+        setFormError(applyServerError(err, form.setError));
+      }
+    });
+  });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4" aria-label="Set new password">
+    <Form label="Set new password" onSubmit={onSubmit} pending={pending}>
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">
         Choose a new password
       </h1>
-      <Field label="New password (min 12 characters)" htmlFor="reset-password">
+      <Field label="New password" htmlFor="reset-password" error={form.formState.errors.password?.message}>
         <Input
           id="reset-password"
           type="password"
           autoComplete="new-password"
-          required
-          minLength={12}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          disabled={pending}
+          {...form.register("password")}
         />
       </Field>
-      <Field label="Confirm new password" htmlFor="reset-confirm">
+      <PasswordRequirements password={password} confirmation={confirmation} />
+      <Field
+        label="Confirm new password"
+        htmlFor="reset-confirm"
+        error={form.formState.errors.password_confirmation?.message}
+      >
         <Input
           id="reset-confirm"
           type="password"
           autoComplete="new-password"
-          required
-          minLength={12}
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
+          disabled={pending}
+          {...form.register("password_confirmation")}
         />
       </Field>
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Resetting…" : "Reset password"}
+      <FormError>{formError}</FormError>
+      <Button type="submit" loading={pending} className="w-full">
+        Reset password
       </Button>
       <p className="text-center text-sm text-muted">
         <Link href="/login" className="text-accent hover:underline">
           Back to log in
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

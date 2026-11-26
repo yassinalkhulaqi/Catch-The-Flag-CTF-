@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { ChallengeFlagMeta } from "@/lib/types";
 
@@ -31,7 +32,15 @@ export function FlagStep({
       <p className="text-sm text-muted">
         Flag values are never returned by the API after save. Replace a flag by setting a new value.
       </p>
-      <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]">
+      <Form
+        label="Set flag"
+        pending={pending}
+        className="grid gap-3 md:grid-cols-[1fr_160px_auto]"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave();
+        }}
+      >
         <Input
           type="password"
           autoComplete="off"
@@ -46,10 +55,10 @@ export function FlagStep({
           onChange={(e) => onLabel(e.target.value)}
           aria-label="Flag label"
         />
-        <Button type="button" onClick={onSave} disabled={pending}>
+        <Button type="submit" loading={pending}>
           Set flag
         </Button>
-      </div>
+      </Form>
       <ul className="divide-y divide-border border border-border text-sm">
         {flags.map((flag) => (
           <li key={flag.id} className="flex justify-between px-3 py-2">

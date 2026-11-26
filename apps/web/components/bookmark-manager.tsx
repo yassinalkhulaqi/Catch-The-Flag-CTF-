@@ -1,11 +1,14 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Bookmark as BookmarkIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Bookmark as BookmarkIcon, Trash2 } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label, Textarea } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
+import { Field, Textarea } from "@/components/ui/input";
 import {
   deleteBookmark,
   listBookmarks,
@@ -13,6 +16,7 @@ import {
   type BookmarkItem,
   type BookmarkTargetType,
 } from "@/lib/api/bookmarks-client";
+import { noteSchema, type NoteInput } from "@/lib/schemas/profile";
 import { timeAgo } from "@/lib/utils";
 
 const GROUPS: Array<{ key: BookmarkTargetType; label: string; empty: string }> = [
@@ -127,7 +131,10 @@ function BookmarkRow({
   pending: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draftNote, setDraftNote] = useState(item.note ?? "");
+  const form = useForm<NoteInput>({
+    resolver: zodResolver(noteSchema),
+    defaultValues: { note: item.note ?? "" },
+  });
 
   const href = targetHref(item);
 
@@ -157,24 +164,26 @@ function BookmarkRow({
             ) : null}
           </div>
           {editing ? (
-            <form
+            <Form
+              label="Private note"
               className="mt-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                onSaveNote(draftNote.trim() === "" ? null : draftNote.trim());
+              onSubmit={form.handleSubmit((values) => {
+                onSaveNote(values.note.trim() === "" ? null : values.note.trim());
                 setEditing(false);
-              }}
+              })}
             >
-              <Label htmlFor={`note-${item.id}`} className="mb-1 block text-xs text-muted">
-                Private note
-              </Label>
-              <Textarea
-                id={`note-${item.id}`}
-                rows={2}
-                value={draftNote}
-                onChange={(event) => setDraftNote(event.target.value)}
-                placeholder="What should you remember about this?"
-              />
+              <Field
+                label="Private note"
+                htmlFor={`note-${item.id}`}
+                error={form.formState.errors.note?.message}
+              >
+                <Textarea
+                  id={`note-${item.id}`}
+                  rows={2}
+                  placeholder="What should you remember about this?"
+                  {...form.register("note")}
+                />
+              </Field>
               <div className="mt-2 flex gap-2">
                 <Button type="submit" variant="secondary" size="sm">
                   Save note
@@ -184,14 +193,14 @@ function BookmarkRow({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setDraftNote(item.note ?? "");
+                    form.reset({ note: item.note ?? "" });
                     setEditing(false);
                   }}
                 >
                   Cancel
                 </Button>
               </div>
-            </form>
+            </Form>
           ) : (
             <button
               type="button"

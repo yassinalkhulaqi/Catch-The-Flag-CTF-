@@ -13,6 +13,7 @@ import { api } from "@/lib/api/client";
 import { uploadFormData } from "@/lib/admin/upload";
 import { challengeBasicsSchema } from "@/lib/admin/schemas";
 import { errorMessage } from "@/lib/errors";
+import { FormError, FormSuccess } from "@/components/ui/form";
 import type {
   Category,
   ChallengeDetail,
@@ -91,7 +92,7 @@ export function ChallengeEditor({
           tag_ids: tagIds,
         });
         if (!parsed.success) {
-          setError(parsed.error.issues[0]?.message ?? "Check the challenge fields.");
+          setError(parsed.error.issues.map((issue) => issue.message).join(" "));
           return;
         }
         const body = parsed.data;
@@ -209,16 +210,8 @@ export function ChallengeEditor({
   return (
     <div className="space-y-8">
       <StepNav current={step} isEdit={isEdit} onSelect={selectStep} />
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-      {message ? (
-        <p role="status" className="text-sm text-success">
-          {message}
-        </p>
-      ) : null}
+      <FormError>{error}</FormError>
+      <FormSuccess>{message}</FormSuccess>
 
       {step === "details" ? (
         <DetailsStep

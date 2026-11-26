@@ -83,7 +83,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/leaderboard', [LeaderboardController::class, 'index']);
     });
 
-    Route::middleware(['auth:sanctum', 'banned'])->group(function (): void {
+    // Every authenticated write (and read) shares a per-user bucket. The
+    // flag-submit route layers its own stricter limits on top of this one.
+    Route::middleware(['auth:sanctum', 'banned', 'throttle:api'])->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
         Route::get('/auth/sessions', [SecurityController::class, 'sessions']);

@@ -9,13 +9,13 @@ use App\Actions\Admin\TransitionChallengeAction;
 use App\Actions\Admin\UpsertChallengeAction;
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ChallengeIndexRequest;
 use App\Http\Requests\Admin\ChallengeRequest;
 use App\Http\Resources\Admin\AdminChallengeResource;
 use App\Models\Challenge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Validation\Rule;
 
 /**
  * Staff challenge management: full catalog including drafts.
@@ -26,12 +26,9 @@ use Illuminate\Validation\Rule;
  */
 class ChallengeController extends Controller
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(ChallengeIndexRequest $request): AnonymousResourceCollection
     {
-        $filters = $request->validate([
-            'status' => ['sometimes', 'string', Rule::in(['draft', 'review', 'published', 'archived'])],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
+        $filters = $request->validated();
 
         $query = Challenge::query()
             ->with(['tags'])

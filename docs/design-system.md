@@ -93,6 +93,24 @@ use `aria-live`. The command palette is `Ctrl` or `Cmd` + `K`.
 - Marketing sections live in `components/landing/*`; there is no monolithic
   `sections.tsx` to extend.
 
+### 5.2 Forms
+
+Every interactive form uses one pattern:
+
+- `components/ui/form.tsx` — `Form` (sets `noValidate`, `aria-label`, and
+  `aria-busy` while pending), `FormError` (`role="alert"`), `FormSuccess`
+  (`role="status"`), and `SelectField` (the single styled native select).
+- `components/ui/input.tsx` — `Field` wires label/hint/error ids and
+  `aria-describedby`; `Input`/`Textarea` share the same control styles.
+- `react-hook-form` + `zodResolver` with schemas in `lib/schemas/*` and
+  `lib/admin/schemas.ts`. Client rules are fast feedback only — Laravel
+  FormRequests remain authoritative.
+- `lib/forms/server-errors.ts` maps `error.fields` from the uniform 422
+  envelope onto the matching inputs; the generic `form` field stays at the
+  top level. `errorMessage()` appends the `request_id`.
+- Buttons use the `loading` prop (spinner + `aria-busy`) instead of swapping
+  labels. `PasswordRequirements` explains the policy before submission.
+
 ## 6. Theme and locale
 
 - Signed-in theme is saved with `PUT /me/settings`. The switcher paints

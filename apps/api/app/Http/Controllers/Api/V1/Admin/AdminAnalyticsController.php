@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AnalyticsRequest;
 use App\Services\AdminAnalyticsService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -30,13 +30,11 @@ class AdminAnalyticsController extends Controller
         return response()->json(['data' => $analytics->perCategory()]);
     }
 
-    public function xp(Request $request, AdminAnalyticsService $analytics): JsonResponse
+    public function xp(AnalyticsRequest $request, AdminAnalyticsService $analytics): JsonResponse
     {
         Gate::authorize('viewAdminDashboard');
 
-        $validated = $request->validate([
-            'days' => ['sometimes', 'integer', 'min:7', 'max:90'],
-        ]);
+        $validated = $request->validated();
 
         $days = (int) ($validated['days'] ?? 30);
 

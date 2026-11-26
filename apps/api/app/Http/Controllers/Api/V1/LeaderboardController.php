@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LeaderboardIndexRequest;
 use App\Http\Resources\LeaderboardEntryResource;
 use App\Services\LeaderboardService;
 use Illuminate\Http\JsonResponse;
@@ -15,10 +16,11 @@ use Illuminate\Http\Request;
  */
 class LeaderboardController extends Controller
 {
-    public function index(Request $request, LeaderboardService $board): JsonResponse
+    public function index(LeaderboardIndexRequest $request, LeaderboardService $board): JsonResponse
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $perPage = (int) $request->query('per_page', config('ctf.leaderboard.page_size'));
+        $validated = $request->validated();
+        $page = (int) ($validated['page'] ?? 1);
+        $perPage = (int) ($validated['per_page'] ?? config('ctf.leaderboard.page_size'));
 
         $paginator = $board->page($page, $perPage);
         $offset = $board->rankOffset($paginator);
